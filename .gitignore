@@ -1,0 +1,95 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# ChromaDB
+data/chromadb/*.sqlite3
+data/chromadb/*.parquet
+data/chromadb/chroma.sqlite3-*
+
+# Project Data (uploads & results)
+data/projects/*/uploads/*
+data/projects/*/extracted/*
+data/projects/*/results/*
+
+# Keep directory structure but ignore contents
+!data/projects/.gitkeep
+!data/input/.gitkeep
+!data/regelwerke/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment Variables
+.env
+.env.local
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# LM Studio (if storing models locally)
+models/
+*.gguf
+
+# Config files with secrets
+config/config.yaml
+config/secrets.yaml
+
+# Keep example configs
+!config/config.example.yaml

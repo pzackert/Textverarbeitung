@@ -1,0 +1,101 @@
+# Python Dependencies für IFB PROFI Textverarbeitung
+# Version: 1.0
+# Stand: 31. Oktober 2025
+
+# ============================================
+# CORE DEPENDENCIES
+# ============================================
+
+# Python Runtime
+python>=3.11
+
+# Web Framework
+streamlit>=1.28.0
+
+# LangChain RAG Framework
+langchain>=0.1.0
+langchain-community>=0.0.10
+
+# Vector Store
+chromadb>=0.4.18
+
+# Embeddings
+sentence-transformers>=2.2.0
+
+# LLM Integration (OpenAI-kompatibel für LM Studio)
+openai>=1.0.0
+
+# ============================================
+# DOCUMENT PARSING
+# ============================================
+
+# PDF Parsing
+PyMuPDF>=1.23.0  # fitz
+
+# DOCX Parsing
+python-docx>=1.1.0
+
+# XLSX Parsing
+openpyxl>=3.1.0
+xlrd>=2.0.1
+
+# ============================================
+# DATA PROCESSING
+# ============================================
+
+# Data Manipulation
+pandas>=2.1.0
+numpy>=1.24.0
+
+# JSON/YAML
+pyyaml>=6.0.1
+
+# ============================================
+# UTILITIES
+# ============================================
+
+# HTTP Requests
+requests>=2.31.0
+
+# File Management
+pathlib>=1.0.1
+
+# Date/Time
+python-dateutil>=2.8.2
+
+# UUID Generation
+uuid>=1.30
+
+# ============================================
+# TESTING
+# ============================================
+
+# Testing Framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Mocking
+pytest-mock>=3.11.0
+
+# ============================================
+# DEVELOPMENT
+# ============================================
+
+# Code Formatting
+black>=23.9.0
+isort>=5.12.0
+
+# Linting
+flake8>=6.1.0
+pylint>=3.0.0
+
+# Type Checking
+mypy>=1.5.0
+
+# ============================================
+# OPTIONAL: JUPYTER NOTEBOOKS
+# ============================================
+
+# Jupyter (optional für Development)
+# jupyter>=1.0.0
+# ipykernel>=6.25.0
