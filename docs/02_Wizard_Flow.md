@@ -1,12 +1,24 @@
-# Wizard-Flow: Schritt-für-Schritt
+# Wizard-Flow: Benutzerführung & Use Cases
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 2.0  
-**Stand:** 31. Oktober 2024
+**Version:** 2.1  
+**Stand:** 8. November 2025
 
 ---
 
-## ÜBERSICHT: 7-SCHRITTE-WIZARD
+## 🎯 ÜBERSICHT
+
+Der Wizard führt Antragsteller durch den Prozess der Antragseinreichung und automatisierten Prüfung. Der gesamte Prozess ist in drei Hauptphasen unterteilt:
+
+1. **Projekterfassung**
+   - Grunddaten erfassen
+   - Dokumente hochladen
+2. **Automatische Prüfung**
+   - Dokumentenanalyse
+   - Kriterienprüfung
+3. **Ergebnisübersicht**
+   - Prüfungsergebnisse
+   - Ergebnisexport
 
 ```
 1. Projekt anlegen
@@ -26,15 +38,37 @@
 
 ---
 
-## SCHRITT 1: PROJEKT ANLEGEN
+## 📋 USE CASE 1: PROJEKT ANLEGEN
 
-### Ziel
-Neues Förderprojekt im System anlegen und grundlegende Metadaten erfassen.
+### Beschreibung
+Als Antragsteller möchte ich ein neues Förderprojekt anlegen und die Grunddaten erfassen.
 
-### UI-Elemente (Streamlit)
+### Eingabefelder
+- **Projektname** (Pflichtfeld)
+  - Beschreibender Name des Vorhabens
+  - z.B. "Entwicklung einer KI-gestützten Verpackungsanlage"
 
-```python
-# frontend/pages/1_Projekt_anlegen.py
+- **Antragsteller/Firma** (Pflichtfeld)
+  - Name des antragstellenden Unternehmens
+  - z.B. "Mustermann GmbH"
+
+- **Fördernummer** (optional)
+  - Falls bereits vorhanden
+  - Format: PROFI-2025-XXXX
+
+- **Fördermodul** (Pflichtfeld)
+  - Dropdown mit verfügbaren Modulen:
+    - PROFI Standard
+    - PROFI Transfer
+    - PROFI Transfer Plus (EFRE)
+    - PROFI Umwelt
+    - PROFI Umwelt Transfer
+
+- **Projektart** (Pflichtfeld)
+  - Dropdown:
+    - Industrielle Forschung
+    - Experimentelle Entwicklung
+    - Durchführbarkeitsstudie
 
 import streamlit as st
 from datetime import datetime
