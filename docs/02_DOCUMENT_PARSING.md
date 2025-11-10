@@ -10,26 +10,49 @@ Framework zur Extraktion und Verarbeitung von Dokumenteninhalten für die LLM-An
 
 ## Unterstützte Formate
 
+Die unterstützten Formate werden zentral in einer Parser-Konfiguration verwaltet.
+
 ### PDF (*.pdf)
 - Textextraktion
 - OCR für Scans
 - Tabellenextraktion
 - Metadaten
 
+**Verwendung:** Projektskizze, Projektantrag
+
 ### Word (*.docx, *.doc)
 - Volltext mit Formatierung
 - Tabellen
 - Eingebettete Objekte
 
-### Excel (*.xlsx, *.xls)
-- Tabellenextraktion
-- Formelauswertung
-- Multi-Sheet-Handling
+**Verwendung:** Projektskizze, Projektantrag
 
-### Text (*.txt, *.md)
+### Text (*.txt)
 - UTF-8 Encoding
-- Markdown-Parsing
 - Strukturerkennung
+
+**Verwendung:** Projektskizze
+
+## Dokument-Typen
+
+### 1. Projektskizze
+**Umfang:** 2-3 Seiten
+**Inhalt:**
+- Ansprechpartner (Liste)
+- Unternehmensbeschreibung
+- Technologischer Lösungsansatz
+- Marktpotenzial und Vermarktung
+- Projektumfang
+
+### 2. Projektantrag (Formular)
+**Inhalt:**
+- Projektbeschreibung
+- Projektkalkulation
+- KMU-Erklärung
+- Jahresabschluss
+- Handelsregisterauszug
+- Finanz- und Arbeitsplatzübersicht
+- Lebensläufe (optional)
 
 ## Verarbeitung
 

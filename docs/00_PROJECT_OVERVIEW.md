@@ -23,18 +23,36 @@
 
 ## 🔄 Entwicklungsprozess
 
-1. **Dokumentationsphase**
-   - Jede Komponente wird in einer eigenen Markdown-Datei detailliert beschrieben
-   - Fokus auf klare Anforderungen und erwartetes Verhalten
+### Workflow
+1. **Projekt anlegen**
+   - Eindeutige Projekt-ID
+   - Projektmetadaten erfassen
+   - Backend-Ordner anlegen
 
-2. **Task-Generierung**
-   - GitHub Copilot analysiert die Dokumentation
-   - Generiert konkrete Entwicklungsaufgaben
-   - Tasks werden in GitHub Issues überführt
+2. **Dokumente hochladen**
+   - Projektskizze (2-3 Seiten)
+   - Projektantrag (Formular)
 
-3. **Implementierung**
-   - Schrittweise Umsetzung der Tasks
-   - Kontinuierliche Integration in das Gesamtsystem
+3. **Automatische Verarbeitung**
+   - Dokumente parsen
+   - RAG-Basis aufbauen (ChromaDB)
+   - LLM-Integration aktivieren
+
+4. **Kriterienprüfung**
+   - 6 Kriterien sukzessive prüfen
+   - Live-Status anzeigen
+   - Ergebnisse speichern
+
+5. **Ergebnisübersicht**
+   - Erfüllte vs. nicht erfüllte Kriterien
+   - Detaillierte Begründungen
+   - Export-Funktionen
+
+### Task-Generierung
+- GitHub Copilot analysiert die Dokumentation
+- Generiert konkrete Entwicklungsaufgaben
+- Tasks werden in `/tasks` Ordner abgelegt
+- Schrittweise Implementierung
 
 ## 📊 Projektkomponenten
 

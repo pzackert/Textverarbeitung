@@ -11,25 +11,60 @@ Die Benutzeroberfläche führt den Antragsteller durch den Prozess der Antragsei
 ## Prozessschritte
 
 ### 1. Projekt anlegen
+- Projekt-ID (automatisch generiert)
 - Projektname
 - Antragsteller/Firma
 - Fördernummer (optional)
 - Fördermodul (Dropdown)
 - Projektart (Dropdown)
 
+**Backend:** Pro Projekt wird ein eigener Ordner angelegt:
+```
+/data/projects/{projekt_id}/
+  /uploads/
+  /extracted/
+  /results/
+  metadata.json
+```
+
 ### 2. Dokumente hochladen
-- Unterstützte Formate: PDF, DOCX, XLSX, TXT, MD
-- Drag & Drop Upload
-- Dokumentenbeschreibungen
-- Validierung
+
+Es werden genau **zwei Dokumente** hochgeladen:
+
+#### Dokument 1: Projektskizze
+**Beschreibung:** 2-3 seitige Projektbeschreibung mit folgenden Inhalten:
+- Alle Ansprechpartner
+- Unternehmensbeschreibung
+- Technologischer Lösungsansatz
+- Marktpotenzial und Vermarktung
+- Gesamter Projektumfang
+
+**Unterstützte Formate:** PDF, Word (DOCX), Textdatei
+
+#### Dokument 2: Projektantrag (vorgefertigtes Formular)
+**Beschreibung:** Ausgefülltes Antragsformular mit:
+- Projektbeschreibung
+- Projektkalkulation
+- KMU-Erklärung
+- Jahresabschluss
+- Handelsregisterauszug
+- Finanz- und Arbeitsplatzübersicht
+- Lebensläufe (optional)
+
+**Unterstützte Formate:** Definiert in Parser-Konfiguration
 
 ### 3. Automatische Prüfung
-- Live-Status pro Dokument
+- RAG-Basis wird aufgebaut
+- LLM-Integration wird aktiviert
+- Kriterien werden sukzessive nach Kriterienkatalog geprüft
+- Live-Status pro Kriterium
 - Fortschrittsanzeige
 - Manuelle Nachprüfung wenn nötig
 
 ### 4. Ergebnisübersicht
-- Prüfungsergebnisse
+- Anzahl erfüllter Kriterien
+- Anzahl nicht erfüllter Kriterien
+- Detaillierte Prüfergebnisse
 - Exportmöglichkeiten
 - Projektabschluss
 
