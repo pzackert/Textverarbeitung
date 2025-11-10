@@ -8,8 +8,9 @@
 
 ### Allgemeine Dokumentation
 - `00_PROJECT_OVERVIEW.md` - Diese Übersicht
-- `01_TECHNICAL_ARCHITECTURE.md` - Technische Architektur
+- `TECHNICAL_ARCHITECTURE.md` - Technische Architektur
 - `SYSTEM_REQUIREMENTS.md` - Systemanforderungen
+- `DEVELOPMENT_PRINCIPLES.md` - **Entwicklungsprinzipien & Arbeitsweise**
 
 ### Prozesskomponenten (numbered)
 1. `01_UI_FLOW.md` - UI-Design und Seitenfluss
