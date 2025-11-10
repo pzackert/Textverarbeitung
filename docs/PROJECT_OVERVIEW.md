@@ -7,10 +7,10 @@
 ## 📑 Dokumentationsstruktur
 
 ### Allgemeine Dokumentation
-- `00_PROJECT_OVERVIEW.md` - Diese Übersicht
+- `PROJECT_OVERVIEW.md` - Diese Übersicht
 - `TECHNICAL_ARCHITECTURE.md` - Technische Architektur
 - `SYSTEM_REQUIREMENTS.md` - Systemanforderungen
-- `DEVELOPMENT_PRINCIPLES.md` - **Entwicklungsprinzipien & Arbeitsweise**
+- `DEVELOPMENT_PRINCIPLES.md` - Entwicklungsprinzipien & Arbeitsweise
 
 ### Prozesskomponenten (numbered)
 1. `01_UI_FLOW.md` - UI-Design und Seitenfluss
@@ -105,10 +105,3 @@
 - Audit-Logging
 - Compliance
 
-## 🎯 Nächste Schritte
-
-1. Review und Finalisierung der Dokumentationsstruktur
-2. Detaillierte Ausarbeitung jeder Komponenten-Dokumentation
-3. Task-Generierung durch GitHub Copilot
-4. Priorisierung der Entwicklungsaufgaben
-5. Start der Implementierung

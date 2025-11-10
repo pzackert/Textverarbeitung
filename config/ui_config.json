@@ -1,0 +1,45 @@
+{
+  "ui": {
+    "app_name": "IFB PROFI - Antragsprüfung",
+    "app_description": "Automatisierte Prüfung von Förderanträgen für das IFB PROFI Programm - Hamburger Förderung",
+    "version": "1.0.0",
+    "theme": {
+      "primaryColor": "#007BFF",
+      "backgroundColor": "#FFFFFF",
+      "secondaryBackgroundColor": "#F0F2F6",
+      "textColor": "#262730",
+      "font": "sans serif"
+    },
+    "layout": {
+      "mode": "wide",
+      "sidebar_state": "expanded",
+      "initial_sidebar_state": "auto"
+    },
+    "assets": {
+      "logo": "/assets/logo.png",
+      "favicon": "/assets/favicon.ico"
+    },
+    "colors": {
+      "success": "#28A745",
+      "warning": "#FFC107",
+      "danger": "#DC3545",
+      "info": "#17A2B8"
+    },
+    "upload": {
+      "max_file_size_mb": 50,
+      "allowed_extensions": ["pdf", "docx", "doc", "txt"],
+      "enable_drag_drop": true,
+      "show_progress": true
+    },
+    "table": {
+      "items_per_page": 10,
+      "sortable": true,
+      "searchable": true
+    },
+    "validation": {
+      "show_live_updates": true,
+      "update_interval_seconds": 2,
+      "enable_manual_override": true
+    }
+  }
+}
