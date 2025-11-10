@@ -1,386 +1,314 @@
-# Wizard-Flow: Benutzerführung & Use Cases
+# Wizard-Flow
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 2.1  
-**Stand:** 8. November 2025
+**Version:** 3.0  
+**Stand:** 10. November 2025
 
 ---
 
 ## 🎯 ÜBERSICHT
 
-Der Wizard führt Antragsteller durch den Prozess der Antragseinreichung und automatisierten Prüfung. Der gesamte Prozess ist in drei Hauptphasen unterteilt:
+Der Wizard führt Benutzer **Step-by-Step** durch die automatisierte Antragsprüfung. Jeder Schritt baut auf dem vorherigen auf und ist klar abgegrenzt.
 
-1. **Projekterfassung**
-   - Grunddaten erfassen
-   - Dokumente hochladen
-2. **Automatische Prüfung**
-   - Dokumentenanalyse
-   - Kriterienprüfung
-3. **Ergebnisübersicht**
-   - Prüfungsergebnisse
-   - Ergebnisexport
+### Prozess-Flow
 
 ```
-1. Projekt anlegen
-   ↓
-2. Dokumente hochladen
-   ↓
-3. Dokumente parsen
-   ↓
-4. Informationsextraktion (RAG)
-   ↓
-5. Fördervoraussetzungen prüfen
-   ↓
-6. Bewertung durchführen
-   ↓
-7. Report & Checkliste generieren
+┌─────────────────────────────────────────────────────┐
+│                                                      │
+│  Schritt 0: Projektübersicht                        │
+│  → Bestehendes Projekt öffnen ODER neu anlegen      │
+│                                                      │
+└──────────────────────┬───────────────────────────────┘
+                       ↓
+┌─────────────────────────────────────────────────────┐
+│                                                      │
+│  Schritt 1: Projekt anlegen                         │
+│  → Metadaten erfassen (Name, Firma, Modul)          │
+│                                                      │
+└──────────────────────┬───────────────────────────────┘
+                       ↓
+┌─────────────────────────────────────────────────────┐
+│                                                      │
+│  Schritt 2: Dokumente hochladen                     │
+│  → Projektskizze + Projektantrag hochladen          │
+│                                                      │
+└──────────────────────┬───────────────────────────────┘
+                       ↓
+┌─────────────────────────────────────────────────────┐
+│                                                      │
+│  Schritt 3: Automatische Verarbeitung               │
+│  → Parsing → RAG-Aufbau → Kriterienprüfung          │
+│                                                      │
+└──────────────────────┬───────────────────────────────┘
+                       ↓
+┌─────────────────────────────────────────────────────┐
+│                                                      │
+│  Schritt 4: Ergebnisübersicht                       │
+│  → Prüfungsergebnisse anzeigen & exportieren        │
+│                                                      │
+└─────────────────────────────────────────────────────┘
 ```
+
 
 ---
 
-## 📋 USE CASE 1: PROJEKT ANLEGEN
+## 📋 SCHRITT 0: PROJEKTÜBERSICHT
 
-### Beschreibung
-Als Antragsteller möchte ich ein neues Förderprojekt anlegen und die Grunddaten erfassen.
+**Zweck:** Einstiegspunkt der Anwendung - Überblick über alle Projekte
 
-### Eingabefelder
-- **Projektname** (Pflichtfeld)
-  - Beschreibender Name des Vorhabens
-  - z.B. "Entwicklung einer KI-gestützten Verpackungsanlage"
-
-- **Antragsteller/Firma** (Pflichtfeld)
-  - Name des antragstellenden Unternehmens
-  - z.B. "Mustermann GmbH"
-
-- **Fördernummer** (optional)
-  - Falls bereits vorhanden
-  - Format: PROFI-2025-XXXX
-
-- **Fördermodul** (Pflichtfeld)
-  - Dropdown mit verfügbaren Modulen:
-    - PROFI Standard
-    - PROFI Transfer
-    - PROFI Transfer Plus (EFRE)
-    - PROFI Umwelt
-    - PROFI Umwelt Transfer
-
-- **Projektart** (Pflichtfeld)
-  - Dropdown:
-    - Industrielle Forschung
-    - Experimentelle Entwicklung
-    - Durchführbarkeitsstudie
-
-import streamlit as st
-from datetime import datetime
-from pathlib import Path
-import json
-
-st.title("🆕 Neues Projekt anlegen")
-
-# Form
-with st.form("projekt_form"):
-    projekt_name = st.text_input(
-        "Projektname *",
-        placeholder="z.B. Vollautomatische Verpackungsmaschine"
-    )
-    
-    antragsteller = st.text_input(
-        "Antragsteller (Unternehmen) *",
-        placeholder="z.B. Verpackungsmaschinenbau GmbH"
-    )
-    
-    modul = st.selectbox(
-        "Fördermodul *",
-        [
-            "PROFI Standard",
-            "PROFI Transfer",
-            "PROFI Transfer Plus (EFRE)",
-            "PROFI Umwelt",
-            "PROFI Umwelt Transfer"
-        ]
-    )
-    
-    projektart = st.selectbox(
-        "Projektart *",
-        [
-            "Industrielle Forschung",
-            "Experimentelle Entwicklung",
-            "Durchführbarkeitsstudie"
-        ]
-    )
-    
-    beschreibung = st.text_area(
-        "Kurzbeschreibung (optional)",
-        placeholder="Beschreiben Sie kurz das Projektziel..."
-    )
-    
-    submit = st.form_submit_button("Projekt anlegen")
-
-# Submit-Logik
-if submit:
-    if not projekt_name or not antragsteller:
-        st.error("Bitte füllen Sie alle Pflichtfelder aus!")
-    else:
-        # Projekt erstellen
-        projekt_id = create_projekt(
-            projekt_name=projekt_name,
-            antragsteller=antragsteller,
-            modul=modul,
-            projektart=projektart,
-            beschreibung=beschreibung
-        )
-        
-        st.success(f"✅ Projekt '{projekt_name}' erfolgreich angelegt!")
-        st.session_state["current_projekt_id"] = projekt_id
-        
-        # Weiterleitung
-        st.info("👉 Weiter zu Schritt 2: Dokumente hochladen")
-```
-
-### Backend-Logik
-
-```python
-# backend/projekt_manager.py
-
-import uuid
-from pathlib import Path
-from datetime import datetime
-import json
-
-def create_projekt(
-    projekt_name: str,
-    antragsteller: str,
-    modul: str,
-    projektart: str,
-    beschreibung: str = None
-) -> str:
-    """
-    Erstellt neues Projekt im Dateisystem.
-    
-    Returns:
-        projekt_id (str): Eindeutige ID des Projekts
-    """
-    
-    # 1. Projekt-ID generieren
-    projekt_id = f"projekt_{uuid.uuid4().hex[:8]}"
-    
-    # 2. Verzeichnisstruktur erstellen
-    projekt_path = Path(f"data/projects/{projekt_id}")
-    projekt_path.mkdir(parents=True, exist_ok=True)
-    
-    (projekt_path / "uploads").mkdir(exist_ok=True)
-    (projekt_path / "extracted").mkdir(exist_ok=True)
-    (projekt_path / "results").mkdir(exist_ok=True)
-    
-    # 3. Metadaten speichern
-    metadata = {
-        "projekt_id": projekt_id,
-        "projekt_name": projekt_name,
-        "antragsteller": antragsteller,
-        "modul": modul,
-        "projektart": projektart,
-        "beschreibung": beschreibung,
-        "status": "created",
-        "created_at": datetime.now().isoformat(),
-        "updated_at": datetime.now().isoformat(),
-        "documents": [],
-        "checks_completed": {
-            "parsing": False,
-            "extraction": False,
-            "foerdervoraussetzungen": False,
-            "bewertung": False
-        }
-    }
-    
-    with open(projekt_path / "metadata.json", "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2, ensure_ascii=False)
-    
-    return projekt_id
-```
+### Was passiert hier?
+- Anzeige aller angelegten Projekte in tabellarischer Form
+- Status-Übersicht (Neu, In Bearbeitung, Abgeschlossen)
+- Navigation zu bestehenden Projekten
+- Button zum Anlegen eines neuen Projekts
 
 ### Output
-- Neues Verzeichnis: `data/projects/projekt_XXX/`
-- Datei: `metadata.json`
-- Session-State: `current_projekt_id` gesetzt
+- User wählt bestehendes Projekt ODER legt neues an
+
+**UI-Details:** Siehe `01_UI_FLOW.md` → Seite 0
 
 ---
 
-## SCHRITT 2: DOKUMENTE HOCHLADEN
+## 📋 SCHRITT 1: PROJEKT ANLEGEN
 
-### Ziel
-Alle relevanten Projektdokumente hochladen und im System registrieren.
+**Zweck:** Grunddaten des Förderprojekts erfassen
 
-### UI-Elemente (Streamlit)
-
-```python
-# frontend/pages/2_Dokumente_hochladen.py
-
-import streamlit as st
-from pathlib import Path
-import shutil
-
-st.title("📄 Dokumente hochladen")
-
-# Projekt laden
-projekt_id = st.session_state.get("current_projekt_id")
-if not projekt_id:
-    st.error("Kein aktives Projekt! Bitte zuerst Projekt anlegen.")
-    st.stop()
-
-metadata = load_projekt_metadata(projekt_id)
-st.info(f"Projekt: **{metadata['projekt_name']}** ({metadata['antragsteller']})")
-
-# Dokumententypen definieren
-DOC_TYPES = {
-    "projektskizze": {"label": "📝 Projektskizze", "required": True, "formats": [".pdf", ".docx"]},
-    "projektbeschreibung": {"label": "📋 Projektbeschreibung", "required": True, "formats": [".pdf", ".docx"]},
-    "kalkulation": {"label": "💰 Projektkalkulation", "required": True, "formats": [".xlsx", ".xls"]},
-    "kmu_erklaerung": {"label": "🏢 KMU-Erklärung", "required": True, "formats": [".pdf"]},
-    "jahresabschluss_1": {"label": "📊 Jahresabschluss (Jahr -2)", "required": True, "formats": [".pdf"]},
-    "jahresabschluss_2": {"label": "📊 Jahresabschluss (Jahr -1)", "required": True, "formats": [".pdf"]},
-    "handelsregister": {"label": "📜 Handelsregisterauszug", "required": True, "formats": [".pdf"]},
-    "finanzuebersicht": {"label": "💵 Finanz- und Arbeitsplatzübersicht", "required": True, "formats": [".xlsx", ".xls"]},
-    "lebenslauf": {"label": "👤 Lebensläufe (optional)", "required": False, "formats": [".pdf"]},
-    "loi": {"label": "📧 Letters of Intent (optional)", "required": False, "formats": [".pdf"]}
-}
-
-# Upload-Interface
-uploaded_docs = {}
-
-for doc_type, config in DOC_TYPES.items():
-    st.subheader(config["label"])
-    
-    # Prüfen, ob bereits hochgeladen
-    existing = next(
-        (d for d in metadata["documents"] if d["doc_type"] == doc_type),
-        None
-    )
-    
-    if existing:
-        st.success(f"✅ Bereits hochgeladen: {existing['filename']}")
-        if st.button(f"🗑️ Löschen", key=f"delete_{doc_type}"):
-            delete_document(projekt_id, doc_type)
-            st.rerun()
-    else:
-        uploaded_file = st.file_uploader(
-            f"Datei hochladen {config['formats']}",
-            type=[fmt.replace(".", "") for fmt in config["formats"]],
-            key=doc_type
-        )
-        
-        if uploaded_file:
-            uploaded_docs[doc_type] = uploaded_file
-
-# Upload-Button
-if st.button("📤 Alle Dateien hochladen", disabled=len(uploaded_docs) == 0):
-    with st.spinner("Dateien werden hochgeladen..."):
-        for doc_type, file in uploaded_docs.items():
-            save_document(projekt_id, doc_type, file)
-    
-    st.success(f"✅ {len(uploaded_docs)} Dokument(e) hochgeladen!")
-    st.rerun()
-
-# Fortschrittsanzeige
-total_required = sum(1 for cfg in DOC_TYPES.values() if cfg["required"])
-uploaded_required = sum(
-    1 for d in metadata["documents"]
-    if DOC_TYPES.get(d["doc_type"], {}).get("required", False)
-)
-
-st.progress(uploaded_required / total_required)
-st.write(f"**Fortschritt:** {uploaded_required}/{total_required} Pflichtdokumente hochgeladen")
-
-# Weiter-Button
-if uploaded_required >= total_required:
-    if st.button("➡️ Weiter zu Schritt 3: Dokumente parsen"):
-        st.switch_page("pages/3_Parsing.py")
-else:
-    st.warning(f"⚠️ Bitte laden Sie alle {total_required} Pflichtdokumente hoch.")
-```
-
-### Backend-Logik
-
-```python
-# backend/dokument_manager.py
-
-def save_document(projekt_id: str, doc_type: str, uploaded_file) -> dict:
-    """Speichert hochgeladenes Dokument."""
-    
-    # 1. Dateipfad generieren
-    projekt_path = Path(f"data/projects/{projekt_id}")
-    upload_path = projekt_path / "uploads"
-    
-    filename = f"{doc_type}_{uploaded_file.name}"
-    file_path = upload_path / filename
-    
-    # 2. Datei speichern
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    # 3. Metadaten aktualisieren
-    metadata = load_projekt_metadata(projekt_id)
-    
-    doc_entry = {
-        "doc_id": str(uuid.uuid4()),
-        "doc_type": doc_type,
-        "filename": filename,
-        "original_filename": uploaded_file.name,
-        "uploaded_at": datetime.now().isoformat(),
-        "file_size": uploaded_file.size,
-        "parsed": False
-    }
-    
-    metadata["documents"].append(doc_entry)
-    metadata["updated_at"] = datetime.now().isoformat()
-    
-    save_projekt_metadata(projekt_id, metadata)
-    
-    return doc_entry
-```
+### Was passiert hier?
+- User gibt Projekt-Metadaten ein:
+  - Projektname
+  - Antragsteller/Firma
+  - Fördermodul (PROFI Standard, Transfer, etc.)
+  - Projektart (Forschung, Entwicklung, Studie)
+  
+### Backend-Aktion
+System erstellt automatisch:
+- Projekt-ID (eindeutig)
+- Ordnerstruktur im Dateisystem
+- `metadata.json` mit Projekt-Informationen
 
 ### Output
-- Dateien in `data/projects/projekt_XXX/uploads/`
-- `metadata.json` aktualisiert mit Dokumentenliste
+- Projekt ist angelegt und bereit für Dokumenten-Upload
+- User wird zu Schritt 2 weitergeleitet
+
+**Datenstruktur:** Siehe `06_DATA_MANAGEMENT.md`  
+**UI-Details:** Siehe `01_UI_FLOW.md` → Seite 1
 
 ---
 
-## SCHRITT 3: DOKUMENTE PARSEN
+## 📋 SCHRITT 2: DOKUMENTE HOCHLADEN
 
-### Ziel
-Alle hochgeladenen Dokumente parsen und Text/Daten extrahieren.
+**Zweck:** Alle erforderlichen Dokumente in das System laden
 
-### UI-Elemente (Streamlit)
+### Was passiert hier?
+User lädt 2 Haupt-Dokumente hoch:
 
-```python
-# frontend/pages/3_Parsing.py
+1. **Projektskizze** (2-3 Seiten)
+   - Format: PDF oder DOCX
+   - Enthält: Projektbeschreibung, Marktanalyse, etc.
 
-import streamlit as st
+2. **Projektantrag** (Formular + Anhänge)
+   - Format: PDF oder DOCX
+   - Enthält: Strukturierte Antragsdaten
 
-st.title("⚙️ Dokumente werden verarbeitet...")
+Optional: Weitere Dokumente (Lebensläufe, Letters of Intent, etc.)
 
-projekt_id = st.session_state.get("current_projekt_id")
-metadata = load_projekt_metadata(projekt_id)
+### Backend-Aktion
+- Dateien werden im Projekt-Ordner gespeichert
+- Metadaten werden aktualisiert (Dateiname, Größe, Upload-Zeit)
+- Dateityp-Validierung
 
-# Parsing-Status
-st.subheader("📄 Dokumente:")
+### Output
+- Alle Dokumente sind hochgeladen
+- System ist bereit für automatische Verarbeitung
+- User wird zu Schritt 3 weitergeleitet
 
-progress_bar = st.progress(0)
-status_text = st.empty()
+**Parsing-Details:** Siehe `02_DOCUMENT_PARSING.md`  
+**UI-Details:** Siehe `01_UI_FLOW.md` → Seite 2
 
-parsed_count = 0
-total_docs = len(metadata["documents"])
+---
 
-for i, doc in enumerate(metadata["documents"]):
-    with st.expander(f"{doc['original_filename']}", expanded=True):
-        
-        if doc["parsed"]:
-            st.success("✅ Bereits geparst")
-        else:
-            status_text.text(f"Parsing: {doc['original_filename']}...")
-            
-            try:
-                # Parse-Funktion aufrufen
-                parse_result = parse_document(projekt_id, doc["doc_type"])
+## 📋 SCHRITT 3: AUTOMATISCHE VERARBEITUNG
+
+**Zweck:** Dokumente analysieren und Kriterien prüfen
+
+### Was passiert hier?
+
+#### Phase 3.1: Parsing
+- System extrahiert Text aus allen hochgeladenen Dokumenten
+- Strukturdaten werden erkannt (Überschriften, Tabellen, etc.)
+- Status-Anzeige: "Parsing läuft..."
+
+#### Phase 3.2: RAG-Aufbau
+- Texte werden in Chunks aufgeteilt
+- Embeddings werden generiert
+- ChromaDB wird mit Vektoren befüllt
+- Status-Anzeige: "RAG-Index wird erstellt..."
+
+#### Phase 3.3: Kriterienprüfung
+LLM prüft sukzessive alle 6 Förderkriterien:
+
+1. **K001: Projektort** - Betriebsstätte in Hamburg?
+2. **K002: Unternehmensalter** - Min. 2 Jahre?
+3. **K003: Projektbeginn** - Noch nicht begonnen?
+4. **K004: Projektziel** - Neue/verbesserte Produkte?
+5. **K005: Finanzierung** - 10k-100k EUR, gesichert?
+6. **K006: Erfolgsaussicht** - Ohne Förderung nicht realisierbar?
+
+Für jedes Kriterium:
+- RAG findet relevante Textstellen
+- LLM bewertet: Erfüllt / Nicht erfüllt / Unklar
+- Begründung wird generiert
+- Status wird live aktualisiert
+
+### UI-Verhalten während Verarbeitung
+
+**Oberer Bereich:** Prozess-Status
+```
+⏳ Parsing...        ✓ Abgeschlossen
+⏳ RAG-Aufbau...     ⏳ 45% (23/50 Chunks)
+⏹  LLM-Prüfung      ⏹ Wartet...
+```
+
+**Unterer Bereich:** Kriterienliste (Live-Updates)
+```
+┌────────────────────────────────────────────────┐
+│ Kriterium              │ Status  │ Konfidenz  │
+├────────────────────────────────────────────────┤
+│ K001: Projektort       │ ✓       │ 95%        │
+│ K002: Unternehmensalter│ ✓       │ 88%        │
+│ K003: Projektbeginn    │ ⏳      │ -          │
+│ K004: Projektziel      │ ⏹      │ -          │
+│ K005: Finanzierung     │ ⏹      │ -          │
+│ K006: Erfolgsaussicht  │ ⏹      │ -          │
+└────────────────────────────────────────────────┘
+```
+
+### Backend-Aktionen
+- Parser-Module verarbeiten Dokumente
+- RAG-System indexiert Inhalte
+- Criteria-Engine führt LLM-Checks durch
+- Ergebnisse werden in `metadata.json` gespeichert
+
+### Output
+- Alle Kriterien sind geprüft (✓, ✗, oder ⚠️)
+- Detaillierte Begründungen für jedes Kriterium
+- System wechselt automatisch zu Schritt 4
+
+**Parsing-Details:** Siehe `02_DOCUMENT_PARSING.md`  
+**RAG-Details:** Siehe `03_RAG_SYSTEM.md`  
+**Kriterien-Details:** Siehe `05_CRITERIA_ENGINE.md`  
+**UI-Details:** Siehe `01_UI_FLOW.md` → Seite 3
+
+---
+
+## 📋 SCHRITT 4: ERGEBNISÜBERSICHT
+
+**Zweck:** Prüfungsergebnisse präsentieren und exportieren
+
+### Was passiert hier?
+
+#### Zusammenfassung
+```
+Prüfung abgeschlossen: 5 von 6 Kriterien erfüllt
+
+✓ K001: Projektort Hamburg
+✓ K002: Unternehmensalter
+✗ K003: Projektbeginn (bereits begonnen)
+✓ K004: Projektziel  
+✓ K005: Finanzierung
+✓ K006: Erfolgsaussicht
+```
+
+#### Detailansicht
+Für jedes Kriterium:
+- Status (Erfüllt / Nicht erfüllt)
+- Begründung (aus LLM-Analyse)
+- Quellen (relevante Dokumenten-Abschnitte)
+- Konfidenz-Score
+- Option zur manuellen Korrektur
+
+#### Export-Funktionen
+User kann Ergebnisse exportieren als:
+- **PDF** - Druckfähiger Prüfbericht
+- **JSON** - Maschinenlesbare Daten
+- **Markdown** - Text-Format für Weiterverarbeitung
+
+### Backend-Aktion
+- Report-Generator erstellt strukturierte Ausgabe
+- Export-Files werden im Results-Ordner gespeichert
+
+### Output
+- Vollständige Dokumentation der Prüfung
+- Downloadbare Reports
+- Projekt-Status wird auf "Abgeschlossen" gesetzt
+
+**UI-Details:** Siehe `01_UI_FLOW.md` → Seite 4
+
+---
+
+## 🔄 WIZARD-NAVIGATION
+
+### Vorwärts-Navigation
+Jeder Schritt hat einen "Weiter"-Button, der erst aktiviert wird, wenn:
+- Alle erforderlichen Daten eingegeben sind (Schritt 1)
+- Alle Pflichtdokumente hochgeladen sind (Schritt 2)
+- Die Verarbeitung abgeschlossen ist (Schritt 3)
+
+### Rückwärts-Navigation
+User kann jederzeit zu vorherigen Schritten zurück:
+- Projektdaten anpassen
+- Dokumente austauschen
+- Prüfung neu durchführen
+
+### Projekt speichern
+Nach jedem Schritt wird der Projekt-Zustand automatisch gespeichert:
+- User kann Anwendung schließen und später fortsetzen
+- Letzter Status wird in `metadata.json` festgehalten
+
+---
+
+## 🎯 GESAMTABLAUF (ZUSAMMENFASSUNG)
+
+```
+Schritt 0: Projektübersicht
+  → Projekt auswählen oder neu anlegen
+  
+Schritt 1: Projekt anlegen
+  → Metadaten erfassen
+  → Ordnerstruktur wird erstellt
+  
+Schritt 2: Dokumente hochladen
+  → Projektskizze + Projektantrag
+  → Dateien werden gespeichert
+  
+Schritt 3: Automatische Verarbeitung
+  → Parsing (Text extrahieren)
+  → RAG-Aufbau (Vektoren indexieren)
+  → Kriterienprüfung (6 Checks nacheinander)
+  → Live-Status-Updates in UI
+  
+Schritt 4: Ergebnisübersicht
+  → Zusammenfassung (x/6 erfüllt)
+  → Detaillierte Begründungen
+  → Export (PDF, JSON, Markdown)
+```
+
+**Geschätzte Dauer:** 5-10 Minuten pro Projekt
+
+---
+
+## 📚 VERWANDTE DOKUMENTE
+
+- **UI-Implementierung:** `01_UI_FLOW.md`
+- **Dokumenten-Parsing:** `02_DOCUMENT_PARSING.md`
+- **RAG-System:** `03_RAG_SYSTEM.md`
+- **LLM-Integration:** `04_LLM_INTEGRATION.md`
+- **Kriterien-Engine:** `05_CRITERIA_ENGINE.md`
+- **Datenmanagement:** `06_DATA_MANAGEMENT.md`
+
+---
+
+**Ende der Wizard-Flow Dokumentation**
                 
                 st.success(f"✅ Erfolgreich geparst")
                 st.json(parse_result["metadata"])
