@@ -1,13 +1,44 @@
 # Technische Architektur
 ## IFB PROFI - KI-gestützte Textverarbeitung
 
-**Version:** 2.0 (aktualisiert mit LM Studio)  
-**Stand:** 31. Oktober 2024  
+**Version:** 3.0 (Architektur-Varianten)  
+**Stand:** 10. November 2025  
 **Zielgruppe:** Entwickler-Team
 
 ---
 
+## 🎯 ARCHITEKTUR-VARIANTEN
+
+Das System kann in drei Komplexitätsstufen implementiert werden:
+
+### **Option 1: Super-Lite** (Empfohlen für schnellen Start)
+- **Ziel:** Funktionsfähiger MVP in 1 Woche
+- **LLM:** LM Studio (inkl. RAG-Features)
+- **RAG:** LM Studio Built-in Collections
+- **Hosting:** Komplett lokal
+- **Aufwand:** Minimal
+
+### **Option 2: Lite** (Mehr Kontrolle)
+- **Ziel:** Produktionsreife in 2-3 Wochen
+- **LLM:** LM Studio (nur Inferenz)
+- **RAG:** Eigenes System (ChromaDB + LangChain)
+- **Hosting:** Lokal/Hybrid
+- **Aufwand:** Mittel
+
+### **Option 3: Full** (Enterprise)
+- **Ziel:** Skalierbare Cloud-Lösung
+- **LLM:** Eigenes Hosting (vLLM/Ollama)
+- **RAG:** Full-Stack (ChromaDB/Weaviate + Custom Pipeline)
+- **Hosting:** Cloud/Kubernetes
+- **Aufwand:** Hoch
+
+---
+
 ## 1. SYSTEM-ÜBERSICHT
+
+## 1. SYSTEM-ÜBERSICHT
+
+### Option 1: Super-Lite Architektur (Empfohlen für MVP)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -21,129 +52,417 @@
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     BACKEND (Python + LangChain)                 │
+│                     PYTHON BACKEND (Minimal)                     │
 ├──────────────────┬──────────────────┬──────────────────────────┤
-│  DOKUMENT-PARSER │   RAG-SYSTEM     │  REGELWERK-ENGINE       │
-│  • PDF-Extraktion│   • Embeddings   │  • Fördervoraussetzungen│
-│  • DOCX-Parsing  │   • ChromaDB     │  • Bewertungskriterien  │
-│  • XLSX-Parsing  │   • LLM-Retrieval│  • Konsistenzprüfung   │
+│  DOKUMENT-HANDLER│  LM STUDIO API   │  KRITERIEN-ENGINE       │
+│  • Upload        │   CONNECTOR      │  • Iterative Prüfung    │
+│  • Speicherung   │   • HTTP Client  │  • Ergebnis-Sammlung    │
+│  • Metadaten     │   • Error Handle │  • JSON-Speicherung     │
 └──────────────────┴──────────────────┴──────────────────────────┘
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     LM STUDIO (Lokales LLM)                      │
-│  • Qwen 2.5 (3-7B) - Hauptmodell                                │
-│  • CLI-Anbindung verfügbar                                       │
-│  • Läuft auf M1 Mac / Consumer Hardware                         │
-│  • Kein Cloud-Upload, 100% lokal                                │
+│                  LM STUDIO (All-in-One)                          │
+│  • LLM Hosting (Qwen 2.5 3B-7B)                                 │
+│  • RAG Built-in (Document Collections)                          │
+│  • Embeddings (Integriert)                                      │
+│  • OpenAI-kompatible API                                        │
+│  • GUI für Modell-Management                                    │
 └─────────────────────────────────────────────────────────────────┘
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     DATENSPEICHERUNG                             │
-├─────────────────────────────────────────────────────────────────┤
-│  • ChromaDB - Vector Store (Embeddings)                         │
-│  • Lokales Dateisystem - Projektdateien & Uploads               │
-│  • JSON-Files - Projektmetadaten & Ergebnisse                   │
+│  • Lokales Dateisystem - Uploads & Projekte                     │
+│  • JSON-Files - Metadaten & Ergebnisse                          │
+│  • LM Studio Collections - RAG Dokumente                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Vorteile:**
+- ✅ Schnellste Implementierung (1 Woche machbar)
+- ✅ Minimale Komplexität
+- ✅ Keine eigene RAG-Infrastruktur
+- ✅ GUI für Nicht-Techniker
+- ✅ Alles lokal, datenschutzkonform
+
+**Nachteile:**
+- ❌ Abhängig von LM Studio Features
+- ❌ Weniger Kontrolle über RAG-Prozess
+- ❌ Begrenzte Anpassbarkeit
+
+---
+
+### Option 2: Lite Architektur (Eigenes RAG)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     STREAMLIT WEB-INTERFACE                      │
+│                    (Wizard-basierte UI)                          │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  PYTHON BACKEND (Erweitert)                      │
+├──────────────────┬──────────────────┬──────────────────────────┤
+│  DOKUMENT-PARSER │   RAG-SYSTEM     │  KRITERIEN-ENGINE       │
+│  • PDF/DOCX/XLSX │   • LangChain    │  • Iterative Prüfung    │
+│  • Chunking      │   • ChromaDB     │  • RAG-Integration       │
+│  • Metadaten     │   • Embeddings   │  • Validierung          │
+└──────────────────┴──────────────────┴──────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  LM STUDIO (Nur LLM)                             │
+│  • LLM Hosting (Qwen 2.5 7B)                                    │
+│  • OpenAI-kompatible API                                        │
+│  • Fokus auf Inferenz                                           │
 └─────────────────────────────────────────────────────────────────┘
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     OUTPUT-GENERIERUNG                           │
-│  • Checklisten (JSON/Markdown)                                  │
-│  • Bewertungsreports (Markdown/PDF)                             │
-│  • Use-Case-spezifische Checks                                  │
+│                     DATENSPEICHERUNG                             │
+│  • ChromaDB - Vector Store (Embeddings)                         │
+│  • Lokales Dateisystem - Projektdateien & Uploads               │
+│  • JSON-Files - Projektmetadaten & Ergebnisse                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Vorteile:**
+- ✅ Mehr Kontrolle über RAG
+- ✅ Optimierbare Chunking-Strategie
+- ✅ Eigene Metadaten-Verwaltung
+- ✅ LLM weiterhin einfach (LM Studio)
+
+**Nachteile:**
+- ❌ Mehr Entwicklungsaufwand (2-3 Wochen)
+- ❌ ChromaDB Setup & Wartung
+- ❌ Eigene Embedding-Pipeline
+
+---
+
+### Option 3: Full Architektur (Enterprise)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  WEB-INTERFACE (React/Vue)                       │
+│               (Multi-User, Authentifizierung)                    │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    API GATEWAY / LOAD BALANCER                   │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  MICROSERVICES BACKEND                           │
+├──────────────────┬──────────────────┬──────────────────────────┤
+│  PARSER SERVICE  │   RAG SERVICE    │  INFERENCE SERVICE      │
+│  • Scale on      │   • Weaviate/    │  • vLLM/TGI Hosting     │
+│    Demand        │     Qdrant       │  • Load Balancing       │
+│  • Queue System  │   • Custom       │  • GPU Cluster          │
+│                  │     Embeddings   │                         │
+└──────────────────┴──────────────────┴──────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  DISTRIBUTED STORAGE                             │
+│  • Vector DB Cluster (Weaviate/Qdrant)                          │
+│  • Object Storage (S3/MinIO)                                    │
+│  • PostgreSQL - Metadaten                                       │
+│  • Redis - Caching                                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Vorteile:**
+- ✅ Maximale Kontrolle
+- ✅ Production-ready Skalierung
+- ✅ Multi-User, Multi-Tenant
+- ✅ High Availability
+
+**Nachteile:**
+- ❌ Hohe Komplexität
+- ❌ Deutlich mehr Aufwand (Monate)
+- ❌ Hardware-Anforderungen
+- ❌ DevOps-Know-how erforderlich
 
 ---
 
 ## 2. TECH-STACK DETAILS
 
-### 2.1 Core Technologies
+### 2.1 Variantenvergleich
 
+| Komponente | Super-Lite | Lite | Full |
+|------------|------------|------|------|
+| **LLM Runtime** | LM Studio | LM Studio | vLLM/TGI |
+| **LLM Modell** | Qwen 2.5 3B-7B | Qwen 2.5 7B | Qwen 2.5 14B+ |
+| **RAG System** | LM Studio Built-in | LangChain + ChromaDB | Custom + Weaviate |
+| **Vector DB** | LM Studio Collections | ChromaDB | Weaviate/Qdrant |
+| **Embeddings** | LM Studio (automatisch) | HuggingFace Models | Custom Fine-tuned |
+| **Frontend** | Streamlit | Streamlit | React/Vue |
+| **Backend** | Python (Minimal) | Python + LangChain | FastAPI Microservices |
+| **Deployment** | Lokal | Lokal/Docker | Kubernetes/Cloud |
+| **Setup Zeit** | 1 Woche | 2-3 Wochen | 2-3 Monate |
+
+---
+
+### 2.2 Option 1: Super-Lite Setup
+
+**Kernidee:** LM Studio übernimmt RAG, LLM-Hosting und API. Python nur für Business-Logik.
+
+#### Tech-Stack
 | Komponente | Technologie | Version | Zweck |
 |------------|-------------|---------|-------|
-| **Runtime** | Python | 3.11+ | Backend-Sprache |
-| **LLM-Server** | **LM Studio** | Latest | Lokales LLM-Hosting |
-| **LLM-Modell** | **Qwen 2.5** | 3B-7B | Hauptmodell für Inferenz |
-| **RAG-Framework** | LangChain | 0.1+ | RAG-Pipeline |
-| **Vector DB** | ChromaDB | 0.4.18+ | Embeddings-Speicher |
+| **LLM Server** | LM Studio | Latest | All-in-One (LLM + RAG) |
+| **LLM Modell** | Qwen 2.5 3B | Latest | Schnelle Inferenz |
+| **Runtime** | Python | 3.11+ | Backend-Logik |
 | **Frontend** | Streamlit | 1.28+ | Web-Interface |
-| **Embeddings** | sentence-transformers | 2.2+ | Multilingual Embeddings |
+| **HTTP Client** | requests/httpx | Latest | LM Studio API Calls |
 
-### 2.2 LM Studio Setup
+#### LM Studio Configuration
 
-**Warum LM Studio statt Ollama?**
-- ✅ Benutzerfreundlichere GUI
-- ✅ Einfachere Modell-Verwaltung
-- ✅ CLI-Support für Automatisierung
-- ✅ Bessere Performance auf Consumer-Hardware (M1 Mac getestet!)
-- ✅ Direkter API-Kompatibilität (OpenAI-Format)
+```python
+# config.yaml (Super-Lite)
+llm:
+  provider: "lm_studio"
+  base_url: "http://localhost:1234/v1"
+  model: "qwen2.5-3b-instruct"
+  use_builtin_rag: true  # Wichtig!
+  
+rag:
+  provider: "lm_studio"  # Keine eigene Implementierung
+  collection_name: "ifb_documents"
 
-**Installation & Modelle:**
-
-```bash
-# 1. LM Studio herunterladen
-# https://lmstudio.ai/
-
-# 2. Empfohlene Modelle:
-# - Qwen 2.5 3B (schnell, 3-5 GB RAM)
-# - Qwen 2.5 7B (besser, 6-8 GB RAM)
-# - Llama 3.2 3B (Alternative)
-
-# 3. CLI-Server starten (falls benötigt)
-lms server start --model qwen2.5-3b-instruct
+backend:
+  document_handler: "simple"  # Nur Upload + Speicherung
+  criteria_engine: "iterative"  # Sequential processing
 ```
 
-**API-Anbindung (Python):**
+#### Workflow Super-Lite
+
+1. **Upload:** Python speichert Dokumente in `/data/projects/{id}/uploads/`
+2. **Indexierung:** Python sendet Dokumente via API an LM Studio
+3. **RAG:** LM Studio indexiert in eigener Collection
+4. **Prüfung:** Python sendet Kriterien-Prompts mit RAG-Anfragen
+5. **Antwort:** LM Studio liefert kontextbasierte Antworten
+6. **Speicherung:** Python speichert Ergebnisse als JSON
+
+**Beispiel: LM Studio API Call mit RAG**
 
 ```python
 import requests
 
-class LMStudioClient:
-    """Wrapper für LM Studio API (OpenAI-kompatibel)."""
+def check_criterion_superlite(criterion_prompt: str, project_id: str):
+    """Kriterium mit LM Studio Built-in RAG prüfen"""
     
-    def __init__(self, base_url: str = "http://localhost:1234/v1"):
-        self.base_url = base_url
+    response = requests.post(
+        "http://localhost:1234/v1/chat/completions",
+        json={
+            "model": "qwen2.5-3b-instruct",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Du bist ein Förderantrag-Prüfer für IFB Hamburg."
+                },
+                {
+                    "role": "user",
+                    "content": criterion_prompt
+                }
+            ],
+            "temperature": 0.3,
+            "max_tokens": 1000,
+            # RAG-Aktivierung (LM Studio spezifisch)
+            "collection": f"projekt_{project_id}",
+            "use_rag": True,
+            "top_k_chunks": 5
+        }
+    )
     
-    def generate(
-        self,
-        prompt: str,
-        system_prompt: str = None,
-        temperature: float = 0.3,
-        max_tokens: int = 2048
-    ) -> str:
-        """Generiert Text mit LM Studio."""
-        
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
-        
-        response = requests.post(
-            f"{self.base_url}/chat/completions",
-            json={
-                "model": "local-model",
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens
-            }
-        )
-        response.raise_for_status()
-        
-        return response.json()["choices"][0]["message"]["content"]
+    return response.json()["choices"][0]["message"]["content"]
 ```
 
-### 2.3 Dokumenten-Parser
+**Kritischer Punkt:** Prüfen, ob LM Studio diese RAG-Features bietet! Falls nicht → Option 1.5 (siehe unten).
+
+---
+
+### 2.3 Option 2: Lite Setup
+
+**Kernidee:** LM Studio nur für LLM. Eigenes RAG mit ChromaDB + LangChain.
+
+#### Tech-Stack
+| Komponente | Technologie | Version | Zweck |
+|------------|-------------|---------|-------|
+| **LLM Server** | LM Studio | Latest | LLM Inferenz |
+| **LLM Modell** | Qwen 2.5 7B | Latest | Hauptmodell |
+| **RAG Framework** | LangChain | 0.1+ | RAG-Pipeline |
+| **Vector DB** | ChromaDB | 0.4.18+ | Embeddings-Speicher |
+| **Embeddings** | HuggingFace | - | multilingual-e5-large |
+| **Runtime** | Python | 3.11+ | Backend-Sprache |
+| **Frontend** | Streamlit | 1.28+ | Web-Interface |
+
+#### Configuration
+
+```python
+# config.yaml (Lite)
+llm:
+  provider: "lm_studio"
+  base_url: "http://localhost:1234/v1"
+  model: "qwen2.5-7b-instruct"
+  
+rag:
+  provider: "chromadb"  # Eigenes System
+  persist_directory: "./data/chromadb"
+  embedding_model: "intfloat/multilingual-e5-large"
+  chunk_size: 1000
+  chunk_overlap: 200
+  
+backend:
+  document_parser: "full"  # PDF/DOCX/XLSX Parser
+  criteria_engine: "rag_enhanced"  # Mit eigenem RAG
+```
+
+#### RAG-System Setup
+
+```python
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import Chroma
+from openai import OpenAI
+
+# Embeddings
+embeddings = HuggingFaceEmbeddings(
+    model_name="intfloat/multilingual-e5-large",
+    model_kwargs={'device': 'cpu'},
+    encode_kwargs={'normalize_embeddings': True}
+)
+
+# Vector Store
+vectorstore = Chroma(
+    collection_name=f"projekt_{projekt_id}",
+    embedding_function=embeddings,
+    persist_directory="./data/chromadb"
+)
+
+# LLM Client (LM Studio)
+llm_client = OpenAI(
+    base_url="http://localhost:1234/v1",
+    api_key="not-needed"
+)
+
+def check_criterion_lite(criterion_prompt: str, projekt_id: str):
+    """Kriterium mit eigenem RAG prüfen"""
+    
+    # 1. Relevante Chunks via ChromaDB finden
+    docs = vectorstore.similarity_search(
+        criterion_prompt,
+        k=5
+    )
+    
+    # 2. Kontext zusammenstellen
+    context = "\n\n".join([doc.page_content for doc in docs])
+    
+    # 3. LLM-Anfrage mit Kontext
+    response = llm_client.chat.completions.create(
+        model="qwen2.5-7b-instruct",
+        messages=[
+            {
+                "role": "system",
+                "content": "Du bist ein Förderantrag-Prüfer für IFB Hamburg."
+            },
+            {
+                "role": "user",
+                "content": f"Kontext:\n{context}\n\nAufgabe:\n{criterion_prompt}"
+            }
+        ],
+        temperature=0.3,
+        max_tokens=1000
+    )
+    
+    return response.choices[0].message.content
+```
+
+---
+
+### 2.4 Option 3: Full Setup
+
+**Kernidee:** Komplette Eigenentwicklung mit Cloud-Readiness.
+
+#### Tech-Stack
+| Komponente | Technologie | Version | Zweck |
+|------------|-------------|---------|-------|
+| **LLM Runtime** | vLLM | Latest | Production LLM Serving |
+| **LLM Modell** | Qwen 2.5 14B | Latest | Größeres Modell |
+| **RAG Framework** | Custom | - | Optimierte Pipeline |
+| **Vector DB** | Weaviate | Latest | Enterprise Vector DB |
+| **Embeddings** | Custom Fine-tuned | - | Domain-spezifisch |
+| **API Gateway** | FastAPI | Latest | Microservices |
+| **Frontend** | React | 18+ | Modern Web UI |
+| **Queue System** | Redis/RabbitMQ | Latest | Async Processing |
+| **Database** | PostgreSQL | 15+ | Metadaten |
+| **Deployment** | Kubernetes | 1.28+ | Orchestration |
+
+**Hinweis:** Option 3 ist für dieses Projekt überdimensioniert. Nur bei Multi-Tenant-Anforderungen sinnvoll.
+
+---
+
+### 2.5 Option 1.5: Super-Lite ohne LM Studio RAG
+
+Falls LM Studio keine RAG-Features bietet, hier die Hybrid-Lösung:
+
+**Kernidee:** LM Studio nur für LLM. Minimales RAG mit ChromaDB (vereinfacht).
+
+```python
+# Minimales RAG (kein LangChain!)
+from chromadb import Client
+from sentence_transformers import SentenceTransformer
+
+# Simple Embedding Model
+embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+
+# ChromaDB (einfach)
+chroma_client = Client()
+collection = chroma_client.create_collection(f"projekt_{projekt_id}")
+
+# Dokumente indexieren
+def index_document(text: str, metadata: dict):
+    chunks = simple_chunk(text, size=1000)  # Einfache Chunking-Funktion
+    embeddings = embedder.encode(chunks)
+    
+    collection.add(
+        documents=chunks,
+        embeddings=embeddings.tolist(),
+        metadatas=[metadata] * len(chunks),
+        ids=[f"chunk_{i}" for i in range(len(chunks))]
+    )
+
+# RAG Retrieval
+def retrieve_context(query: str, top_k=5):
+    query_embedding = embedder.encode([query])
+    results = collection.query(
+        query_embeddings=query_embedding.tolist(),
+        n_results=top_k
+    )
+    return results['documents'][0]
+```
+
+**Vorteil:** Immer noch sehr einfach, aber volle Kontrolle über RAG.
+
+---
+
+### 2.6 Dokumenten-Parser (Alle Varianten)
+
+**Parser sind variantenunabhängig** - Alle drei Optionen nutzen dieselbe Parser-Infrastruktur.
 
 **Unterstützte Formate:**
 
-| Format | Library | Verwendung |
-|--------|---------|------------|
-| **PDF** | PyMuPDF (fitz) | Projektskizze, Beschreibung, Gutachten |
-| **DOCX** | python-docx | Word-Dokumente, Vorlagen |
-| **XLSX** | openpyxl | Kalkulationen, Finanzübersichten |
+| Format | Library | Verwendung | Komplexität |
+|--------|---------|------------|-------------|
+| **PDF** | PyMuPDF (fitz) | Projektskizze, Gutachten | Mittel |
+| **DOCX** | python-docx | Word-Dokumente, Vorlagen | Einfach |
+| **XLSX** | openpyxl | Kalkulationen, Finanzübersichten | Einfach |
+
+**Hinweis:** Super-Lite kann mit vereinfachtem Parsing starten (nur Text), Lite/Full nutzen volle Features.
 
 **Parser-Architektur:**
 
@@ -165,78 +484,32 @@ class BaseParser(ABC):
                 "text": str,              # Volltext
                 "metadata": dict,         # Titel, Datum, Autor
                 "structured_data": dict,  # Strukturierte Felder
-                "tables": list[dict]      # Extrahierte Tabellen
+                "tables": list[dict]      # Extrahierte Tabellen (optional)
             }
         """
         pass
 ```
 
-### 2.4 RAG-System mit LangChain
+**Details:** Siehe `02_DOCUMENT_PARSING.md`
 
-**Pipeline-Komponenten:**
+---
 
-```python
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.chains import RetrievalQA
+### 2.7 Datenspeicherung
 
-# 1. Text Splitting
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200,
-    separators=["\n\n", "\n", ". ", " ", ""]
-)
+**Speicher-Strategie nach Variante:**
 
-# 2. Embeddings (Multilingual)
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-)
+| Komponente | Super-Lite | Lite | Full |
+|------------|------------|------|------|
+| **Vector Store** | LM Studio | ChromaDB | Weaviate/Qdrant |
+| **Projektdateien** | Lokales FS | Lokales FS | S3/MinIO |
+| **Metadaten** | JSON | JSON | PostgreSQL |
+| **Caching** | - | - | Redis |
 
-# 3. Vector Store (ChromaDB)
-vectorstore = Chroma(
-    collection_name="ifb_documents",
-    embedding_function=embeddings,
-    persist_directory="./data/chromadb"
-)
-
-# 4. Retrieval
-retriever = vectorstore.as_retriever(
-    search_type="similarity",
-    search_kwargs={"k": 5}
-)
-
-# 5. LLM-Integration (LM Studio)
-from langchain.llms import OpenAI  # OpenAI-kompatibel!
-
-llm = OpenAI(
-    base_url="http://localhost:1234/v1",
-    api_key="not-needed",
-    temperature=0.3
-)
-
-# 6. RAG Chain
-qa_chain = RetrievalQA.from_chain_type(
-    llm=llm,
-    chain_type="stuff",
-    retriever=retriever,
-    return_source_documents=True
-)
-```
-
-### 2.5 Datenspeicherung
-
-**Keine MongoDB - Stattdessen:**
-
-1. **ChromaDB** - Für Vektoren & Embeddings
-2. **Lokales Dateisystem** - Für Projektdateien
-3. **JSON-Files** - Für Metadaten & Ergebnisse
-
-**Dateistruktur:**
+**Dateistruktur (Super-Lite & Lite):**
 
 ```
 data/
-├── chromadb/                    # Vector Store
+├── chromadb/                    # Vector Store (nur Lite)
 │   └── chroma.sqlite3
 │
 ├── projects/                    # Projektdaten
@@ -250,13 +523,12 @@ data/
 │   │   │   ├── projektskizze.json
 │   │   │   └── kalkulation.json
 │   │   └── results/            # Prüfungsergebnisse
-│   │       ├── foerdervoraussetzungen.json
-│   │       ├── bewertung.json
-│   │       └── checkliste.md
+│   │       ├── criteria_check.json
+│   │       └── report.md
 │   └── projekt_002/
 │       └── ...
 │
-└── regelwerke/                  # Förderrichtlinien
+└── regelwerke/                  # Förderrichtlinien (optional)
     ├── profi_foerderrichtlinie.pdf
     └── bewertungskriterien.yaml
 ```
@@ -272,6 +544,7 @@ data/
   "status": "in_review",
   "created_at": "2024-10-31T10:00:00Z",
   "updated_at": "2024-10-31T14:30:00Z",
+  "architecture_variant": "super_lite",
   "documents": [
     {
       "doc_id": "doc_001",
@@ -279,11 +552,13 @@ data/
       "filename": "projektskizze.pdf",
       "uploaded_at": "2024-10-31T10:05:00Z",
       "parsed": true,
-      "vector_ids": ["chunk_001", "chunk_002", "..."]
+      "indexed_in_rag": true
     }
   ]
 }
 ```
+
+---
 
 ---
 
@@ -722,29 +997,184 @@ ifb-profi-ki/
 ### Phase 1: Setup (diese Woche)
 - [ ] Git-Repo erstellen
 - [ ] Projektstruktur aufbauen
-- [ ] LM Studio installieren & Qwen 2.5 laden
-- [ ] requirements.txt & Python-Environment
+---
 
-### Phase 2: Basis-Features (nächste 2 Wochen)
-- [ ] PDF/DOCX/XLSX-Parser implementieren
-- [ ] ChromaDB-Integration
-- [ ] LM Studio API-Client
-- [ ] Erste Streamlit-Seiten
+## 3. EMPFEHLUNG & ENTSCHEIDUNGSHILFE
 
-### Phase 3: RAG & Checks (Woche 3-4)
-- [ ] RAG-Pipeline mit LangChain
-- [ ] Use-Case-spezifische Checks
-- [ ] Regelwerk-Engine
-- [ ] Checklisten-Generierung
+### Für dieses Projekt: **Option 1.5 (Super-Lite mit minimalem RAG)**
 
-### Phase 4: UI & Reports (Woche 5-6)
-- [ ] Vollständiger Wizard
-- [ ] Visualisierungen
-- [ ] Report-Generierung
-- [ ] Testing & Polishing
+**Begründung:**
+1. **LM Studio RAG-Features unsicher** - Nicht alle Versionen bieten vollwertige RAG-APIs
+2. **Volle Kontrolle über RAG** - Kriterienkatalog benötigt präzise Chunk-Auswahl
+3. **Schnell umsetzbar** - Minimales ChromaDB + sentence-transformers (keine LangChain)
+4. **Einfach wartbar** - Weniger Dependencies, klarer Code
+5. **Upgrade-fähig** - Später einfach zu Lite/Full erweiterbar
+
+### Konkrete Stack-Empfehlung
+
+```yaml
+# config/system_config.yaml (Empfohlen)
+
+llm:
+  provider: "lm_studio"
+  base_url: "http://localhost:1234/v1"
+  model: "qwen2.5-7b-instruct"  # 7B für bessere Qualität
+  temperature: 0.3
+  max_tokens: 2000
+
+rag:
+  provider: "chromadb"
+  persist_directory: "./data/chromadb"
+  embedding_model: "paraphrase-multilingual-MiniLM-L12-v2"  # Kompakt & schnell
+  chunk_size: 1000
+  chunk_overlap: 200
+  top_k: 5
+
+parser:
+  pdf: "pymupdf"
+  docx: "python-docx"
+  xlsx: "openpyxl"
+  
+storage:
+  projects_dir: "./data/projects"
+  uploads_subdir: "uploads"
+  extracted_subdir: "extracted"
+  results_subdir: "results"
+```
+
+### Minimale Dependencies (requirements.txt)
+
+```txt
+# LLM & RAG
+openai==1.3.0              # OpenAI-Client für LM Studio API
+chromadb==0.4.18           # Vector Database
+sentence-transformers==2.2.2  # Embeddings (kein HuggingFace overhead)
+
+# Document Parsing
+pymupdf==1.23.8            # PDF
+python-docx==1.1.0         # DOCX
+openpyxl==3.1.2            # XLSX
+
+# Frontend
+streamlit==1.28.0          # UI
+
+# Utils
+pydantic==2.5.0            # Validierung
+python-dotenv==1.0.0       # Config
+```
+
+**Geschätzte Entwicklungszeit:** 5-7 Tage für MVP
+
+---
+
+## 4. IMPLEMENTIERUNGS-ROADMAP
+
+### Phase 1: Fundament (Tag 1-2)
+
+**Ziel:** Basis-Setup funktionsfähig
+
+- [x] Projektstruktur anlegen
+- [ ] Config-System (`config/system_config.yaml`)
+- [ ] LM Studio installieren & testen
+- [ ] Python Environment & Dependencies
+- [ ] Minimale Streamlit-App (Hello World)
+
+**Testkriterium:** LM Studio antwortet auf API-Call
+
+### Phase 2: Dokumenten-Upload & Parsing (Tag 2-3)
+
+**Ziel:** Dokumente hochladen und parsen
+
+- [ ] Streamlit Upload-Komponente
+- [ ] PDF-Parser (nur Text-Extraktion)
+- [ ] Speicherung in `/data/projects/{id}/uploads/`
+- [ ] JSON-Export des geparsten Texts
+
+**Testkriterium:** PDF hochladen → Text extrahiert → JSON gespeichert
+
+### Phase 3: Minimales RAG-System (Tag 3-4)
+
+**Ziel:** Dokumente indexieren und suchen
+
+- [ ] ChromaDB Setup & Initialisierung
+- [ ] Embedding-Model laden (sentence-transformers)
+- [ ] Simple Chunking-Funktion
+- [ ] Indexierungs-Pipeline
+- [ ] Test: Dokument indexieren → Similarity Search funktioniert
+
+**Testkriterium:** Query "Hamburg Standort" findet relevante Chunks
+
+### Phase 4: LLM-Integration & Kriterien-Engine (Tag 4-5)
+
+**Ziel:** Erste Kriterien-Prüfung automatisiert
+
+- [ ] LM Studio API-Client (OpenAI-kompatibel)
+- [ ] Kriterien-Katalog laden (`config/criteria_catalog.json`)
+- [ ] Iterative Prüfung (ein Kriterium nach dem anderen)
+- [ ] RAG + LLM kombinieren
+- [ ] Ergebnis als JSON speichern
+
+**Testkriterium:** Kriterium "Projektort" wird korrekt geprüft
+
+### Phase 5: Vollständiger Wizard (Tag 5-6)
+
+**Ziel:** Kompletter User-Flow
+
+- [ ] Seite 1: Projekt anlegen
+- [ ] Seite 2: Dokumente hochladen
+- [ ] Seite 3: Automatische Prüfung (mit Progress)
+- [ ] Seite 4: Ergebnisübersicht
+- [ ] Navigation zwischen Seiten
+
+**Testkriterium:** Vollständiger Durchlauf von Projekt-Anlage bis Ergebnis
+
+### Phase 6: Polishing & Reports (Tag 6-7)
+
+**Ziel:** Production-ready MVP
+
+- [ ] Error-Handling verbessern
+- [ ] Loading-States & Progress-Bars
+- [ ] Export-Funktionen (JSON, Markdown)
+- [ ] Terminal-Logging (siehe DEVELOPMENT_PRINCIPLES.md)
+- [ ] Dokumentation vervollständigen
+
+**Testkriterium:** Demo mit echten IFB-Dokumenten läuft durch
+
+---
+
+## 5. MIGRATIONS-PFADE
+
+### Von Super-Lite zu Lite
+
+**Änderungen:**
+1. LangChain installieren
+2. RAG-Code auf LangChain-Abstractions umstellen
+3. Bessere Chunking-Strategie (RecursiveCharacterTextSplitter)
+4. Eigene Embedding-Pipeline
+
+**Aufwand:** 2-3 Tage
+
+### Von Lite zu Full
+
+**Änderungen:**
+1. Backend zu FastAPI umbauen
+2. LM Studio → vLLM/TGI
+3. ChromaDB → Weaviate/Qdrant
+4. Streamlit → React Frontend
+5. Docker/Kubernetes Setup
+
+**Aufwand:** 3-4 Wochen
+
+**Empfehlung:** Nur bei echten Production-Anforderungen (Multi-User, Skalierung)
 
 ---
 
 **Ende der Technischen Architektur**
 
+**Nächste Schritte:**
+- Siehe `SYSTEM_REQUIREMENTS.md` für Hardware-Details
+- Siehe `03_RAG_SYSTEM.md` für RAG-Implementierung
+- Siehe `04_LLM_INTEGRATION.md` für LLM-Setup
+
 Bei Fragen: Siehe README.md oder kontaktiert das Team!
+

@@ -1,7 +1,7 @@
 # RAG System
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 2.0  
+**Version:** 3.0 (Architektur-Varianten)  
 **Stand:** 10. November 2025
 
 ---
@@ -16,7 +16,7 @@ RAG kombiniert die Stärken von **Informationsabruf** und **Textgenerierung**:
 
 1. **Indexierung**: Dokumente werden in kleine Chunks (Textabschnitte) zerlegt
 2. **Vektorisierung**: Jeder Chunk wird in einen hochdimensionalen Vektor umgewandelt (Embedding)
-3. **Speicherung**: Vektoren werden in ChromaDB mit Metadaten gespeichert
+3. **Speicherung**: Vektoren werden in Vector Database mit Metadaten gespeichert
 4. **Retrieval**: Bei einer Anfrage wird diese ebenfalls vektorisiert und ähnliche Chunks werden gefunden
 5. **Augmentation**: Die relevanten Chunks werden als Kontext an das LLM übergeben
 6. **Generation**: Das LLM generiert eine Antwort basierend auf dem bereitgestellten Kontext
@@ -29,39 +29,204 @@ RAG kombiniert die Stärken von **Informationsabruf** und **Textgenerierung**:
 ✅ **Datenschutz** - Alles läuft lokal ohne externe APIs  
 ✅ **Skalierbarkeit** - Tausende Dokumente effizient durchsuchbar
 
+---
+
+## 🏗️ RAG-VARIANTEN
+
+### Option 1: Super-Lite (LM Studio Built-in RAG)
+
+**Konzept:** LM Studio übernimmt RAG vollständig.
+
+**Voraussetzung:** LM Studio muss RAG-Features unterstützen (zu prüfen!).
+
+#### Workflow
+```
+Dokument → LM Studio API → Automatische Indexierung → RAG-Collection
+Query → LM Studio API (mit RAG-Parameter) → Kontextbasierte Antwort
+```
+
+#### Implementierung
+```python
+import requests
+
+def index_document_superlite(document_path: str, projekt_id: str):
+    """Dokument via LM Studio API indexieren"""
+    
+    with open(document_path, 'rb') as f:
+        response = requests.post(
+            "http://localhost:1234/v1/documents",
+            files={'file': f},
+            data={'collection': f'projekt_{projekt_id}'}
+        )
+    
+    return response.json()
+
+def query_with_rag_superlite(query: str, projekt_id: str):
+    """Query mit LM Studio Built-in RAG"""
+    
+    response = requests.post(
+        "http://localhost:1234/v1/chat/completions",
+        json={
+            "model": "qwen2.5-7b-instruct",
+            "messages": [{"role": "user", "content": query}],
+            "collection": f'projekt_{projekt_id}',
+            "use_rag": True,
+            "top_k_chunks": 5
+        }
+    )
+    
+    return response.json()['choices'][0]['message']['content']
+```
+
+**Vorteile:**
+- ✅ Minimaler Code
+- ✅ Keine eigene Vector DB
+- ✅ LM Studio übernimmt Komplexität
+
+**Nachteile:**
+- ❌ Abhängig von LM Studio Features
+- ❌ Weniger Kontrolle über Chunking
+- ❌ Unklar ob alle Features verfügbar
+
+**Status:** ⚠️ Zu prüfen ob LM Studio diese APIs bietet!
 
 ---
 
-## 🏗️ KOMPONENTEN
+### Option 1.5: Super-Lite mit minimalem RAG (EMPFOHLEN)
 
-### 1. ChromaDB (Vector Database)
-**Zweck:** Speicherung und Suche von Vektor-Embeddings
+**Konzept:** LM Studio nur für LLM. Minimales eigenes RAG ohne LangChain.
 
-**Features:**
-- Collections pro Projekt (`projekt_{projekt_id}`)
-- Persistente Speicherung auf Disk
-- Schnelle Similarity-Search
-- Metadaten-Filterung
-- Lokale Ausführung (kein Cloud-Service nötig)
+**Tech-Stack:**
+- ChromaDB (Vector Store)
+- sentence-transformers (Embeddings)
+- Einfache Python-Funktionen
 
-**Konfiguration:**
+#### Komponenten
+
+**1. ChromaDB Setup**
 ```python
 import chromadb
 from chromadb.config import Settings
 
-client = chromadb.Client(Settings(
-    persist_directory="./data/chromadb",
-    anonymized_telemetry=False
-))
-
-# Collection pro Projekt erstellen
-collection = client.create_collection(
-    name=f"projekt_{projekt_id}",
-    metadata={"projekt_name": "...", "created_at": "..."}
-)
+class SimpleRAG:
+    """Minimales RAG-System ohne LangChain"""
+    
+    def __init__(self, persist_dir: str = "./data/chromadb"):
+        self.client = chromadb.Client(Settings(
+            persist_directory=persist_dir,
+            anonymized_telemetry=False
+        ))
+        self.embedder = None
+    
+    def initialize_embedder(self):
+        """Lade Embedding-Modell"""
+        from sentence_transformers import SentenceTransformer
+        self.embedder = SentenceTransformer(
+            'paraphrase-multilingual-MiniLM-L12-v2'
+        )
+    
+    def create_collection(self, projekt_id: str):
+        """Erstelle Collection für Projekt"""
+        return self.client.get_or_create_collection(
+            name=f"projekt_{projekt_id}",
+            metadata={"projekt_id": projekt_id}
+        )
 ```
 
-### 2. Chunking-Strategie
+**2. Einfaches Chunking**
+```python
+def simple_chunk(text: str, chunk_size: int = 1000, overlap: int = 200):
+    """Einfache Chunking-Funktion ohne LangChain"""
+    chunks = []
+    start = 0
+    
+    while start < len(text):
+        end = start + chunk_size
+        chunk = text[start:end]
+        
+        # An Satzende aufhören wenn möglich
+        if end < len(text):
+            last_period = chunk.rfind('. ')
+            if last_period > chunk_size * 0.7:  # Mindestens 70% der Chunk-Größe
+                end = start + last_period + 1
+                chunk = text[start:end]
+        
+        chunks.append(chunk.strip())
+        start = end - overlap
+    
+    return chunks
+```
+
+**3. Indexierung**
+```python
+def index_document(self, text: str, projekt_id: str, metadata: dict):
+    """Dokument indexieren"""
+    
+    # Collection holen
+    collection = self.create_collection(projekt_id)
+    
+    # Chunking
+    chunks = simple_chunk(text, chunk_size=1000, overlap=200)
+    
+    # Embeddings generieren
+    embeddings = self.embedder.encode(chunks, show_progress_bar=True)
+    
+    # In ChromaDB speichern
+    collection.add(
+        documents=chunks,
+        embeddings=embeddings.tolist(),
+        metadatas=[metadata] * len(chunks),
+        ids=[f"{metadata['doc_id']}_chunk_{i}" for i in range(len(chunks))]
+    )
+    
+    print(f"✓ {len(chunks)} Chunks indexiert für Projekt {projekt_id}")
+```
+
+**4. Retrieval**
+```python
+def retrieve_context(self, query: str, projekt_id: str, top_k: int = 5):
+    """Relevante Chunks finden"""
+    
+    collection = self.client.get_collection(f"projekt_{projekt_id}")
+    
+    # Query vektorisieren
+    query_embedding = self.embedder.encode([query])
+    
+    # Similarity Search
+    results = collection.query(
+        query_embeddings=query_embedding.tolist(),
+        n_results=top_k
+    )
+    
+    return {
+        'chunks': results['documents'][0],
+        'metadatas': results['metadatas'][0],
+        'distances': results['distances'][0]
+    }
+```
+
+**Vorteile:**
+- ✅ Volle Kontrolle über RAG
+- ✅ Immer noch sehr einfach
+- ✅ Keine LangChain-Overhead
+- ✅ Funktioniert garantiert
+
+**Nachteile:**
+- ❌ Etwas mehr Code als Option 1
+- ❌ Eigene ChromaDB-Verwaltung
+
+---
+
+### Option 2: Lite (LangChain + ChromaDB)
+
+**Konzept:** Production-ready RAG mit bewährten Tools.
+
+**Tech-Stack:**
+- LangChain (Framework)
+- ChromaDB (Vector Store)
+- HuggingFace Embeddings
+
+#### Komponenten
 **Zweck:** Dokumente in sinnvolle, durchsuchbare Einheiten zerlegen
 
 #### Chunk-Größen (Empfehlungen)
