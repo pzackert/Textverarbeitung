@@ -1,0 +1,13 @@
+{
+  "projekt_id": "test2",
+  "projekt_name": "Test2",
+  "antragsteller": "Demo GmbH",
+  "modul": "PROFI Standard",
+  "projektart": "Forschung",
+  "beschreibung": null,
+  "status": "created",
+  "current_step": 1,
+  "created_at": "2025-11-14T14:45:42.348380",
+  "updated_at": "2025-11-14T14:45:42.348380",
+  "documents": []
+}

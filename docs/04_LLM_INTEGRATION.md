@@ -1,7 +1,7 @@
 # LLM Integration
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 2.0  
+**Version:** 3.0 (Option 1 MVP + Advanced Deployment Options)  
 **Stand:** 10. November 2025
 
 ## Übersicht
@@ -10,11 +10,11 @@ Integration und Management des lokalen LLM-Systems für die Dokumentenanalyse. D
 
 ---
 
-## 🎯 EMPFEHLUNG: LM STUDIO MIT OPENAI-KOMPATIBLER API
+## 🎯 EMPFEHLUNG FÜR OPTION 1: LM STUDIO MIT OPENAI-KOMPATIBLER API
 
-Nach Analyse der Projektanforderungen ist **LM Studio** die optimale Lösung für dieses Projekt.
+Nach Analyse der Projektanforderungen ist **LM Studio** die optimale Lösung für Option 1 MVP.
 
-### Warum LM Studio die beste Wahl ist
+### Warum LM Studio die beste Wahl ist - ✅ OPTION 1
 
 **Vorteile für das IFB-Projekt:**
 - ✅ **Sofort einsatzbereit** - Keine komplexe Server-Konfiguration nötig
@@ -24,7 +24,7 @@ Nach Analyse der Projektanforderungen ist **LM Studio** die optimale Lösung fü
 - ✅ **Hardware-Optimierung** - Automatische Nutzung von GPU/Metal auf M1 Macs
 - ✅ **Modell-Management** - Einfaches Laden/Entladen verschiedener Modelle
 
-### Architektur-Konzept
+### Architektur-Konzept - ✅ OPTION 1
 
 ```python
 # Flexible LLM-Konfiguration
@@ -48,9 +48,76 @@ FALLBACK_CONFIGS = [
 
 ---
 
-## 🏗️ IMPLEMENTATION MIT OPENAI-CLIENT
+## 🏗️ IMPLEMENTATION MIT OPENAI-CLIENT - ✅ OPTION 1
 
-### LLMManager - Zentrale Verwaltung
+### LLMManager - Zentrale Verwaltung - ✅ OPTION 1
+
+**Einfache Version für Option 1:**
+
+```python
+from openai import OpenAI
+import requests
+import logging
+
+class LLMManager:
+    """Einfache LLM-Verwaltung für Option 1 - LM Studio only"""
+    
+    def __init__(self, base_url: str = "http://localhost:1234/v1", model: str = "qwen2.5-4b-instruct"):
+        self.base_url = base_url
+        self.model = model
+        self.client = None
+        self.is_connected = False
+        
+        # Initialisierung mit Health-Check
+        self._initialize_connection()
+    
+    def _initialize_connection(self):
+        """Versuche Verbindung zu LM Studio aufzubauen"""
+        
+        if self._test_connection():
+            self.client = OpenAI(
+                base_url=self.base_url,
+                api_key="not-needed"
+            )
+            self.is_connected = True
+            logging.info(f"Verbunden mit LM Studio auf {self.base_url}")
+        else:
+            raise ConnectionError("LM Studio nicht erreichbar! Bitte LM Studio starten.")
+    
+    def _test_connection(self) -> bool:
+        """Teste ob LM Studio erreichbar ist"""
+        try:
+            response = requests.get(
+                f"{self.base_url.replace('/v1', '')}/models",
+                timeout=5
+            )
+            return response.status_code == 200
+        except:
+            return False
+    
+    def generate_response(self, prompt: str, temperature: float = 0.3) -> str:
+        """Generiere LLM-Antwort"""
+        
+        if not self.is_connected:
+            raise ConnectionError("Keine Verbindung zu LM Studio")
+        
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=2000
+        )
+        
+        return response.choices[0].message.content
+```
+
+---
+
+### ⚠️ OPTION 2+: Erweiterte LLMManager-Implementierung mit Fallback
+
+**Komplexe Version mit automatischem Fallback:**
+
+**Komplexe Version mit automatischem Fallback:**
 
 ```python
 from openai import OpenAI
@@ -58,8 +125,15 @@ import requests
 from typing import Optional, Dict, Any
 import logging
 
-class LLMManager:
-    """Zentrale LLM-Verwaltung mit automatischer Erkennung und Fallback"""
+# Fallback-Konfigurationen
+FALLBACK_CONFIGS = [
+    {"provider": "lm_studio", "base_url": "http://localhost:1234/v1"},
+    {"provider": "ollama", "base_url": "http://localhost:11434/api"},
+    {"provider": "custom", "base_url": "http://localhost:8080/v1"},
+]
+
+class LLMManagerAdvanced:
+    """Erweiterte LLM-Verwaltung mit automatischer Erkennung und Fallback"""
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -86,13 +160,14 @@ class LLMManager:
                 logging.info(f"Fallback: Verbunden mit {fallback['provider']}")
                 return
         
-        raise ConnectionError("Kein LLM-Server erreichbar! Bitte LM Studio starten.")
-    
-    def _test_connection(self, config: Dict) -> bool:
-        """Teste ob LLM-Server erreichbar ist"""
-        try:
-            # LM Studio Health-Check
-            if config['provider'] == 'lm_studio':
+        raise ConnectionError("Kein LLM-Server erreichbar!")
+```
+
+*Rest of advanced implementation...*
+
+---
+
+## 🚀 STARTUP-SEQUENZ - ✅ OPTION 1
                 response = requests.get(
                     f"{config['base_url'].replace('/v1', '')}/models",
                     timeout=5
@@ -366,7 +441,18 @@ rag:
 
 ## 🔄 ALTERNATIVE DEPLOYMENT-OPTIONEN
 
-### Option 1: LM Studio (Empfohlen für Development)
+### ✅ Option 1 (MVP): LM Studio Only
+
+**Für Option 1 verwenden wir NUR LM Studio:**
+- Qwen 4B Model
+- OpenAI-kompatible API
+- Keine alternativen Backends
+
+---
+
+### ⚠️ OPTION 2+: Alternative Deployment-Optionen
+
+#### Option 2+A: Ollama (Backup-Option)
 
 **Setup:**
 ```bash

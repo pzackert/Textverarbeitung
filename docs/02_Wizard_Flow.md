@@ -1,12 +1,29 @@
 # Wizard-Flow
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 3.0  
+**Version:** 4.0 (⚠️ REDUNDANT - Siehe 01_UI_FLOW.md)  
 **Stand:** 10. November 2025
 
 ---
 
-## 🎯 ÜBERSICHT
+## ⚠️ WICHTIG: DIESES DOKUMENT IST REDUNDANT
+
+**Verwenden Sie stattdessen:** `01_UI_FLOW.md`
+
+Dieses Dokument beschreibt den gleichen Wizard-Flow wie `01_UI_FLOW.md`, aber mit mehr technischen Details.
+
+**Für Option 1 MVP:**
+- ✅ Siehe `01_UI_FLOW.md` für die vereinfachte Version
+- ✅ Streamlit-basierte UI
+- ✅ Einfacher sequentieller Flow
+
+**Dieses Dokument kann verwendet werden für:**
+- ⚠️ Option 2+ mit erweiterten Features
+- ⚠️ Technische Implementierungsdetails
+
+---
+
+## 🎯 ÜBERSICHT (SIEHE AUCH 01_UI_FLOW.md)
 
 Der Wizard führt Benutzer **Step-by-Step** durch die automatisierte Antragsprüfung. Jeder Schritt baut auf dem vorherigen auf und ist klar abgegrenzt.
 

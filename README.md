@@ -1,190 +1,137 @@
-# IFB PROFI - KI-gestützte Textverarbeitung
+# IFB PROFI - KI-gestützte Antragsprüfung
 
-## 📋 Projektübersicht
+**Automatisierte Validierung von Förderanträgen** mit lokalem KI-System und Kriterienkatalog.
 
-Automatisierte Antragsprüfung für IFB PROFI Förderanträge mit lokalem LLM (LM Studio + Qwen 2.5).
+## 🎯 Projektübersicht
 
-**Version:** 1.0  
-**Stand:** 31. Oktober 2025
+Diese Anwendung ermöglicht die **strukturierte Prüfung von Förderanträgen** durch:
+- Automatische Datenextraktion aus verschiedenen Dokumentformaten
+- Validierung anhand eines definierten Kriterienkatalogs
+- KI-gestützte Plausibilitätsprüfung und Bewertung
+- Übersichtliche Darstellung der Prüfergebnisse
 
----
+### Workflow
+**Geführter Wizard-Flow (Streamlit):**
+1. Projekt im Dashboard anlegen (Hero + Sidebar-Suche)
+2. Dokumentkarten mit Kriterien-Beschreibung aus `config/criteria_catalog.json` befüllen
+3. Automatische Prüfung (Parsing → RAG → Kriterienengine) inkl. Fortschrittsbalken
+4. Ergebnisse tabellarisch auswerten & JSON exportieren
 
-## 🚀 Features
+## ✨ Features
 
-- ✅ **Wizard-basierte UI** (Streamlit) für 7-Schritte-Workflow
-- ✅ **Lokales LLM** (LM Studio + Qwen 2.5) - Kein Cloud-Upload
-- ✅ **RAG-System** (LangChain + ChromaDB) für intelligente Dokumentenanalyse
-- ✅ **Multi-Format-Parser** (PDF, DOCX, XLSX)
-- ✅ **Regelwerk-Engine** für Fördervoraussetzungen
-- ✅ **Automatische Checklisten & Reports**
-
----
+- 📊 **Projekt-Management:** Übersicht aller Prüfprojekte inkl. Sidebar-Suche & Status-Badges
+- 🎛 **Wizard mit Fortschrittsbalken:** Permanent sichtbare Steps (Metadaten → Upload → Prüfung → Ergebnisse)
+- 📄 **Dokumentkarten mit Kontext:** Jede Upload-Kachel zeigt Beschreibung & Kriterien aus dem Katalog
+- 🤖 **Lokales LLM:** LM Studio oder andere OpenAI-kompatible Server (private Cloud möglich)
+- 🔍 **RAG-System:** ChromaDB + sentence-transformers für kontextbasierte Analyse
+- ⚙️ **Regelwerk-Engine:** Automatische Prüfung gegen Fördervoraussetzungen
+- ✅ **Demo-Projekt:** Seeder legt ein vorführbares Referenzprojekt automatisch an
+- 🔒 **Datenschutz:** 100% lokal, keine externen Cloud-Dienste
 
 ## 📁 Projektstruktur
 
 ```
 masterprojekt/
-├── backend/                    # Backend-Logik
-│   ├── parsers/               # PDF, DOCX, XLSX Parser
-│   ├── rag/                   # RAG-System mit LangChain
-│   ├── regelwerk/             # Förderrichtlinien-Engine
-│   ├── llm/                   # LM Studio Integration
-│   └── utils/                 # Hilfsfunktionen
-├── frontend/                   # Streamlit Frontend
-│   ├── pages/                 # Wizard-Schritte (1-7)
-│   └── components/            # UI-Komponenten
-├── data/                       # Datenspeicherung
-│   ├── chromadb/              # Vector Store
-│   ├── projects/              # Projektdaten
-│   ├── regelwerke/            # Förderrichtlinien
-│   └── input/                 # Input-Dateien zum Verarbeiten
-├── tests/                      # Unit & Integration Tests
-├── config/                     # Konfigurationsdateien
-├── docs/                       # Zusätzliche Dokumentation
-│   ├── 01_Technische_Architektur.md
-│   └── 02_Wizard_Flow.md
-└── requirements.txt            # Python Dependencies
+├── backend/          # Core-Logik
+│   ├── parsers/      # PDF, DOCX, XLSX Parser
+│   ├── rag/          # ChromaDB, Chunking, Embeddings
+│   ├── llm/          # LM Studio Client
+│   ├── core/         # Criteria Engine
+│   └── utils/        # Config, Logger
+├── frontend/         # Streamlit UI
+│   ├── app.py        # Wizard (Sidebar + Progress)
+│   ├── components/   # Sidebar, Progress Tracker & Cards
+│   ├── services/     # Project-/Process-Services (Backend Calls)
+│   ├── styles/       # IFB Copalette CSS
+│   └── pages/        # Legacy Seiten (optional)
+├── config/           # YAML-Konfiguration
+├── data/             # Projekte, ChromaDB, Input
+├── docs/             # Detaillierte Dokumentation
+└── tests/            # Unit & Integration Tests
 ```
 
----
+## 🛠 Tech-Stack
 
-## 🛠️ Tech-Stack
+### Backend
+- **Python:** 3.11+
+- **Parser:** PyMuPDF, python-docx, openpyxl
+- **RAG:** ChromaDB, sentence-transformers
+- **LLM:** OpenAI-kompatible API (LM Studio, Ollama, etc.)
 
-| Komponente | Technologie | Version |
-|------------|-------------|---------|
-| **Runtime** | Python | 3.11+ |
-| **LLM-Server** | LM Studio | Latest |
-| **LLM-Modell** | Qwen 2.5 | 3B-7B |
-| **RAG-Framework** | LangChain | 0.1+ |
-| **Vector DB** | ChromaDB | 0.4.18+ |
-| **Frontend** | Streamlit | 1.28+ |
-| **Embeddings** | sentence-transformers | 2.2+ |
+### Frontend
+- **Streamlit:** Webbasierte UI
 
----
+### LLM-Server
+Verschiedene Optionen möglich (in Evaluation):
+- LM Studio (lokal)
+- Ollama (lokal)
+- Private Cloud-Deployment
+- Modell: Qwen, Llama, Mistral (je nach Anforderung)
 
-## 📦 Installation
+## 🚀 Installation & Setup
 
-### 1. Python-Umgebung einrichten
+### Voraussetzungen
+- Python 3.11+
+- UV Package Manager
+- LM Studio oder alternativer LLM-Server
 
-```bash
-# Virtual Environment erstellen
-python -m venv venv
-
-# Aktivieren
-source venv/bin/activate  # macOS/Linux
-# oder
-venv\Scripts\activate     # Windows
-
-# Dependencies installieren
-pip install -r requirements.txt
-```
-
-### 2. LM Studio installieren
-
-1. Download: https://lmstudio.ai/
-2. Modell herunterladen: **Qwen 2.5 3B** oder **7B**
-3. Server starten (Port 1234)
+### Installation
 
 ```bash
-# Optional: CLI-Server
-lms server start --model qwen2.5-3b-instruct
-```
+# 1. Repository klonen
+git clone <repo-url>
+cd masterprojekt
 
-### 3. Projekt konfigurieren
+# 2. Dependencies installieren (UV)
+uv sync
 
-```bash
-# Config-Datei erstellen
+# 3. Config anpassen
 cp config/config.example.yaml config/config.yaml
+# LLM-Server URL in config.yaml eintragen
 
-# Anpassen nach Bedarf (LM Studio URL, Ports, etc.)
+# 4. LM Studio starten (falls lokal)
+# Modell laden und Server auf Port 1234 starten
 ```
 
----
-
-## 🚀 Verwendung
-
-### Frontend starten
+### Anwendung starten
 
 ```bash
-streamlit run frontend/app.py
+# Streamlit UI starten
+uv run streamlit run frontend/app.py
 ```
 
-### 7-Schritte-Workflow
+App läuft auf: **http://localhost:8501**
 
-1. **Projekt anlegen** - Metadaten erfassen
-2. **Dokumente hochladen** - PDF, DOCX, XLSX
-3. **Dokumente parsen** - Text & Daten extrahieren
-4. **Informationsextraktion** - RAG-basierte Analyse
-5. **Fördervoraussetzungen prüfen** - Regelwerk anwenden
-6. **Bewertung durchführen** - Scoring & Plausibilität
-7. **Report & Checkliste generieren** - Markdown/PDF Export
+## 📚 Dokumentation
 
----
+Detaillierte Dokumentationen im `docs/` Ordner:
+- **01-08:** Komponenten-spezifische Dokumentation (UI, Parsing, RAG, LLM, etc.)
+- **GETTING_STARTED.md:** Schnellstart-Anleitung
+- **PROJECT_OVERVIEW.md:** Architektur-Übersicht
+- **TECHNICAL_REQUIREMENTS.md:** System & Tech-Anforderungen
 
-## 📂 Input-Ordner
+## 🔐 Datenschutz & Sicherheit
 
-Der Ordner `data/input/` ist für Dateien vorgesehen, die verarbeitet werden sollen:
-
-```bash
-data/input/
-├── projektskizze.pdf
-├── kalkulation.xlsx
-└── ...
-```
-
-Nach Verarbeitung werden die Ergebnisse in `data/projects/projekt_XXX/` gespeichert.
-
----
+- **Lokal-First:** Alle Daten bleiben auf lokalem System oder privater Cloud
+- **Keine externen APIs:** LLM läuft komplett lokal
+- **Dateibasiert:** Projekte in `data/projects/`, keine externe Datenbank
+- **Single-User:** MVP für Einzelnutzung (Multi-User in zukünftigen Versionen)
 
 ## 🧪 Tests
 
 ```bash
 # Unit Tests
-pytest tests/unit/
+uv run pytest tests/unit/
 
 # Integration Tests
-pytest tests/integration/
-
-# Alle Tests
-pytest
+uv run pytest tests/integration/
 ```
-
----
-
-## 📖 Dokumentation
-
-Siehe `docs/` für detaillierte Dokumentation:
-
-- **01_Technische_Architektur.md** - System-Design & Tech-Stack
-- **02_Wizard_Flow.md** - Schritt-für-Schritt UI-Logik
-
----
-
-## 🔒 Datenschutz
-
-- ✅ **100% lokal** - Keine Cloud-Anbindung
-- ✅ **Kein Daten-Upload** - Alles läuft auf lokaler Hardware
-- ✅ **DSGVO-konform** - Sensible Antragsdaten bleiben privat
-
----
 
 ## 📝 Lizenz
 
-Internes Projekt - Alle Rechte vorbehalten.
+[Lizenz hier einfügen]
 
 ---
 
-## 👨‍💻 Entwicklung
-
-### Nächste Schritte
-
-- [ ] Parser für PDF, DOCX, XLSX implementieren
-- [ ] RAG-Pipeline mit LangChain aufbauen
-- [ ] LM Studio Integration testen
-- [ ] Streamlit UI entwickeln (7 Seiten)
-- [ ] Regelwerk-Engine implementieren
-- [ ] Tests schreiben
-
-### Version History
-
-- **1.0** (31.10.2025) - Initiale Projektstruktur
+**Version:** 1.0 (Option 1 MVP)  
+**Stand:** November 2025

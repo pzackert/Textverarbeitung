@@ -1,14 +1,31 @@
 # Dokumentenparsing
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 2.0  
-**Stand:** 10. November 2025
+**Version:** 3.0 (Option 1 MVP + Future Features)  
+**Stand:** 13. November 2025
 
 ---
 
 ## 🎯 GRUNDLEGENDES ZIEL
 
-Wir bauen ein optimales RAG-System (Retrieval-Augmented Generation), das Dokumente der IFB Hamburg intelligent verarbeitet. Das System extrahiert den **kompletten Volltext** aus allen relevanten Dokumenten - **ohne künstliche Token-Beschränkungen**. Jedes Dokument wird vollständig erfasst und in ChromaDB als Vektor-Datenbank gespeichert, damit später präzise Suchanfragen möglich sind.
+Wir bauen ein optimales RAG-System (Retrieval-Augmented Generation), das Dokumente der IFB Hamburg intelligent verarbeitet. 
+
+### ✅ OPTION 1 (MVP - Super-Lite):
+Das System extrahiert den **Volltext** aus allen relevanten Dokumenten. Jedes Dokument wird vollständig erfasst und für RAG vorbereitet.
+
+**Fokus Option 1:**
+- Nur Text-Extraktion (kein Structure Parsing)
+- Einfache Funktionen (keine komplexe OOP-Architektur)
+- Drei Formate: PDF, DOCX, XLSX
+- Direkter Zugriff mit Libraries
+
+### ⚠️ OPTION 2+ (Advanced Features):
+- Strukturerkennung (Überschriften, Absätze, Listen)
+- Tabellen-Extraktion mit Kontext
+- Formularfeld-Erkennung
+- OCR-Funktionalität
+- Parallelverarbeitung
+- Caching-System
 
 ---
 
@@ -16,43 +33,49 @@ Wir bauen ein optimales RAG-System (Retrieval-Augmented Generation), das Dokumen
 
 Das System unterstützt initial die drei wichtigsten Formate:
 
-### PDF-Dokumente (*.pdf)
-Förderrichtlinien, offizielle Bescheide und Projektskizzen. Hier extrahieren wir den kompletten Text inklusive Strukturinformationen wie Überschriften und Paragraphen.
+### PDF-Dokumente (*.pdf) - ✅ OPTION 1
 
 **Verwendung:** Projektskizze, Projektantrag, Förderrichtlinien
 
-**Features:**
-- Vollständige Textextraktion
+**Features Option 1 (MVP):**
+- ✅ Vollständige Textextraktion mit PyMuPDF
+- ✅ Einfache Metadaten (Autor, Datum falls vorhanden)
+
+**⚠️ Features Option 2+:**
 - Strukturerkennung (Überschriften, Absätze, Listen)
 - Tabellen-Extraktion
-- Metadaten (Autor, Erstellungsdatum, Version)
+- Layout-Analyse
 
-### Word-Dokumente (*.docx)
-Projektanträge und ausgefüllte Formulare. Der Parser erkennt Formularfelder, extrahiert deren Inhalte strukturiert und behält die Dokumentenhierarchie bei.
+### Word-Dokumente (*.docx) - ✅ OPTION 1
 
 **Verwendung:** Projektskizze, Projektantrag
 
-**Features:**
-- Volltext mit Formatierung
+**Features Option 1 (MVP):**
+- ✅ Volltext-Extraktion mit python-docx
+- ✅ Basis-Metadaten
+
+**⚠️ Features Option 2+:**
 - Formularfeld-Erkennung (Key-Value-Paare)
 - Tabellen-Extraktion
 - Dokumentenhierarchie (Kapitel, Unterkapitel)
 
-### Excel-Dateien (*.xlsx, *.xls)
-Bewertungstabellen, Checklisten und strukturierte Daten. Tabellen werden intelligent in Text umgewandelt, wobei Spaltenüberschriften und Zellinhalte sinnvoll verknüpft werden.
+### Excel-Dateien (*.xlsx, *.xls) - ✅ OPTION 1
 
 **Verwendung:** Checklisten, Bewertungstabellen, Projektkalkulation
 
-**Features:**
-- Strukturierte Datenextraktion
+**Features Option 1 (MVP):**
+- ✅ Text aus Zellen extrahieren mit openpyxl
+- ✅ Einfache Konvertierung zu Text
+
+**⚠️ Features Option 2+:**
 - Intelligente Tabellen-zu-Text-Konvertierung
 - Spaltenüberschriften-Verknüpfung
-- Multi-Sheet-Support
+- Multi-Sheet-Support mit Kontext
+- Formeln und Berechnungen
 
-### OCR-Funktionalität (Zukünftig)
-**OCR-Funktionalität** wird als zukünftige Erweiterung vorbereitet. Der Code wird so strukturiert, dass OCR-Module später nahtlos integriert werden können, um auch gescannte PDFs und Bilddateien zu verarbeiten.
+### ⚠️ OCR-Funktionalität - OPTION 2+
 
-**Geplante Features:**
+**Zukünftige Erweiterung:**
 - Tesseract OCR Integration
 - Bildqualitäts-Optimierung
 - Layout-Analyse für strukturierte Extraktion
@@ -96,20 +119,55 @@ Bewertungstabellen, Checklisten und strukturierte Daten. Tabellen werden intelli
 
 ## 🔄 EXTRAKTIONS-STRATEGIE
 
-Bei jedem Dokument extrahieren wir **drei Ebenen von Information**:
+### ✅ OPTION 1 (MVP - Super-Lite):
 
-### 1. Volltext
-Der komplette Inhalt **ohne Verluste**. Wir setzen keine künstlichen Grenzen bei der Textlänge. Wenn ein Förderrichtlinien-Dokument 200 Seiten hat, erfassen wir alle 200 Seiten.
+Bei jedem Dokument extrahieren wir **nur den Volltext**:
 
-**Ausgabe:**
+**Ausgabe Option 1:**
 ```json
 {
-  "volltext": "Kompletter Dokumententext ohne Kürzungen..."
+  "volltext": "Kompletter Dokumententext...",
+  "metadaten": {
+    "dokumenttyp": "projektskizze",
+    "dateiname": "projektskizze.pdf",
+    "dateigröße_mb": 2.4
+  }
 }
 ```
 
-### 2. Strukturdaten
-Überschriften, Kapitelnummern, Paragraphen, Listen und Tabellen werden als solche erkannt und markiert. Diese Struktur hilft später bei der gezielten Suche.
+**Einfache Python-Funktion (Konzept):**
+```python
+def extract_text_simple(file_path: Path) -> dict:
+    """Einfache Textextraktion für Option 1"""
+    suffix = file_path.suffix.lower()
+    
+    if suffix == '.pdf':
+        text = extract_pdf_text(file_path)  # PyMuPDF
+    elif suffix == '.docx':
+        text = extract_docx_text(file_path)  # python-docx
+    elif suffix in ['.xlsx', '.xls']:
+        text = extract_excel_text(file_path)  # openpyxl
+    else:
+        raise ValueError(f"Nicht unterstütztes Format: {suffix}")
+    
+    return {
+        "volltext": text,
+        "metadaten": {
+            "dokumenttyp": detect_doc_type(file_path.name),
+            "dateiname": file_path.name,
+            "dateigröße_mb": file_path.stat().st_size / (1024*1024)
+        }
+    }
+```
+
+---
+
+### ⚠️ OPTION 2+ (Advanced Extraction):
+
+Zusätzlich zur Textextraktion:
+
+**1. Strukturdaten**
+Überschriften, Kapitelnummern, Paragraphen, Listen und Tabellen werden als solche erkannt.
 
 **Ausgabe:**
 ```json
@@ -132,10 +190,7 @@ Der komplette Inhalt **ohne Verluste**. Wir setzen keine künstlichen Grenzen be
 }
 ```
 
-### 3. Metadaten
-Dokumenttyp, Erstellungsdatum, Version, Autor und Programmzugehörigkeit (PROFI, etc.) werden separat gespeichert für effiziente Filterung.
-
-**Ausgabe:**
+**2. Erweiterte Metadaten**
 ```json
 {
   "metadaten": {
@@ -144,8 +199,7 @@ Dokumenttyp, Erstellungsdatum, Version, Autor und Programmzugehörigkeit (PROFI,
     "version": "1.2",
     "autor": "Mustermann GmbH",
     "programm": "PROFI Standard",
-    "seiten": 3,
-    "dateigröße": "2.4 MB"
+    "seiten": 3
   }
 }
 ```
@@ -153,6 +207,35 @@ Dokumenttyp, Erstellungsdatum, Version, Autor und Programmzugehörigkeit (PROFI,
 ---
 
 ## 🏗️ MODULARE ARCHITEKTUR
+
+### ✅ OPTION 1 (MVP - Einfache Funktionen):
+
+**Keine OOP-Architektur, nur einfache Funktionen:**
+
+```python
+from pathlib import Path
+from typing import Dict, Any
+
+def parse_document(file_path: Path) -> Dict[str, Any]:
+    """Hauptfunktion für Dokumentenparsing"""
+    suffix = file_path.suffix.lower()
+    
+    if suffix == '.pdf':
+        return parse_pdf_simple(file_path)
+    elif suffix == '.docx':
+        return parse_docx_simple(file_path)
+    elif suffix in ['.xlsx', '.xls']:
+        return parse_excel_simple(file_path)
+    else:
+        raise ValueError(f"Format nicht unterstützt: {suffix}")
+
+# Keine Factory-Pattern, keine BaseParser-Klasse
+# Nur direkte, einfache Funktionen
+```
+
+---
+
+### ⚠️ OPTION 2+ (Modulare OOP-Architektur):
 
 Der Code wird strikt modular aufgebaut mit klarer Trennung der Verantwortlichkeiten:
 
@@ -170,7 +253,7 @@ DocumentProcessor (Hauptkoordinator)
 └── VectorStore (ChromaDB-Integration)
 ```
 
-### Parser-Schnittstelle
+**Parser-Schnittstelle:**
 
 Jeder Parser implementiert dieselbe Schnittstelle mit drei Kernmethoden:
 
@@ -194,7 +277,7 @@ class BaseParser(ABC):
         pass
 ```
 
-### Parser-Factory
+**Parser-Factory:**
 
 ```python
 class ParserFactory:
@@ -222,7 +305,7 @@ class ParserFactory:
 
 ---
 
-## 🔧 ERWEITERBARKEIT ALS KERNPRINZIP
+## 🔧 ERWEITERBARKEIT ALS KERNPRINZIP - ⚠️ OPTION 2+
 
 Neue Formate werden durch simple Ergänzung unterstützt:
 
@@ -251,9 +334,37 @@ Neue Formate werden durch simple Ergänzung unterstützt:
 
 ## 🧩 INTELLIGENTES CHUNKING FÜR CHROMADB
 
+### ✅ OPTION 1 (MVP - Einfaches Chunking):
+
+**Simple Text-Splitting:**
+
+```python
+def simple_chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
+    """
+    Einfaches Chunking für Option 1
+    Teilt Text in Chunks mit fester Größe und Überlappung
+    """
+    chunks = []
+    start = 0
+    
+    while start < len(text):
+        end = start + chunk_size
+        chunk = text[start:end]
+        chunks.append(chunk)
+        start = end - overlap
+    
+    return chunks
+```
+
+**Keine semantischen Grenzen, keine komplexe Logik.**
+
+---
+
+### ⚠️ OPTION 2+ (Intelligentes Chunking):
+
 Dokumente werden intelligent in Chunks aufgeteilt für optimales RAG-Retrieval:
 
-### Chunking-Strategie
+**Chunking-Strategie:**
 
 #### 1. Semantische Grenzen
 Wir trennen an Absätzen und Kapiteln, **nicht mitten im Satz**.
@@ -297,7 +408,11 @@ Jeder Chunk weiß, aus welchem Dokument, Kapitel und Abschnitt er stammt.
 
 ---
 
-## 🎯 SPEZIALBEHANDLUNG FÜR IFB-DOKUMENTE
+## 🎯 SPEZIALBEHANDLUNG FÜR IFB-DOKUMENTE - ⚠️ OPTION 2+
+
+**In Option 1: Nur einfache Textextraktion, keine Spezialbehandlung.**
+
+**Option 2+ Features:**
 
 ### Projektskizzen
 **Formularfelder** werden als Key-Value-Paare extrahiert. Die Feldbezeichnung wird mit dem Inhalt verknüpft für präzise Suche.
@@ -356,7 +471,9 @@ Jeder Chunk weiß, aus welchem Dokument, Kapitel und Abschnitt er stammt.
 
 ## ✅ QUALITÄTSSICHERUNG
 
-### UTF-8 überall
+### ✅ OPTION 1 (Basis-Qualitätssicherung):
+
+**UTF-8 überall:**
 Deutsche Umlaute und Sonderzeichen werden korrekt behandelt.
 
 ```python
@@ -364,7 +481,20 @@ with open(file_path, "r", encoding="utf-8") as f:
     content = f.read()
 ```
 
-### Fehlertoleranz
+**Einfache Fehlerbehandlung:**
+```python
+try:
+    text = parse_document(file_path)
+except Exception as e:
+    print(f"Fehler beim Parsen: {e}")
+    text = ""
+```
+
+---
+
+### ⚠️ OPTION 2+ (Erweiterte Qualitätssicherung):
+
+**Fehlertoleranz:**
 Beschädigte Dokumente führen nicht zum Absturz. Der Parser extrahiert, was möglich ist, und loggt Probleme.
 
 ```python
@@ -375,7 +505,7 @@ except ParsingError as e:
     text = parser.extract_partial_text(file_path)
 ```
 
-### Vollständigkeitsprüfung
+**Vollständigkeitsprüfung:**
 Nach dem Parsing wird verifiziert, dass kein Inhalt verloren ging.
 
 ```python
@@ -396,31 +526,48 @@ def verify_completeness(original_file: Path, extracted_text: str) -> bool:
 
 ## 🛠️ TECHNISCHE UMSETZUNG
 
-### Verwendete Libraries
+### ✅ OPTION 1 - Verwendete Libraries:
 
 **PyMuPDF (fitz)** für PDF-Verarbeitung
 - Schnell und zuverlässig
 - Vollständige Textextraktion
-- Tabellen-Support
 ```bash
 pip install PyMuPDF
 ```
 
 **python-docx** für Word-Dokumente
 - Native DOCX-Unterstützung
-- Formularfeld-Erkennung
-- Tabellenextraktion
 ```bash
 pip install python-docx
 ```
 
 **openpyxl** für Excel-Files
 - Vollständige Format-Unterstützung
-- Multi-Sheet-Handling
-- Formeln und Werte
 ```bash
 pip install openpyxl
 ```
+
+**ChromaDB** als lokale Vektor-Datenbank
+- Embedding-Speicherung
+- Similarity-Search
+```bash
+pip install chromadb
+```
+
+**sentence-transformers** für Embeddings
+- Multilingual support
+```bash
+pip install sentence-transformers
+```
+
+**Streamlit** für UI
+```bash
+pip install streamlit
+```
+
+---
+
+### ⚠️ OPTION 2+ - Zusätzliche Libraries:
 
 **langchain** als Orchestrierung für das RAG-System
 - Text-Splitting
@@ -430,44 +577,38 @@ pip install openpyxl
 pip install langchain
 ```
 
-**ChromaDB** als lokale Vektor-Datenbank
-- Embedding-Speicherung
-- Similarity-Search
-- Metadaten-Filterung
-```bash
-pip install chromadb
-```
+---
 
-### Code-Dokumentation
+### Code-Dokumentation - ✅ OPTION 1
 
-Der Code wird mit ausführlichen **Docstrings** dokumentiert. Jede Funktion erklärt ihre Parameter und Rückgabewerte. Beispiele zeigen die Verwendung.
+Der Code wird mit **Docstrings** dokumentiert. Jede Funktion erklärt ihre Parameter und Rückgabewerte.
 
 **Beispiel:**
 ```python
-def parse_document(file_path: Path) -> ParseResult:
+def parse_document(file_path: Path) -> dict:
     """
-    Parst ein Dokument und extrahiert alle Informationen.
+    Parst ein Dokument und extrahiert Text.
     
     Args:
         file_path: Pfad zur Datei (PDF, DOCX oder XLSX)
     
     Returns:
-        ParseResult: Objekt mit volltext, struktur und metadaten
-    
-    Raises:
-        ParsingError: Bei nicht unterstützten Formaten oder Parsing-Fehlern
+        dict mit volltext und metadaten
     
     Example:
         >>> result = parse_document(Path("projektskizze.pdf"))
-        >>> print(result.volltext[:100])
-        "Projektname: Entwicklung einer..."
+        >>> print(result["volltext"][:100])
     """
     pass
 ```
 
 ---
 
-## ⚡ PERFORMANCE-OPTIMIERUNG
+## ⚡ PERFORMANCE-OPTIMIERUNG - ⚠️ OPTION 2+
+
+**In Option 1: Keine Parallelverarbeitung, kein Caching, keine Batch-Operationen.**
+
+**Option 2+ Features:**
 
 ### Parallelverarbeitung
 Mehrere Dokumente werden gleichzeitig geparst (multiprocessing).
@@ -514,14 +655,41 @@ def generate_embeddings_batch(chunks: list[str], batch_size: int = 100):
 
 ## 📊 ERWARTETES ERGEBNIS
 
+### ✅ OPTION 1 (MVP):
+
 Nach dem Parsing haben wir:
 
 ✅ **Vollständigen, durchsuchbaren Text** aller Dokumente  
+✅ **Basis-Metadaten** (Dateiname, Typ)
+✅ **Einfache Chunks** für RAG-Retrieval  
+
+**Beispiel-Output Option 1:**
+
+```json
+{
+  "volltext": "Kompletter Text der Projektskizze...",
+  "metadaten": {
+    "dateiname": "projektskizze.pdf",
+    "dokumenttyp": "projektskizze",
+    "dateigröße_mb": 2.4
+  },
+  "chunks": [
+    "Chunk 1 Inhalt...",
+    "Chunk 2 Inhalt...",
+    "Chunk 3 Inhalt..."
+  ]
+}
+```
+
+---
+
+### ⚠️ OPTION 2+ (Erweitert):
+
 ✅ **Strukturierte Metadaten** für präzise Filterung  
-✅ **Optimale Chunks** für RAG-Retrieval  
+✅ **Intelligente Chunks** mit Kontext
 ✅ **Erweiterbare Codebasis** für zukünftige Anforderungen  
 
-### Beispiel-Output
+**Beispiel-Output Option 2+:**
 
 ```json
 {
@@ -550,7 +718,9 @@ Nach dem Parsing haben wir:
 
 ---
 
-## 🎓 ANWENDUNGSBEISPIEL
+## 🎓 ANWENDUNGSBEISPIEL - ✅ OPTION 1 + ⚠️ OPTION 2+
+
+**Funktioniert in beiden Optionen:**
 
 Das System ermöglicht es, Fragen wie:
 
@@ -567,7 +737,11 @@ präzise zu beantworten, indem es die relevanten Textstellen aus den geparsten D
 
 ---
 
-## 🔐 SICHERHEIT
+## 🔐 SICHERHEIT - ⚠️ OPTION 2+
+
+**In Option 1: Nur lokale Verarbeitung, keine erweiterten Sicherheitsfeatures.**
+
+**Option 2+ Features:**
 
 ### Datei-Validierung
 - Dateityp-Prüfung vor Verarbeitung

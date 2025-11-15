@@ -164,18 +164,25 @@ Nach dem Speichern wird automatisch erstellt:
 ### Seite 3: Automatische Prüfung
 **Datei:** `pages/03_validation.py`
 
-#### Oberer Bereich: Prozess-Status
+#### Oberer Bereich: Prozess-Status (Vereinfacht für MVP)
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Verarbeitungsstatus                                │
 ├─────────────────────────────────────────────────────┤
-│  ✓ Dokumente geparst (2/2)                          │
-│  ⏳ RAG-Basis wird aufgebaut... [████░░░░░] 50%    │
-│  ⏳ LLM wird geladen...                              │
-│  ⏹ Kriterienprüfung (0/6)                          │
+│  Schritt 1/4: Dokumente parsen... ✓                │
+│  Schritt 2/4: RAG indexieren... (50%)              │
+│  Schritt 3/4: LLM vorbereiten... ⏳                │
+│  Schritt 4/4: Kriterien prüfen... ⏹                │
+│                                                      │
+│  [██████░░░░] 50% - Bitte warten...                │
 └─────────────────────────────────────────────────────┘
 ```
+
+**Implementation:** 
+- `st.progress()` für Balken
+- `st.text()` für Status-Updates
+- Update alle 2 Sek via `st.rerun()` + Session State
 
 #### Unterer Bereich: Kriterienliste
 
@@ -202,15 +209,17 @@ Nach Prüfung:
 │ 3  │ Projektbeginn       │ ⚠️ Unklar│ ?       │ [✏️]   │
 ```
 
-**[✏️] = Manuelle Nachprüfung**
-- Öffnet Dokument an relevanter Stelle
-- Ermöglicht manuelle Eingabe
+**[✏️] = Manuelle Korrektur (Vereinfacht für MVP)**
+- **Input-Feld** erscheint direkt in der Tabelle
+- Benutzer kann Wert überschreiben
 - Kommentarfeld für Begründung
+- Dokument separat downloadbar für eigene Prüfung
 
-#### Live-Updates
-- Status-Updates während Verarbeitung
-- Real-time Fortschrittsanzeige
-- Automatisches Refresh
+#### Live-Updates (Streamlit Rerun-Strategie)
+- Status-Updates alle 2 Sekunden via `st.rerun()`
+- Text-basierte Fortschrittsanzeige: "Schritt 2/4: RAG wird aufgebaut..."
+- Prozentsatz-Anzeige: "Progress: 50%"
+- **Robust:** Kein Threading, keine Websockets - nur einfaches Polling
 
 ### Seite 4: Ergebnisübersicht
 **Datei:** `pages/04_results.py`
@@ -239,9 +248,11 @@ Nach Prüfung:
 ```
 
 #### Export-Funktionen
-- [📥 Ergebnis als PDF exportieren]
-- [📥 Ergebnis als JSON exportieren]
-- [📥 Prüfprotokoll herunterladen]
+- [📥 Ergebnis als JSON exportieren] **(MVP - einfach!)**
+- [📥 Dokumente als ZIP herunterladen] **(MVP - einfach!)**
+- [� Protokoll als Markdown] **(MVP - einfach!)**
+
+**Hinweis:** PDF-Export kommt in v2 (reportlab-Dependency vermeiden im MVP)
 
 #### Projektabschluss
 - [✓ Projekt abschließen]
@@ -255,14 +266,24 @@ Nach Prüfung:
 - Modular aufgebaut
 - Best Practices beachten
 
-### Streamlit-Komponenten (Research erforderlich)
+### Streamlit-Komponenten (Option 1 - Super-Lite MVP)
 
-**Vor Implementation recherchieren:**
-- Neueste Upload-Komponenten mit Drag & Drop
-- Progress-Bars und Status-Indikatoren
-- Data-Tables mit Interaktivität
-- Modal-Dialoge für manuelle Prüfung
-- Export-Funktionen
+**Verwendete Streamlit-Features:**
+- ✅ `st.file_uploader()` - Drag & Drop (built-in, einfach!)
+- ✅ `st.text_input()`, `st.selectbox()` - Formulare
+- ✅ `st.dataframe()` oder `st.table()` - Tabellen
+- ✅ `st.progress()` + `st.text()` - Progress-Anzeige
+- ✅ `st.download_button()` - JSON/ZIP-Download
+- ✅ `st.rerun()` - Automatisches Refresh alle 2 Sek
+- ✅ `st.session_state` - Zustandsverwaltung
+- ✅ `st.spinner()` - Einfache Loading-Indikator
+
+**NICHT verwendet (zu komplex für MVP):**
+- ❌ Custom Components
+- ❌ Modals/Overlays (Streamlit hat keine nativen!)
+- ❌ PDF-Generierung (kommt v2)
+- ❌ Websockets/Async
+- ❌ Komplexe Visualisierungen
 
 ### Seitenstruktur
 ```

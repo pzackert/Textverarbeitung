@@ -1,28 +1,42 @@
 # Backend Core
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 1.0  
+**Version:** 2.0 (⚠️ OPTION 2+ ONLY - NOT APPLICABLE TO OPTION 1)  
 **Stand:** 8. November 2025
 
-## Übersicht
+---
 
-Backend-System für die Antragsprüfung.
+## ⚠️ WICHTIG: DIESES DOKUMENT IST FÜR OPTION 2+ ⚠️
 
-## Architektur
+**Option 1 (MVP) verwendet:**
+- ✅ Streamlit UI (kein FastAPI)
+- ✅ Einfache Python-Funktionen (keine REST API)
+- ✅ Lokales Filesystem (kein Redis Queue)
+- ✅ Direkter LM Studio Call (keine Service-Layer)
+
+**Dieses Dokument beschreibt die Enterprise-Architektur für Option 2+**
+
+---
+
+## Übersicht - ⚠️ OPTION 2+
+
+Backend-System für die Antragsprüfung mit FastAPI und Microservices.
+
+## Architektur - ⚠️ OPTION 2+
 
 ### Komponenten
-- API-Server
+- API-Server (FastAPI)
 - LLM-Service
 - Storage-Service
-- Task-Queue
+- Task-Queue (Redis)
 
 ### Tech-Stack
 - Python 3.11+
 - FastAPI
 - Redis Queue
-- SQLite/JSON
+- PostgreSQL/SQLite
 
-## Services
+## Services - ⚠️ OPTION 2+
 
 ### API-Service
 - REST-Endpunkte
@@ -39,7 +53,7 @@ Backend-System für die Antragsprüfung.
 - LLM-Integration
 - Ergebnis-Handling
 
-## Datenmodelle
+## Datenmodelle - ⚠️ OPTION 2+
 
 ### Projekt
 ```python
@@ -63,21 +77,21 @@ class Document:
     metadata: Dict
 ```
 
-## Error-Handling
+## Error-Handling - ⚠️ OPTION 2+
 
 ### Strategien
 - Retry-Mechanismen
 - Fallback-Optionen
-- Logging
+- Structured Logging
 
 ### Monitoring
 - Service-Health
-- Performance
+- Performance Metrics
 - Fehlerquoten
 
-## Deployment
+## Deployment - ⚠️ OPTION 2+
 
-### Lokal
-- Docker-Setup
+### Docker Setup
+- Multi-Container
 - Env-Konfiguration
 - Logging-Setup

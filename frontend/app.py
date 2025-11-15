@@ -1,55 +1,76 @@
-"""
-Streamlit Frontend - Hauptseite
-IFB PROFI - KI-gestützte Textverarbeitung
-"""
+"""Streamlit entry point for the IFB PROFI wizard (rebuild)."""
+from __future__ import annotations
+
+from datetime import datetime
+from pathlib import Path
+from typing import Dict
 
 import streamlit as st
-from pathlib import Path
 
-# Page Config
-st.set_page_config(
-    page_title="IFB PROFI - Textverarbeitung",
-    page_icon="📄",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+from frontend.components.command_center import render_command_center
+from frontend.components.header import render_header
+from frontend.components.sidebar import render_sidebar
+from frontend.services import project_service
+from frontend.state import session_keys
 
-# Hauptseite
-st.title("📄 IFB PROFI - KI-gestützte Textverarbeitung")
-st.markdown("---")
+ASSETS_PATH = Path(__file__).parent / "assets"
+STYLES_PATH = Path(__file__).parent / "styles" / "custom.css"
 
-st.markdown("""
-## Willkommen!
 
-Diese Anwendung unterstützt Sie bei der automatisierten Prüfung von IFB PROFI Förderanträgen.
+def _mount_styles() -> None:
+    if STYLES_PATH.exists():
+        st.markdown(STYLES_PATH.read_text(), unsafe_allow_html=True)
 
-### 🚀 7-Schritte-Workflow
 
-1. **Projekt anlegen** - Metadaten erfassen
-2. **Dokumente hochladen** - PDF, DOCX, XLSX
-3. **Dokumente parsen** - Text & Daten extrahieren
-4. **Informationsextraktion** - RAG-basierte Analyse
-5. **Fördervoraussetzungen prüfen** - Regelwerk anwenden
-6. **Bewertung durchführen** - Scoring & Plausibilität
-7. **Report & Checkliste generieren** - Markdown/PDF Export
+def _ensure_demo_seed() -> None:
+    session_keys.ensure_defaults()
+    if st.session_state.get("seeded_demo"):
+        return
+    try:
+        demo_id = project_service.ensure_demo_project()
+        st.session_state["seeded_demo"] = True
+        if demo_id and not session_keys.get_active_project():
+            session_keys.set_active_project(demo_id)
+            session_keys.push_log("Demo-Projekt geladen.")
+    except Exception as exc:  # pragma: no cover - defensive
+        st.session_state["last_error"] = str(exc)
+        session_keys.push_log(f"Demo-Projekt konnte nicht erstellt werden: {exc}")
 
-### 📋 Nächste Schritte
 
-Wählen Sie links im Menü **"1. Projekt anlegen"** um zu beginnen.
-""")
+def _stats(records) -> Dict[str, int | str]:
+    return {
+        "total": len(records),
+        "ready": sum(1 for rec in records if rec.status == "uploaded"),
+        "checked": sum(1 for rec in records if rec.status in {"checked", "completed"}),
+        "refreshed_at": datetime.now().strftime("%H:%M:%S"),
+    }
 
-# Sidebar
-with st.sidebar:
-    st.header("ℹ️ Informationen")
-    st.info("""
-    **Version:** 1.0  
-    **Stand:** 31. Oktober 2025
-    
-    **Tech-Stack:**
-    - LM Studio (Qwen 2.5)
-    - LangChain + ChromaDB
-    - Streamlit Frontend
-    """)
-    
-    st.markdown("---")
-    st.caption("© 2025 IFB PROFI Team")
+
+def main() -> None:
+    st.set_page_config(
+        page_title="IFB PROFI",
+        page_icon="📄",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+    session_keys.ensure_defaults()
+    _mount_styles()
+    _ensure_demo_seed()
+
+    projects = project_service.list_projects()
+    if projects and not session_keys.get_active_project():
+        session_keys.set_active_project(projects[0].id)
+
+    active_id = session_keys.get_active_project()
+    active_record = project_service.get_project(active_id)
+    latest_results = project_service.load_results(active_id)
+    stats = _stats(projects)
+
+    render_header(stats, active_record)
+    with st.sidebar:
+        render_sidebar(projects)
+    render_command_center(projects, active_record, latest_results)
+
+
+if __name__ == "__main__":
+    main()

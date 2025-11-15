@@ -1,0 +1,19 @@
+{
+  "projekt_id": "projekt_77fdb12d",
+  "projekt_name": "3D Schuhe",
+  "antragsteller": "Schuh GMBH",
+  "modul": "PROFI Standard",
+  "projektart": "Forschung",
+  "beschreibung": "dhgldkgdöf",
+  "status": "created",
+  "created_at": "2025-11-14T15:47:51.302259",
+  "updated_at": "2025-11-14T15:47:51.352530",
+  "documents": [],
+  "checks_completed": {
+    "parsing": false,
+    "extraction": false,
+    "foerdervoraussetzungen": false,
+    "bewertung": false
+  },
+  "current_step": 1
+}

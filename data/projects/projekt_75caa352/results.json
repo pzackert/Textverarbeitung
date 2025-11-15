@@ -1,0 +1,52 @@
+{
+  "overall": "PASSED",
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "unclear": 0
+  },
+  "criteria": [
+    {
+      "id": "company_location",
+      "name": "Unternehmenssitz in Thüringen",
+      "result": "PASSED",
+      "answer": "Der Hauptsitz befindet sich in Erfurt.",
+      "context_used": 2
+    },
+    {
+      "id": "kmu_status",
+      "name": "KMU-Status",
+      "result": "PASSED",
+      "answer": "FutureEnergy erfüllt alle KMU-Kriterien.",
+      "context_used": 3
+    },
+    {
+      "id": "funding_amount",
+      "name": "Fördersumme unter Limit",
+      "result": "PASSED",
+      "answer": "Beantragte Summe: 180.000 EUR.",
+      "context_used": 1
+    },
+    {
+      "id": "innovation_degree",
+      "name": "Innovationsgrad",
+      "result": "PASSED",
+      "answer": "Innovation Score: 8/10",
+      "context_used": 2
+    },
+    {
+      "id": "market_analysis",
+      "name": "Marktanalyse vorhanden",
+      "result": "FAILED",
+      "answer": "Es fehlen Daten zur Konkurrenzanalyse.",
+      "context_used": 1
+    },
+    {
+      "id": "financial_plan",
+      "name": "Finanzplan plausibel",
+      "result": "PASSED",
+      "answer": "Finanzplan inklusive Liquiditätsplanung vorhanden.",
+      "context_used": 2
+    }
+  ]
+}

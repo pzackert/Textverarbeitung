@@ -1,34 +1,48 @@
 """
-Base Parser - Abstract Class für alle Dokumenten-Parser
+Base Parser für alle Dokumenttypen
+Option 1: Einfache Parser ohne komplexe Struktur-Extraktion
 """
-
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Dict, Any
+from pathlib import Path
 
 
 class BaseParser(ABC):
-    """Abstract Base Class für alle Parser."""
+    """
+    Basis-Klasse für alle Parser
+    Einfache Struktur ohne komplexe Features (OPTION 1)
+    """
     
     @abstractmethod
     def parse(self, file_path: Path) -> Dict[str, Any]:
         """
-        Parst Datei und extrahiert strukturierte Daten.
+        Parse Dokument und extrahiere Text
         
         Args:
             file_path: Pfad zur Datei
-            
+        
         Returns:
-            {
-                "text": str,              # Volltext
-                "metadata": dict,         # Titel, Datum, Autor
-                "structured_data": dict,  # Strukturierte Felder
-                "tables": list[dict]      # Extrahierte Tabellen
-            }
+            Dictionary mit:
+                - text: Extrahierter Text
+                - metadata: Basis-Metadaten (Dateiname, Typ, Größe)
+                - error: Fehler falls aufgetreten (optional)
         """
         pass
     
-    @abstractmethod
-    def is_supported(self, file_path: Path) -> bool:
-        """Prüft ob Dateiformat unterstützt wird."""
-        pass
+    def get_metadata(self, file_path: Path) -> Dict[str, Any]:
+        """
+        Extrahiere Basis-Metadaten
+        
+        Args:
+            file_path: Pfad zur Datei
+        
+        Returns:
+            Metadaten-Dictionary
+        """
+        stat = file_path.stat()
+        return {
+            "filename": file_path.name,
+            "file_type": file_path.suffix.lower(),
+            "size_bytes": stat.st_size,
+            "size_mb": round(stat.st_size / (1024 * 1024), 2)
+        }

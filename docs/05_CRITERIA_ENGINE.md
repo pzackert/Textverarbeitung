@@ -1,14 +1,21 @@
 # Criteria Engine
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 1.0  
-**Stand:** 8. November 2025
+**Version:** 2.0 (Option 1 - Super-Lite)  
+**Stand:** 13. November 2025
 
 ## Übersicht
 
 System zur Definition und Prüfung von Förderkriterien. Insgesamt werden **6 Kriterien** geprüft.
 
-## Kriterienkatalog
+**Für Option 1 (Super-Lite):**
+- Iterative Prüfung (ein Kriterium nach dem anderen)
+- Einfache JSON-basierte Prompts
+- RAG-Context aus ChromaDB oder LM Studio
+- Strukturierte JSON-Antworten vom LLM
+- Speicherung als JSON-Files
+
+---
 
 ### Kriterium 1: Projektort
 **Ziel:** Betriebsstätte in Hamburg (oder Umgebung)
@@ -170,18 +177,92 @@ Antworte im Format:
 }
 ```
 
-## Prüfmechanismus
+## Prüfmechanismus (Option 1 - Super-Lite)
 
-### Ablauf
-1. Beide Dokumente (Projektskizze + Projektantrag) werden indexiert
-2. RAG-Basis wird aufgebaut (ChromaDB)
-3. Kriterien werden **sukzessive** geprüft (eines nach dem anderen)
-4. Pro Kriterium:
-   - Relevanter Kontext wird aus RAG abgerufen
-   - Prompt mit Kontext wird an LLM gesendet
-   - LLM gibt strukturierte Antwort zurück
-   - Ergebnis wird validiert und gespeichert
-5. Alle Ergebnisse werden aggregiert
+### Ablauf (Vereinfacht & Robust)
+
+**Schritt 1: Dokumente indexieren**
+```
+1. Beide PDFs hochgeladen (Projektskizze + Projektantrag)
+2. PyMuPDF extrahiert Text
+3. Simple Chunking (1000 Zeichen, 200 Overlap)
+4. sentence-transformers erstellt Embeddings
+5. ChromaDB speichert Vektoren
+```
+
+**Schritt 2: Kriterien sequenziell prüfen**
+```python
+# Pseudo-Code (Konzept für Option 1)
+
+for kriterium in kriterienkatalog:
+    # 1. RAG: Relevante Chunks holen
+    chunks = chromadb.query(kriterium.search_query, top_k=5)
+    
+    # 2. Context zusammenstellen
+    context = "\n\n".join(chunks)
+    
+    # 3. Prompt mit Context an LM Studio
+    prompt = f"""
+    Kontext aus Dokumenten:
+    {context}
+    
+    Aufgabe:
+    {kriterium.prompt}
+    
+    Antworte NUR mit JSON im Format:
+    {kriterium.json_schema}
+    """
+    
+    # 4. LLM abfragen
+    result = lm_studio_client.query(prompt)
+    
+    # 5. JSON parsen & validieren
+    parsed = json.loads(result)
+    
+    # 6. Speichern
+    results.append(parsed)
+    
+    # 7. Status update für UI (alle 2 Sek via st.rerun)
+    update_progress(f"Kriterium {i+1}/6 geprüft")
+```
+
+**Schritt 3: Ergebnisse speichern**
+```
+/data/projects/{projekt_id}/results/
+  criteria_check_2025-11-13_14-30.json
+```
+
+### Workflow-Details (Robust & Einfach)
+
+**Status-Tracking für UI:**
+```python
+# In session_state speichern
+st.session_state.processing_status = {
+    "step": "criteria_check",
+    "current_criterion": 2,
+    "total_criteria": 6,
+    "progress_percent": 33,
+    "last_update": "2025-11-13 14:30:15"
+}
+
+# UI liest alle 2 Sekunden neu aus
+if st.session_state.get('auto_refresh', False):
+    time.sleep(2)
+    st.rerun()
+```
+
+**Error Handling:**
+```python
+# Einfach & robust
+try:
+    result = check_criterion(kriterium)
+except LLMError as e:
+    # Retry 1x
+    result = check_criterion(kriterium)
+except Exception as e:
+    # Als "unklar" markieren, weitermachen
+    result = {"erfuellt": None, "error": str(e)}
+```
 
 ### Ergebnisformat
 ```json

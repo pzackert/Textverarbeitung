@@ -1,7 +1,7 @@
 # RAG System
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 3.0 (Architektur-Varianten)  
+**Version:** 4.0 (Option 1 MVP + Future Features)  
 **Stand:** 10. November 2025
 
 ---
@@ -33,11 +33,26 @@ RAG kombiniert die Stärken von **Informationsabruf** und **Textgenerierung**:
 
 ## 🏗️ RAG-VARIANTEN
 
-### Option 1: Super-Lite (LM Studio Built-in RAG)
+### ⚠️ Option 1 (NICHT EMPFOHLEN): Super-Lite (LM Studio Built-in RAG)
 
 **Konzept:** LM Studio übernimmt RAG vollständig.
 
 **Voraussetzung:** LM Studio muss RAG-Features unterstützen (zu prüfen!).
+
+**Status:** ⚠️ Zu prüfen ob LM Studio diese APIs bietet! Falls nicht verfügbar → Option 1.5
+
+---
+
+### ✅ Option 1.5 (EMPFOHLEN für MVP): Super-Lite mit minimalem RAG
+
+**Konzept:** LM Studio nur für LLM. Minimales eigenes RAG ohne LangChain.
+
+**Tech-Stack:**
+- ChromaDB (Vector Store)
+- sentence-transformers (Embeddings)
+- Einfache Python-Funktionen
+
+**DIES IST DIE OPTION FÜR OPTION 1 MVP!**
 
 #### Workflow
 ```
@@ -97,11 +112,14 @@ def query_with_rag_superlite(query: str, projekt_id: str):
 **Konzept:** LM Studio nur für LLM. Minimales eigenes RAG ohne LangChain.
 
 **Tech-Stack:**
+**Tech-Stack:**
 - ChromaDB (Vector Store)
 - sentence-transformers (Embeddings)
 - Einfache Python-Funktionen
 
-#### Komponenten
+**DIES IST DIE OPTION FÜR OPTION 1 MVP!**
+
+#### Komponenten - ✅ OPTION 1
 
 **1. ChromaDB Setup**
 ```python
@@ -109,7 +127,7 @@ import chromadb
 from chromadb.config import Settings
 
 class SimpleRAG:
-    """Minimales RAG-System ohne LangChain"""
+    """Minimales RAG-System ohne LangChain - OPTION 1"""
     
     def __init__(self, persist_dir: str = "./data/chromadb"):
         self.client = chromadb.Client(Settings(
@@ -136,7 +154,7 @@ class SimpleRAG:
 **2. Einfaches Chunking**
 ```python
 def simple_chunk(text: str, chunk_size: int = 1000, overlap: int = 200):
-    """Einfache Chunking-Funktion ohne LangChain"""
+    """Einfache Chunking-Funktion ohne LangChain - OPTION 1"""
     chunks = []
     start = 0
     
@@ -160,7 +178,7 @@ def simple_chunk(text: str, chunk_size: int = 1000, overlap: int = 200):
 **3. Indexierung**
 ```python
 def index_document(self, text: str, projekt_id: str, metadata: dict):
-    """Dokument indexieren"""
+    """Dokument indexieren - OPTION 1"""
     
     # Collection holen
     collection = self.create_collection(projekt_id)
@@ -185,7 +203,7 @@ def index_document(self, text: str, projekt_id: str, metadata: dict):
 **4. Retrieval**
 ```python
 def retrieve_context(self, query: str, projekt_id: str, top_k: int = 5):
-    """Relevante Chunks finden"""
+    """Relevante Chunks finden - OPTION 1"""
     
     collection = self.client.get_collection(f"projekt_{projekt_id}")
     
@@ -212,12 +230,12 @@ def retrieve_context(self, query: str, projekt_id: str, top_k: int = 5):
 - ✅ Funktioniert garantiert
 
 **Nachteile:**
-- ❌ Etwas mehr Code als Option 1
+- ❌ Etwas mehr Code als LM Studio Built-in
 - ❌ Eigene ChromaDB-Verwaltung
 
 ---
 
-### Option 2: Lite (LangChain + ChromaDB)
+### ⚠️ Option 2+ (NICHT in MVP): Lite (LangChain + ChromaDB)
 
 **Konzept:** Production-ready RAG mit bewährten Tools.
 
@@ -226,7 +244,10 @@ def retrieve_context(self, query: str, projekt_id: str, top_k: int = 5):
 - ChromaDB (Vector Store)
 - HuggingFace Embeddings
 
-#### Komponenten
+#### Komponenten - ⚠️ OPTION 2+
+
+### 2. Text-Splitting - ⚠️ OPTION 2+
+
 **Zweck:** Dokumente in sinnvolle, durchsuchbare Einheiten zerlegen
 
 #### Chunk-Größen (Empfehlungen)
@@ -260,23 +281,28 @@ text_splitter = RecursiveCharacterTextSplitter(
 chunks = text_splitter.split_text(document_text)
 ```
 
-### 3. Embeddings
+### 3. Embeddings - ⚠️ OPTION 2+
+
 **Zweck:** Text in numerische Vektoren umwandeln für Similarity-Search
 
+**In Option 1: Verwenden wir paraphrase-multilingual-MiniLM-L12-v2**
+
+**Option 2+ bietet mehr Auswahl:**
+
 #### Empfohlene Modelle
-**Option 1: BAAI/bge-large-en-v1.5** (Bisherige Wahl)
+**Option 1: BAAI/bge-large-en-v1.5**
 - Größe: 335M Parameter
 - Dimensionen: 1024
 - Sprachen: Primär Englisch (funktioniert aber auch mit Deutsch)
 - Performance: Sehr gut für technische Texte
 
-**Option 2: intfloat/multilingual-e5-large** (Besseres Deutsch)
+**Option 2: intfloat/multilingual-e5-large**
 - Größe: 560M Parameter
 - Dimensionen: 1024
 - Sprachen: 100+ Sprachen inkl. Deutsch
 - Performance: Exzellent für mehrsprachige Dokumente
 
-**Option 3: Qwen2.5-Embeddings** (Beste Integration)
+**Option 3: Qwen2.5-Embeddings**
 - Eigenes Embedding-Modell von Qwen
 - Native Integration mit Qwen-LLM
 - Optimiert für asiatische UND europäische Sprachen
@@ -296,10 +322,13 @@ texts = [chunk1, chunk2, chunk3, ...]
 vectors = embeddings.embed_documents(texts)
 ```
 
-### 4. Metadaten-Extraktion
+### 4. Metadaten-Extraktion - ⚠️ OPTION 2+
+
 **Zweck:** Zusätzliche Informationen für präzisere Suche
 
-#### Standard-Metadaten pro Chunk
+**In Option 1: Nur minimale Metadaten (Dateiname, Dokumenttyp)**
+
+#### Standard-Metadaten pro Chunk (Option 2+)
 ```python
 chunk_metadata = {
     # Dokument-Identifikation
@@ -329,7 +358,9 @@ chunk_metadata = {
 
 ## 🔄 PROZESSABLAUF
 
-### Phase 1: Indexierung (nach Dokument-Upload)
+### ✅ OPTION 1 - Vereinfachter Ablauf
+
+### Phase 1: Indexierung (nach Dokument-Upload) - ✅ OPTION 1
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -362,9 +393,75 @@ chunk_metadata = {
 │     - 37 Vektoren mit Metadaten                 │
 │     - Persistiert auf Disk                      │
 └─────────────────────────────────────────────────┘
+### Phase 1: Indexierung (nach Dokument-Upload) - ✅ OPTION 1
+
+```
+┌─────────────────────────────────────────────────┐
+│  1. Dokumente hochgeladen                       │
+│     - projektskizze.pdf                         │
+│     - projektantrag.docx                        │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────────┐
+│  2. Parsing & Textextraktion                    │
+│     → parse_document() - Einfache Funktion      │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────────┐
+│  3. Chunking                                    │
+│     → simple_chunk() - Feste Größe 1000 Zeichen│
+│     - Projektskizze: 12 Chunks                  │
+│     - Projektantrag: 25 Chunks                  │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────────┐
+│  4. Embedding-Generierung                       │
+│     → sentence-transformers encode()            │
+│     - Batch-Processing: 37 Embeddings          │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────────┐
+│  5. ChromaDB-Speicherung                        │
+│     - Collection: projekt_abc123                │
+│     - 37 Vektoren mit Mini-Metadaten            │
+└─────────────────────────────────────────────────┘
 ```
 
-#### Implementierung
+#### Implementierung - ✅ OPTION 1
+```python
+def index_project_documents_simple(projekt_id: str, documents: list):
+    """Indexiert alle Dokumente eines Projekts - OPTION 1"""
+    
+    # SimpleRAG initialisieren
+    rag = SimpleRAG()
+    rag.initialize_embedder()
+    
+    for document in documents:
+        # 1. Text extrahieren
+        text = parse_document(document.path)["volltext"]
+        
+        # 2. Einfaches Chunking
+        chunks = simple_chunk(text, chunk_size=1000, overlap=200)
+        
+        # 3. Indexieren mit minimalen Metadaten
+        rag.index_document(
+            text=text,
+            projekt_id=projekt_id,
+            metadata={
+                'doc_id': document.id,
+                'dokumenttyp': document.type,
+                'dateiname': document.filename
+            }
+        )
+    
+    print(f"✅ Projekt {projekt_id} indexiert")
+```
+
+---
+
+### ⚠️ OPTION 2+ - Detaillierter Ablauf mit LangChain
+
+**Implementierung (LangChain):**
 ```python
 def index_project_documents(projekt_id: str, documents: list):
     """Indexiert alle Dokumente eines Projekts in ChromaDB"""
@@ -409,7 +506,7 @@ def index_project_documents(projekt_id: str, documents: list):
     print(f"✅ {len(all_chunks)} Chunks indexiert für Projekt {projekt_id}")
 ```
 
-### Phase 2: Retrieval (bei Kriterienprüfung)
+### Phase 2: Retrieval (bei Kriterienprüfung) - ✅ OPTION 1
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -440,47 +537,57 @@ def index_project_documents(projekt_id: str, documents: list):
 ┌─────────────────────────────────────────────────┐
 │  5. Kontext an LLM übergeben                    │
 │     Prompt + Top 3 Chunks → LLM → Bewertung    │
+### Phase 2: Retrieval (bei Kriterienprüfung) - ✅ OPTION 1
+
+```
+┌─────────────────────────────────────────────────┐
+│  1. Kriterium K001: Projektort Hamburg         │
+│     Query: "Betriebsstätte Hamburg Standort"   │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────────┐
+│  2. Query-Embedding generieren                  │
+│     query_vector = embedder.encode(query)       │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────────┐
+│  3. Similarity Search in ChromaDB               │
+│     collection.query() - Top 5 Chunks           │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────────┐
+│  4. Relevante Chunks zurückgeben                │
+│     Chunk #17: "...Hamburg, Beispielstr. 1..."  │
+│     Chunk #3:  "...Unternehmensstandort..."     │
+│     Chunk #22: "...Betriebsstätte seit 2020..." │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────────┐
+│  5. Kontext an LM Studio LLM übergeben          │
+│     Prompt + Top 5 Chunks → LLM → Bewertung    │
 └─────────────────────────────────────────────────┘
 ```
 
-#### Implementierung
+#### Implementierung - ✅ OPTION 1
 ```python
-def retrieve_relevant_chunks(projekt_id: str, query: str, top_k: int = 5):
-    """Findet relevante Chunks für eine Anfrage"""
+def retrieve_relevant_chunks_simple(projekt_id: str, query: str, top_k: int = 5):
+    """Findet relevante Chunks für eine Anfrage - OPTION 1"""
     
-    # 1. Collection laden
-    collection = chromadb_client.get_collection(
-        name=f"projekt_{projekt_id}"
-    )
+    rag = SimpleRAG()
+    rag.initialize_embedder()
     
-    # 2. Query vektorisieren
-    query_embedding = embedding_model.embed_query(query)
+    # Retrieval
+    results = rag.retrieve_context(query, projekt_id, top_k)
     
-    # 3. Similarity Search
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k,
-        where={"projekt_id": projekt_id}  # Filter nach Projekt
-    )
-    
-    # 4. Ergebnisse formatieren
-    chunks = []
-    for i in range(len(results['documents'][0])):
-        chunks.append({
-            'text': results['documents'][0][i],
-            'metadata': results['metadatas'][0][i],
-            'similarity': results['distances'][0][i],
-            'source': results['metadatas'][0][i]['filename']
-        })
-    
-    return chunks
+    # Einfache Formatierung
+    return results['chunks']
 ```
 
 ---
 
-## 🎯 KRITERIEN-SPEZIFISCHE RETRIEVAL-STRATEGIE
+## 🎯 KRITERIEN-SPEZIFISCHE RETRIEVAL-STRATEGIE - ✅ OPTION 1 + ⚠️ OPTION 2+
 
-### Sukzessives Prüfen (ein Kriterium nach dem anderen)
+### Sukzessives Prüfen (ein Kriterium nach dem anderen) - ✅ OPTION 1
 
 Jedes der 6 Kriterien wird **einzeln und nacheinander** geprüft:
 
@@ -506,9 +613,29 @@ chunks = retrieve_relevant_chunks(projekt_id, query_k002, top_k=5)
 result_k002 = llm_check_kriterium(chunks, criteria_prompt_k002)
 ```
 
+Jedes der 6 Kriterien wird **einzeln und nacheinander** geprüft:
+
+#### Kriterium K001: Projektort Hamburg - ✅ OPTION 1
+```python
+query_k001 = "Betriebsstätte Hamburg Standort Adresse"
+
+chunks = retrieve_relevant_chunks_simple(projekt_id, query_k001, top_k=5)
+result_k001 = llm_check_kriterium(chunks, criteria_prompt_k001)
+```
+
+#### Kriterium K002: Unternehmensalter - ✅ OPTION 1
+```python
+query_k002 = "Gründungsdatum Unternehmensgründung Handelsregister"
+
+chunks = retrieve_relevant_chunks_simple(projekt_id, query_k002, top_k=5)
+result_k002 = llm_check_kriterium(chunks, criteria_prompt_k002)
+```
+
 *...und so weiter für K003-K006*
 
-### Optimierung: Adaptive Query-Expansion
+---
+
+### ⚠️ OPTION 2+: Optimierung mit Adaptive Query-Expansion
 
 Wenn Konfidenz niedrig ist (<75%), automatisch nachprüfen:
 
@@ -537,18 +664,18 @@ def adaptive_retrieval(projekt_id: str, kriterium: dict, initial_result: dict):
 
 ## 📊 DATENHALTUNG & PERFORMANCE
 
-### Collection-Struktur
+### Collection-Struktur - ✅ OPTION 1
 
 **Eine Collection pro Projekt:**
 ```
 chromadb/
 ├── projekt_abc123/
 │   ├── chunks (37 Einträge)
-│   ├── embeddings (37x1024 Vektoren)
+│   ├── embeddings (37x384 Vektoren)
 │   └── metadata.json
 ├── projekt_def456/
 │   ├── chunks (42 Einträge)
-│   ├── embeddings (42x1024 Vektoren)
+│   ├── embeddings (42x384 Vektoren)
 │   └── metadata.json
 └── ...
 ```
@@ -556,10 +683,11 @@ chromadb/
 **Vorteile:**
 - Isolation zwischen Projekten
 - Einfaches Löschen (drop_collection)
-- Parallele Verarbeitung möglich
 - Keine Cross-Projekt-Kontamination
 
-### Performance-Optimierung
+---
+
+### ⚠️ OPTION 2+: Performance-Optimierung
 
 #### 1. Batch-Processing
 ```python
@@ -609,82 +737,81 @@ def update_document(projekt_id: str, document_id: str, new_version: str):
 
 **1000 Projekte ≈ 1.6 GB Storage**
 
+### ⚠️ OPTION 2+: Performance-Optimierung
+
+**In Option 1: Kein Caching, keine incremental updates, kein paralleles Processing**
+
+#### 1. Batch-Processing
+```python
+# ❌ Schlecht: Ein Embedding pro Anfrage
+for chunk in chunks:
+    embedding = model.embed_documents([chunk])
+
+# ✅ Gut: Alle Embeddings auf einmal
+embeddings = model.embed_documents(chunks)
+```
+
+#### 2. Caching
+```python
+# Cache für bereits indexierte Dokumente
+INDEXED_DOCUMENTS = {}
+
+def is_already_indexed(document_hash: str) -> bool:
+    return document_hash in INDEXED_DOCUMENTS
+
+def mark_as_indexed(document_hash: str, chunk_count: int):
+    INDEXED_DOCUMENTS[document_hash] = {
+        'indexed_at': datetime.now(),
+        'chunk_count': chunk_count
+    }
+```
+
+#### 3. Incremental Updates
+```python
+def update_document(projekt_id: str, document_id: str, new_version: str):
+    """Update nur geänderter Dokumente"""
+    
+    # 1. Alte Chunks löschen
+    collection.delete(where={"document_id": document_id})
+    
+    # 2. Neue Chunks indexieren
+    new_chunks = parse_and_chunk(new_version)
+    add_to_collection(new_chunks)
+```
+
+---
+
+### Storage-Anforderungen - ✅ OPTION 1
+
+**Durchschnittliches Projekt:**
+- 2 Dokumente
+- ~40 Chunks total
+- ~20 KB pro Chunk (Text + Embedding + Metadata)
+- **~800 KB pro Projekt**
+
+**1000 Projekte ≈ 800 MB Storage**
+
 ---
 
 ## 🔧 BEST PRACTICES
 
-### 1. Chunk-Size Tuning
-**Testen verschiedener Größen:**
-```python
-CHUNK_CONFIGS = [
-    {'size': 500, 'overlap': 100},
-    {'size': 1000, 'overlap': 200},
-    {'size': 1500, 'overlap': 300},
-]
+### ⚠️ OPTION 2+: Chunk-Size Tuning, Qualitätskontrolle, Duplicate Detection
 
-for config in CHUNK_CONFIGS:
-    precision, recall = evaluate_chunking(config)
-    print(f"Size {config['size']}: P={precision:.2f}, R={recall:.2f}")
-```
-
-### 2. Qualitätskontrolle
-```python
-def validate_indexing(projekt_id: str):
-    """Prüfe Indexierungs-Qualität"""
-    
-    collection = get_collection(projekt_id)
-    
-    # Test-Queries mit bekannten Antworten
-    test_cases = [
-        ("Projektstandort", "sollte 'Hamburg' enthalten"),
-        ("Unternehmensgründung", "sollte Datum enthalten"),
-    ]
-    
-    for query, expected in test_cases:
-        chunks = retrieve_relevant_chunks(projekt_id, query, top_k=3)
-        assert any(expected in chunk['text'] for chunk in chunks), \
-            f"Query '{query}' fand nicht '{expected}'"
-```
-
-### 3. Duplicate Detection
-```python
-import hashlib
-
-def detect_duplicate_chunks(chunks: list) -> list:
-    """Entferne identische Chunks"""
-    
-    seen_hashes = set()
-    unique_chunks = []
-    
-    for chunk in chunks:
-        chunk_hash = hashlib.md5(chunk.encode()).hexdigest()
-        
-        if chunk_hash not in seen_hashes:
-            seen_hashes.add(chunk_hash)
-            unique_chunks.append(chunk)
-    
-    removed = len(chunks) - len(unique_chunks)
-    print(f"⚠️ {removed} Duplikate entfernt")
-    
-    return unique_chunks
-```
+**In Option 1: Feste Chunk-Größe 1000 Zeichen, keine erweiterte QS**
 
 ---
 
-## 🔍 INTEGRATION MIT LLM
+## 🔍 INTEGRATION MIT LLM - ✅ OPTION 1 + ⚠️ OPTION 2+
 
-### Kontext-Augmentation
+### Kontext-Augmentation - ✅ OPTION 1
 
 **Prompt-Template für Kriterienprüfung:**
 ```python
-def build_augmented_prompt(kriterium: dict, chunks: list) -> str:
-    """Erstelle Prompt mit RAG-Kontext"""
+def build_augmented_prompt_simple(kriterium: dict, chunks: list) -> str:
+    """Erstelle Prompt mit RAG-Kontext - OPTION 1"""
     
-    # Kontext aus relevanten Chunks
-    context = "\n\n---\n\n".join([
-        f"[Quelle: {chunk['source']}, Seite {chunk['metadata']['page_number']}]\n{chunk['text']}"
-        for chunk in chunks[:3]  # Top 3
-    ])
+    # Kontext aus relevanten Chunks (einfach)
+    context = "\n\n---\n\n".join(chunks[:5])  # Top 5
     
     # Vollständiger Prompt
     prompt = f"""Du bist ein Experte für Förderkriterien der IFB Hamburg.
@@ -692,9 +819,6 @@ def build_augmented_prompt(kriterium: dict, chunks: list) -> str:
 AUFGABE:
 Prüfe anhand der folgenden Dokumente das Kriterium:
 "{kriterium['titel']}"
-
-ZIEL:
-{kriterium['ziel']}
 
 RELEVANTE DOKUMENT-AUSZÜGE:
 {context}
@@ -706,16 +830,18 @@ Antworte im JSON-Format:
 {{
     "erfuellt": true/false,
     "wert": "Extrahierter Wert",
-    "begruendung": "Detaillierte Begründung",
-    "confidence": 0.95,
-    "quellen": ["Quelle 1", "Quelle 2"]
+    "begruendung": "Detaillierte Begründung"
 }}
 """
     
     return prompt
 ```
 
-### Retrieval-Qualität messen
+---
+
+### ⚠️ OPTION 2+: Retrieval-Qualität messen
+
+**Erweiterte Metriken und Evaluation**
 
 ```python
 def measure_retrieval_quality(projekt_id: str, test_queries: list):

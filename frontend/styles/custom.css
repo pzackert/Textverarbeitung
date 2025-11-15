@@ -1,0 +1,9 @@
+/* Streamlit-friendly customizations (scaffold). */
+:root {
+    --ifb-primary: #005ca9;
+    --ifb-secondary: #0078d4;
+}
+
+.block-container {
+    padding-top: 1.5rem;
+}

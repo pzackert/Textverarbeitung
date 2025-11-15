@@ -1,0 +1,38 @@
+{
+  "projekt_id": "projekt_75caa352",
+  "projekt_name": "Demo Wasserstoffspeicher",
+  "antragsteller": "FutureEnergy GmbH",
+  "modul": "PROFI Standard",
+  "projektart": "Entwicklung",
+  "beschreibung": "Vollständig durchlaufener Musterantrag",
+  "status": "checked",
+  "created_at": "2025-11-14T15:43:01.318308",
+  "updated_at": "2025-11-14T15:43:01.328388",
+  "documents": [
+    {
+      "doc_id": "demo-business-plan",
+      "doc_type": "business_plan",
+      "filename": "demo_geschaeftsplan.pdf",
+      "original_filename": "Demo_Geschaeftsplan.pdf",
+      "uploaded_at": "2025-11-14T15:43:01.318733"
+    },
+    {
+      "doc_id": "demo-finance",
+      "doc_type": "financial_documents",
+      "filename": "demo_finanzplan.xlsx",
+      "original_filename": "Demo_Finanzplan.xlsx",
+      "uploaded_at": "2025-11-14T15:43:01.318733"
+    }
+  ],
+  "checks_completed": {
+    "parsing": false,
+    "extraction": false,
+    "foerdervoraussetzungen": false,
+    "bewertung": false
+  },
+  "current_step": 4,
+  "result": "PASSED",
+  "is_demo": true,
+  "last_upload_at": "2025-11-14T15:43:01.318733",
+  "last_check_at": "2025-11-14T15:43:01.318733"
+}

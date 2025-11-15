@@ -1,16 +1,16 @@
 # Data Management
 ## IFB PROFI - Automatisierte Antragsprüfung
 
-**Version:** 1.0  
+**Version:** 2.0 (Option 1 MVP + Enterprise Features)  
 **Stand:** 8. November 2025
 
 ## Übersicht
 
 System zur Verwaltung von Projektdaten und Dokumenten.
 
-## Projektstruktur
+## Projektstruktur - ✅ OPTION 1
 
-### Basis
+### Basis - ✅ OPTION 1
 **Für jedes Projekt wird ein eigener Ordner angelegt:**
 
 ```
@@ -20,7 +20,7 @@ System zur Verwaltung von Projektdaten und Dokumenten.
       /uploads              # Original-Dokumente
         projektskizze.pdf
         projektantrag.pdf
-      /extracted            # Extrahierte Daten
+      /extracted            # Extrahierte Daten (JSON)
         projektskizze.json
         projektantrag.json
       /results              # Prüfergebnisse
@@ -28,7 +28,7 @@ System zur Verwaltung von Projektdaten und Dokumenten.
       metadata.json
 ```
 
-### Metadaten
+### Metadaten - ✅ OPTION 1 (Einfache Version)
 ```json
 {
     "projekt_id": "proj_2025_abc123",
@@ -41,12 +41,6 @@ System zur Verwaltung von Projektdaten und Dokumenten.
             "type": "projektskizze",
             "filename": "projektskizze.pdf",
             "uploaded_at": "2025-11-08T10:05:00Z"
-        },
-        {
-            "id": "doc_002",
-            "type": "projektantrag",
-            "filename": "projektantrag.pdf",
-            "uploaded_at": "2025-11-08T10:06:00Z"
         }
     ],
     "results": [
@@ -59,44 +53,72 @@ System zur Verwaltung von Projektdaten und Dokumenten.
 }
 ```
 
+---
+
 ## Dateimanagement
 
-### Upload
-- Virenprüfung
-- Formaterkennung
-- Deduplizierung
-- Versionierung
+### ✅ OPTION 1 (Basis-Features):
 
-### Speicherung
-- Lokales Filesystem
-- Strukturierte Ablage
+- **Upload:** Einfacher File-Upload über Streamlit
+- **Speicherung:** Lokales Filesystem ohne Encryption
+- **Format-Check:** Nur PDF/DOCX/XLSX Prüfung
+
+---
+
+### ⚠️ OPTION 2+ (Erweiterte Features):
+
+#### Upload
+- Virenprüfung (ClamAV Integration)
+- Erweiterte Formaterkennung
+- Deduplizierung (Hash-Check)
+- Versionierung (Git-basiert)
+
+#### Speicherung
+- Verschlüsselte Speicherung
+- S3-kompatible Object Storage
 - Backup-Integration
 
-### Archivierung
-- Komprimierung
+#### Archivierung
+- Automatische Komprimierung
 - Retention Policy
 - Cleanup-Jobs
 
+---
+
 ## Metadaten-Handling
 
-### Tracking
-- Dokumentenhistorie
-- Bearbeitungsstatus
-- Prüfergebnisse
+### ✅ OPTION 1 (Einfaches Tracking):
 
-### Indizierung
-- Volltextsuche
+**Tracking:** Einfache JSON-Files pro Projekt
+
+**Indizierung:** Keine Volltextsuche in MVP, nur Projekt-Liste
+
+---
+
+### ⚠️ OPTION 2+ (Erweitert):
+
+#### Tracking
+- Dokumentenhistorie mit Audit-Trail
+- Bearbeitungsstatus-Workflow
+- Detailed Logging
+
+#### Indizierung
+- Volltextsuche (Elasticsearch)
 - Metadaten-Suche
-- Verknüpfungen
+- Cross-Projekt-Verknüpfungen
 
-## Backup
+---
 
-### Strategie
+## Backup - ⚠️ OPTION 2+ ONLY
+
+**In Option 1: Keine automatischen Backups**
+
+### OPTION 2+ Strategie:
 - Inkrementell täglich
 - Voll wöchentlich
 - Verschlüsselt
 
-### Recovery
+### Recovery:
 - Point-in-Time
 - Selektiv
 - Verifizierung

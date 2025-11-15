@@ -1,68 +1,55 @@
-"""
-LM Studio Client
-Wrapper für LM Studio API (OpenAI-kompatibel)
-"""
+"""LM Studio Client - OpenAI-kompatible API"""
+from typing import List
+from openai import OpenAI
+from backend.utils.config import get_config_value
+from backend.utils.logger import setup_logger
 
-import requests
-from typing import Optional, List, Dict, Any
+logger = setup_logger(__name__)
 
 
 class LMStudioClient:
-    """Wrapper für LM Studio API (OpenAI-kompatibel)."""
+    """Client für LM Studio mit OpenAI API"""
     
-    def __init__(
-        self,
-        base_url: str = "http://localhost:1234/v1",
-        api_key: str = "not-needed"
-    ):
-        self.base_url = base_url
-        self.api_key = api_key
+    def __init__(self):
+        base_url = get_config_value('llm.base_url')
+        self.client = OpenAI(base_url=base_url, api_key="not-needed")
+        self.model = get_config_value('llm.model', 'qwen2.5-4b-instruct')
+        self.temperature = get_config_value('llm.temperature', 0.1)
+        self.max_tokens = get_config_value('llm.max_tokens', 1024)
+        logger.info(f"✓ LMStudioClient initialisiert ({base_url})")
     
-    def generate(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: float = 0.3,
-        max_tokens: int = 2048,
-        **kwargs
-    ) -> str:
-        """
-        Generiert Text mit LM Studio.
-        
-        Args:
-            prompt: User-Prompt
-            system_prompt: System-Prompt (optional)
-            temperature: Sampling-Temperatur (0.0 - 1.0)
-            max_tokens: Maximale Token-Anzahl
-            
-        Returns:
-            Generierter Text
-        """
-        
+    def generate(self, prompt: str, system_prompt: str = "", temperature: float = 0.0, max_tokens: int = 0) -> str:
+        """Generiere Antwort vom LLM"""
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
         
-        response = requests.post(
-            f"{self.base_url}/chat/completions",
-            json={
-                "model": "local-model",
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                **kwargs
-            },
-            headers={"Authorization": f"Bearer {self.api_key}"}
-        )
-        response.raise_for_status()
+        temp = temperature if temperature > 0 else self.temperature
+        tokens = max_tokens if max_tokens > 0 else self.max_tokens
         
-        return response.json()["choices"][0]["message"]["content"]
-    
-    def is_available(self) -> bool:
-        """Prüft ob LM Studio Server erreichbar ist."""
         try:
-            response = requests.get(f"{self.base_url}/models", timeout=2)
-            return response.status_code == 200
-        except Exception:
-            return False
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=temp,
+                max_tokens=tokens
+            )
+            answer = response.choices[0].message.content or ""
+            logger.info(f"✓ LLM Antwort: {len(answer)} Zeichen")
+            return answer
+        except Exception as e:
+            logger.error(f"✗ LLM Fehler: {e}")
+            return f"Fehler: {e}"
+    
+    def generate_with_context(self, query: str, context_chunks: List[str], system_prompt: str = "") -> str:
+        """Generiere Antwort mit RAG-Kontext"""
+        context = "\n\n".join([f"[{i+1}] {chunk}" for i, chunk in enumerate(context_chunks)])
+        prompt = f"""Kontext aus den Förderrichtlinien:
+{context}
+
+Frage: {query}
+
+Antworte basierend auf dem gegebenen Kontext. Wenn die Information nicht im Kontext vorhanden ist, sage das klar."""
+        return self.generate(prompt, system_prompt)
+
