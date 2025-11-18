@@ -1,0 +1,18 @@
+{
+  "kriterien": [
+    {
+      "id": 1,
+      "name": "Innovationsgrad",
+      "beschreibung": "Technische oder geschäftliche Neuartigkeit des Projekts",
+      "kategorie": "Innovation",
+      "gewichtung": 9
+    },
+    {
+      "id": 2,
+      "name": "Finanzplan",
+      "beschreibung": "Vollständigkeit und Plausibilität der Finanzplanung",
+      "kategorie": "Finanzierung",
+      "gewichtung": 8
+    }
+  ]
+}
