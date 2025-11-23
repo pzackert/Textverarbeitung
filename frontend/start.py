@@ -12,7 +12,7 @@ def start_streamlit() -> None:
     """Start the Streamlit frontend with live log streaming."""
 
     frontend_dir = Path(__file__).parent
-    venv_python = "/Users/patrick.zackert/projects/masterprojekt/venv/bin/python"
+    venv_python = "/Users/patrick.zackert/projects/masterprojekt/.venv/bin/python"
 
     if not Path(venv_python).exists():
         raise FileNotFoundError(f"Python-Interpreter nicht gefunden: {venv_python}")
