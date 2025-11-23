@@ -8,6 +8,8 @@ from typing import Any, Dict, List
 
 import streamlit as st
 
+st.set_page_config(page_title="Kriterienkatalog", layout="wide")
+
 LOGGER = logging.getLogger("frontend.app")
 if not LOGGER.handlers:
     handler = logging.StreamHandler()
@@ -79,7 +81,6 @@ def _log_event(event: str, **details: Any) -> None:
 
 LOGGER.info("page_view | {'page': 'kriterienkatalog'}")
 
-st.set_page_config(page_title="Kriterienkatalog", layout="wide")
 st.title("📋 Kriterienkatalog")
 st.caption("Diese Kriterien werden für die Bewertung von Förderanträgen geprüft")
 

@@ -96,11 +96,19 @@ cp config/config.example.yaml config/config.yaml
 ### Anwendung starten
 
 ```bash
-# Streamlit UI starten
-uv run streamlit run frontend/app.py
+# Streamlit UI mit Live-Logs starten
+cd frontend
+python start.py
+
+# In zweitem Terminal weiterarbeiten oder Copilot verwenden
+
+# Zum Beenden (neues Terminal)
+python stop.py
 ```
 
-App läuft auf: **http://localhost:8501**
+- Die Start-Routine nutzt das virtuelle Environment unter `venv/` und öffnet den Browser automatisch.
+- Live-Logs erscheinen direkt im Terminal; zum Beenden `Strg+C` oder `python stop.py` verwenden.
+- App läuft auf: **http://localhost:8501**
 
 ## 📚 Dokumentation
 

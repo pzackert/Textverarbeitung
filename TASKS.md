@@ -164,7 +164,7 @@ dependencies = [
 - [ ] `frontend/app.py` (Haupt-Einstieg)
 - [ ] Streamlit Page Config (Titel, Icon, Layout)
 - [ ] Sidebar mit Navigation (Upload, Prüfung, Ergebnisse)
-- **Test:** `uv run streamlit run frontend/app.py` läuft
+- **Test:** `cd frontend && python start.py` läuft
 
 ### Task 6.2: Upload-Page
 - [ ] `frontend/pages/1_upload.py`
@@ -215,7 +215,7 @@ dependencies = [
 
 ### Abnahme-Kriterien (ALLE müssen erfüllt sein):
 - [ ] `uv sync` läuft ohne Fehler
-- [ ] Streamlit startet: `uv run streamlit run frontend/app.py`
+- [ ] Streamlit startet: `cd frontend && python start.py`
 - [ ] LM Studio Connection funktioniert
 - [ ] PDF/DOCX/XLSX können geparst werden
 - [ ] RAG Retrieval liefert relevante Chunks

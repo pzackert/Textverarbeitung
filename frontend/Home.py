@@ -26,7 +26,7 @@ def _log_event(event: str, **details: str | int | float | None) -> None:
 
 def main() -> None:
     """Render the HOME page."""
-    st.set_page_config(page_title="Home", layout="centered")
+    st.set_page_config(page_title="Home", layout="wide")
     _log_event("page_view", page="home")
 
     st.title(HOME_TITLE)
@@ -49,13 +49,6 @@ def main() -> None:
         • Strukturierte Bewertung nach IFB-Standards
         • Generierung von Prüfberichten und Checklisten
         • 100% lokale Verarbeitung für maximale Datensicherheit
-        """
-    )
-
-    st.header("Technologie")
-    st.write(
-        """
-        Basierend auf LM Studio mit lokalen Qwen-Modellen, ChromaDB für Vektorspeicherung und Python für die Verarbeitung.
         """
     )
 

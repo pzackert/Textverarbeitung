@@ -7,7 +7,8 @@
 source venv/bin/activate
 
 # 2. Streamlit starten
-PYTHONPATH=/Users/patrick.zackert/projects/masterprojekt streamlit run frontend/app.py
+cd frontend
+python start.py
 ```
 
 Oder nutze das Start-Script:
@@ -137,7 +138,8 @@ for result in results['criteria_results']:
 
 ```bash
 # UI starten
-PYTHONPATH=/Users/patrick.zackert/projects/masterprojekt streamlit run frontend/app.py
+cd frontend
+python start.py
 ```
 
 Dann im Browser:

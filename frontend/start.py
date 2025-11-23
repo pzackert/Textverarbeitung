@@ -1,85 +1,72 @@
-"""Start the Streamlit app and optionally attach to its logs.
+#!/usr/bin/env python3
+"""Start Streamlit with live logs for local development."""
 
-By default the script runs Streamlit in the background and writes logs to
-`streamlit.log` so the terminal stays free. Pass `--attach` to stream logs
-directly in the terminal instead.
-"""
-from __future__ import annotations
-
-import argparse
+import os
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Iterable
 
 
-def _iter_lines(stream) -> Iterable[str]:
-    """Yield lines from a process stream in a robust way.
+def start_streamlit() -> None:
+    """Start the Streamlit frontend with live log streaming."""
 
-    Works with text mode streams opened by subprocess.Popen.
-    """
-    while True:
-        line = stream.readline()
-        if not line:
-            break
-        yield line.rstrip("\n")
+    frontend_dir = Path(__file__).parent
+    venv_python = "/Users/patrick.zackert/projects/masterprojekt/venv/bin/python"
 
+    if not Path(venv_python).exists():
+        raise FileNotFoundError(f"Python-Interpreter nicht gefunden: {venv_python}")
 
-def main() -> None:
-    base_dir = Path(__file__).resolve().parent
-    app_file = base_dir / "Home.py"
-    if not app_file.exists():
-        raise FileNotFoundError(f"Streamlit-App nicht gefunden: {app_file}")
+    os.chdir(frontend_dir)
 
-    parser = argparse.ArgumentParser(description="Start the Streamlit frontend")
-    parser.add_argument("--attach", action="store_true", help="Stream logs in current terminal")
-    parser.add_argument("--port", type=int, default=8501, help="Port to run Streamlit on")
-    args = parser.parse_args()
+    print("🚀 Starte Streamlit...")
+    print("📍 Verzeichnis:", frontend_dir)
+    print("=" * 60)
 
-    command = [
-        sys.executable,
+    cmd = [
+        venv_python,
         "-m",
         "streamlit",
         "run",
-        str(app_file),
+        "Home.py",
         "--server.port",
-        str(args.port),
+        "8501",
         "--browser.gatherUsageStats",
         "false",
     ]
 
-    url = f"http://localhost:{args.port}"
-    print("\nStarting Streamlit...")
-
-    if not args.attach:
-        logfile = base_dir / "streamlit.log"
-        with logfile.open("a", encoding="utf-8") as fh:
-            process = subprocess.Popen(command, cwd=base_dir, stdout=fh, stderr=subprocess.STDOUT)
-        print("Streamlit started in background ✨")
-        print(f"PID: {process.pid}")
-        print(f"URL: {url}")
-        print(f"Logs: {logfile}")
-        print("To follow logs:")
-        print("  tail -f frontend/streamlit.log")
-        print("To stop: pkill -f 'streamlit run' or use the PID above.")
-        return
-
-    # Attach to process and stream stdout/stderr to the current terminal.
-    process = subprocess.Popen(command, cwd=base_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
-    print("Streamlit started — attached to current terminal ✨")
-    print(f"PID: {process.pid}")
-    print(f"URL: {url}\n")
-
+    process = None
     try:
-        # Print lines as they arrive — this blocks the terminal until the process exits
-        for line in _iter_lines(process.stdout):
-            # Prefix time for easier scanning
-            print(f"[streamlit] {time.strftime('%Y-%m-%d %H:%M:%S')} {line}")
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+        )
+
+        print(f"✅ Streamlit gestartet (PID: {process.pid})")
+        print("🌐 Browser öffnet automatisch...")
+        print("📊 Live-Logs:")
+        print("=" * 60)
+
+        assert process.stdout is not None  # for typing clarity
+        for line in process.stdout:
+            print(line, end="", flush=True)
+
     except KeyboardInterrupt:
-        print("\nReceived interrupt — exiting and leaving Streamlit running in background.")
-        return
+        print("\n🛑 Streamlit wird beendet...")
+        if process:
+            process.terminate()
+            process.wait()
+        print("✅ Streamlit beendet")
+    except Exception as exc:  # pylint: disable=broad-except
+        print(f"❌ Fehler beim Start: {exc}")
+        if process:
+            process.terminate()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    start_streamlit()

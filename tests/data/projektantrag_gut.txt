@@ -1,0 +1,35 @@
+PROJEKTANTRAG - HAFENLOGISTIK 4.0
+
+Antragsteller: HamburgTech Solutions GmbH
+Projekttitel: KI-gestützte Containeroptimierung im Hamburger Hafen
+
+INNOVATIONSGRAD:
+Unser Projekt entwickelt eine neuartige KI-Lösung zur Echtzeitoptimierung der Containerverladung im Hamburger Hafen. Die Innovation liegt in der Kombination von Computer Vision, maschinellem Lernen und IoT-Sensordaten, um Ladezeiten um 40% zu reduzieren. Im Gegensatz zu bestehenden Systemen nutzt unsere Lösung selbstlernende Algorithmen, die sich kontinuierlich an Hafenbedingungen anpassen.
+
+TECHNISCHE UMSETZUNG:
+Das System basiert auf einer Multi-Kamera-Infrastruktur mit Edge-Computing-Einheiten, die Container in Echtzeit identifizieren und optimale Verladepositionen berechnen. Die KI-Modelle werden lokal auf NVIDIA Jetson-Geräten ausgeführt, um Latenzzeiten unter 100ms zu garantieren. Ein Cloud-Backend sammelt Trainingsdaten und verbessert die Modelle kontinuierlich.
+
+MARKTPOTENTIAL:
+Der europäische Markt für Hafenautomatisierung wird auf 8,5 Milliarden Euro geschätzt, mit einer jährlichen Wachstumsrate von 12%. Unsere Lösung adressiert primär die Top-20 europäischen Containerhäfen. Konservative Berechnungen zeigen ein Umsatzpotential von 15 Millionen Euro innerhalb von 3 Jahren nach Markteinführung.
+
+FINANZPLANUNG:
+Gesamtprojektkosten: 450.000 Euro
+- Personalkosten: 280.000 Euro (4 Entwickler, 18 Monate)
+- Hardware/Infrastruktur: 90.000 Euro
+- Software-Lizenzen: 30.000 Euro
+- Marketing/Vertrieb: 50.000 Euro
+
+Beantragte Förderung: 225.000 Euro (50%)
+Eigenanteil: 225.000 Euro (durch Seed-Finanzierung gesichert)
+
+PROJEKTTEAM:
+Dr. Anna Müller (Projektleitung) - Promotion in KI, 8 Jahre Erfahrung in Hafenlogistik
+Thomas Schmidt (Tech Lead) - 12 Jahre Software-Entwicklung, spezialisiert auf Computer Vision
+Sarah Weber (Business Development) - MBA, 6 Jahre im Logistiksektor
+
+ZEITPLAN:
+Monate 1-6: Entwicklung MVP und Pilotinstallation
+Monate 7-12: Testphase im Hamburger Hafen
+Monate 13-18: Optimierung und Rollout-Vorbereitung
+
+Das Projekt ist technisch ausgereift, wirtschaftlich tragfähig und wird von einem hochqualifizierten Team umgesetzt.

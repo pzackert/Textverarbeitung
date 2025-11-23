@@ -10,6 +10,8 @@ from typing import Sequence
 import streamlit as st
 from streamlit.components.v1 import html
 
+st.set_page_config(page_title="Settings", layout="wide")
+
 LOGGER = logging.getLogger("frontend.app")
 if not LOGGER.handlers:
     handler = logging.StreamHandler()
@@ -176,7 +178,6 @@ def _inject_auto_refresh(interval_ms: int) -> None:
 
 LOGGER.info("page_view | {'page': 'settings'}")
 
-st.set_page_config(page_title="LM Studio Settings", layout="wide")
 st.title("⚙️ Settings")
 st.caption("Verwalte LM Studio Instanzen und beobachte Live-Logs.")
 

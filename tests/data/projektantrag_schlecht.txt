@@ -1,0 +1,30 @@
+PROJEKTANTRAG - DIGITALE HAFENLÖSUNG
+
+Antragsteller: StartUp Hamburg UG
+
+Wir wollen eine App entwickeln für den Hafen. Die App soll irgendwie helfen, Dinge besser zu machen im Hafen. Wir haben eine Idee, dass man mit Handys die Container fotografieren kann.
+
+INNOVATION:
+Unsere App ist innovativ weil sie modern ist und Künstliche Intelligenz benutzt. Andere Apps gibt es zwar auch schon, aber unsere ist besser. Wir glauben, dass wir damit den Hafen revolutionieren können.
+
+TECHNOLOGIE:
+Wir programmieren eine Smartphone-App. Die Technologie ist noch nicht ganz klar, aber wir schauen uns verschiedene Frameworks an. Wahrscheinlich nutzen wir React Native oder vielleicht auch Flutter. Die KI wird irgendwie in der Cloud laufen.
+
+MARKT:
+Der Markt für Apps ist riesig. Millionen Menschen nutzen Apps. Hafenmitarbeiter haben auch Smartphones, also ist das Potential groß. Wir denken, wir können viel Geld verdienen.
+
+FINANZEN:
+Wir brauchen Geld für die Entwicklung. Genau wissen wir noch nicht wie viel. Vielleicht so 300.000 Euro? Die Kosten verteilen sich auf Gehälter und Computer und so. Wir haben noch keine genaue Kalkulation gemacht, aber das kommt noch.
+
+Förderung: Möglichst viel, am besten 100%
+Eigenanteil: Haben wir noch nicht, aber wir finden bestimmt Investoren
+
+TEAM:
+Max Mustermann - Student, macht gerade seinen Bachelor
+Lisa Beispiel - Hat schon mal eine Website gebaut
+Kevin Testmann - Interessiert sich für KI
+
+ZEITPLAN:
+Wir fangen irgendwann an und dann schauen wir mal wie lange es dauert. Wahrscheinlich ein Jahr oder so.
+
+Wir sind motiviert und haben viele Ideen. Bitte geben Sie uns die Förderung, damit wir starten können.
