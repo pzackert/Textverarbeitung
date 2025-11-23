@@ -72,25 +72,46 @@ Verschiedene Optionen möglich (in Evaluation):
 
 ### Voraussetzungen
 - Python 3.11+
-- UV Package Manager
+- UV Package Manager oder venv
 - LM Studio oder alternativer LLM-Server
 
 ### Installation
 
+**Mit UV (empfohlen):**
 ```bash
 # 1. Repository klonen
 git clone <repo-url>
 cd masterprojekt
 
-# 2. Dependencies installieren (UV)
+# 2. Dependencies installieren
 uv sync
 
 # 3. Config anpassen
 cp config/config.example.yaml config/config.yaml
 # LLM-Server URL in config.yaml eintragen
 
-# 4. LM Studio starten (falls lokal)
-# Modell laden und Server auf Port 1234 starten
+# 4. Anwendung starten
+python frontend/start.py
+```
+
+**Mit venv (alternativ):**
+```bash
+# 1. Repository klonen
+git clone <repo-url>
+cd masterprojekt
+
+# 2. Virtual Environment erstellen
+python3 -m venv venv
+source venv/bin/activate
+
+# 3. Dependencies installieren
+pip install -e .
+
+# 4. Config anpassen
+cp config/config.example.yaml config/config.yaml
+
+# 5. Anwendung starten
+python frontend/start.py
 ```
 
 ### Anwendung starten
