@@ -1,0 +1,68 @@
+# IFB PROFI - Option 1 (Super-Lite) Configuration
+# Minimal RAG system with LM Studio + Qwen 4B
+
+# LM Studio Settings
+llm:
+  provider: "lm_studio"
+  base_url: "http://192.168.1.132:1234/v1"  # Externe LM Studio Instanz
+  model: "qwen2.5-4b-instruct"  # Oder wie das Modell in LM Studio heißt
+  temperature: 0.1  # Niedrig für konsistente Ergebnisse
+  max_tokens: 1024
+  timeout: 60  # Sekunden
+
+# RAG Settings
+rag:
+  vector_store: "chromadb"
+  chroma_path: "data/chromadb"
+  collection_name: "ifb_documents"
+  embedding_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  chunk_size: 500  # Zeichen pro Chunk
+  chunk_overlap: 50  # Zeichen Überlappung
+  top_k: 3  # Anzahl relevanter Chunks für Retrieval
+
+# Document Parsing
+parsing:
+  pdf:
+    engine: "pymupdf"
+  docx:
+    engine: "python-docx"
+  xlsx:
+    engine: "openpyxl"
+  
+  # Erlaubte Dateitypen
+  allowed_extensions:
+    - "pdf"
+    - "docx"
+    - "xlsx"
+  
+  # Max. Dateigröße in MB
+  max_file_size_mb: 50
+
+# Data Storage
+storage:
+  base_path: "data"
+  projects_path: "data/projects"
+  input_path: "data/input"
+  regelwerk_path: "data/regelwerke"
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_file: "logs/ifb_profi.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Streamlit UI
+ui:
+  page_title: "IFB PROFI - Antragsprüfung"
+  page_icon: "📋"
+  layout: "wide"
+
+# Criteria Engine
+criteria:
+  required:
+    - "antragssteller"
+    - "foerderkonformitaet"
+    - "foerdersumme"
+    - "projektlaufzeit"
+    - "projektkosten"
+    - "rechtsform"

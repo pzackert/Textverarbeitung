@@ -1,13 +1,46 @@
 # IFB PROFI - Installation & Start
 
-## Schnellstart
+Das Projekt ist in zwei Optionen unterteilt:
+- **Option 1 (MVP):** Legacy Streamlit App
+- **Option 2 (Platform):** Neue FastAPI/HTMX App
+
+## Option 1: MVP (Legacy)
+
+```bash
+cd option_1_mvp
+./start.sh
+```
+
+## Option 2: Platform (Empfohlen)
+
+```bash
+cd option_2_platform
+./start_v2.sh
+```
+
+## Alte Anleitung (Archiviert)
+
+### Option 1: Mit UV (empfohlen) ⭐
+
+```bash
+# 1. Dependencies installieren
+uv sync
+
+# 2. Streamlit starten
+cd frontend
+python start.py
+```
+
+### Option 2: Mit venv (alternativ)
 
 ```bash
 # 1. Virtual Environment aktivieren
 source venv/bin/activate
+pip install -e .
 
 # 2. Streamlit starten
-PYTHONPATH=/Users/patrick.zackert/projects/masterprojekt streamlit run frontend/app.py
+cd frontend
+python start.py
 ```
 
 Oder nutze das Start-Script:
@@ -137,7 +170,8 @@ for result in results['criteria_results']:
 
 ```bash
 # UI starten
-PYTHONPATH=/Users/patrick.zackert/projects/masterprojekt streamlit run frontend/app.py
+cd frontend
+python start.py
 ```
 
 Dann im Browser:
@@ -164,6 +198,22 @@ rag:
 
 ## Troubleshooting
 
+### ChromaDB Fehler beim Start
+```
+Failed to send telemetry event: capture() takes 1 positional argument but 3 were given
+```
+
+**Behebung:**
+```bash
+# ChromaDB zurücksetzen
+rm -rf data/chromadb
+
+# App neu starten - wird automatisch neu initialisiert
+python frontend/start.py
+```
+
+⚠️ **Hinweis:** Dieser Fehler tritt beim ersten Start auf, ist aber nicht kritisch. Nach der Reinitialisierung funktioniert alles einwandfrei.
+
 ### LM Studio nicht erreichbar
 ```bash
 # Teste Verbindung
@@ -174,11 +224,17 @@ Stelle sicher:
 - LM Studio läuft auf http://192.168.1.132:1234
 - Ein Modell ist geladen (Qwen 2.5 4B empfohlen)
 
-### ChromaDB Fehler
+### ChromaDB Fehler (Datenbankfehler)
 ```bash
 # Lösche ChromaDB und neu initialisieren
 rm -rf data/chromadb
 python -c "from backend.rag.vector_store import VectorStore; VectorStore()"
+```
+
+### SentenceTransformers Fehler
+Falls HuggingFace-Fehler auftreten:
+```bash
+uv pip install --upgrade sentence-transformers huggingface-hub
 ```
 
 ### Import-Fehler

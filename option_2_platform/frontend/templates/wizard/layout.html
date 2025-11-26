@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Wizard Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Antragsprüfung: {{ project.projekt_name }}</h1>
+        <p class="mt-2 text-sm text-gray-500">Antragsteller: {{ project.antragsteller }} | ID: {{ project.id }}</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="mb-8">
+        <div class="relative">
+            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                <div style="width: {{ (step / total_steps) * 100 }}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-600 transition-all duration-500"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500">
+                <span>Start</span>
+                <span>Schritt {{ step }} von {{ total_steps }}</span>
+                <span>Abschluss</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wizard Content -->
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            {% block wizard_content %}{% endblock %}
+        </div>
+        <div class="bg-gray-50 px-4 py-4 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg border-t border-gray-200">
+            {% block wizard_actions %}
+            <button type="submit" form="wizard-form" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm">
+                Weiter
+            </button>
+            {% if step > 1 %}
+            <a href="/wizard/{{ project.id }}/step/{{ step - 1 }}" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                Zurück
+            </a>
+            {% endif %}
+            <a href="/antrag/{{ project.id }}" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                Abbrechen
+            </a>
+            {% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

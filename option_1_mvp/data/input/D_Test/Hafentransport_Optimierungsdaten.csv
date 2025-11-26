@@ -1,0 +1,31 @@
+Datum,Uhrzeit,Route_ID,Start_Terminal,Ziel_Terminal,Fahrzeit_Ist_Min,Fahrzeit_Soll_Min,Wartezeit_Terminal_Min,Verkehrslage,Wetterbedingungen,Temperatur_C,Windgeschwindigkeit_kmh,Container_Typ,Container_Anzahl,Diesel_Verbrauch_L,CO2_Emissionen_kg,Optimierungspotenzial_Min,Optimierungspotenzial_Prozent,KI_Empfehlung
+2024-11-18,08:15,TR-20241118-001,Burchardkai,CTA Altenwerder,42,28,18,Stau A7,Regen,8,32,20ft Standard,2,8.2,21.5,14,33.3,Route via Elbtunnel
+2024-11-18,08:45,TR-20241118-002,Eurogate,Tollerort,31,25,8,Fließend,Bewölkt,9,18,40ft HC,1,6.8,17.8,6,19.4,Terminal 2 bevorzugen
+2024-11-18,09:20,TR-20241118-003,CTA Altenwerder,Burchardkai,38,32,12,Dichter Verkehr,Nebel,7,12,20ft Reefer,3,9.1,23.8,6,15.8,Warten bis 09:45
+2024-11-18,10:05,TR-20241118-004,Tollerort,HHLA O'Swaldkai,27,22,4,Fließend,Trocken,11,22,40ft Standard,2,5.9,15.4,1,3.7,Aktuelle Route optimal
+2024-11-18,10:30,TR-20241118-005,HHLA O'Swaldkai,Eurogate,45,29,23,Stau Köhlbrandbrücke,Trocken,12,15,20ft Standard,4,10.2,26.7,16,35.6,Alternative via A1
+2024-11-18,11:15,TR-20241118-006,Burchardkai,Tollerort,33,26,9,Mäßiger Verkehr,Sonnig,13,8,40ft Tank,1,7.3,19.1,7,21.2,Terminal 1 weniger Wartezeit
+2024-11-18,12:00,TR-20241118-007,CTA Altenwerder,Eurogate,29,24,7,Fließend,Sonnig,14,12,20ft Standard,2,6.4,16.7,5,17.2,Aktuelle Route gut
+2024-11-18,13:30,TR-20241118-008,Eurogate,CTA Altenwerder,51,28,28,Stau A255,Bewölkt,13,25,40ft HC,3,11.8,30.9,23,45.1,Route via Elbtunnel + Terminal 3
+2024-11-18,14:10,TR-20241118-009,Tollerort,Burchardkai,24,21,5,Fließend,Bewölkt,12,28,20ft Open Top,1,5.2,13.6,3,12.5,Aktuelle Route optimal
+2024-11-18,15:45,TR-20241118-010,HHLA O'Swaldkai,CTA Altenwerder,37,30,11,Dichter Verkehr,Regen,10,35,40ft Standard,2,8.5,22.3,7,18.9,Warten bis 16:00 empfohlen
+2024-11-18,16:20,TR-20241118-011,Burchardkai,Eurogate,41,27,19,Stau Elbtunnel,Starkregen,9,42,20ft Reefer,4,9.8,25.6,14,34.1,Alternative via Köhlbrandbrücke
+2024-11-18,17:00,TR-20241118-012,CTA Altenwerder,Tollerort,26,23,6,Fließend,Regen,8,38,40ft Tank,1,5.8,15.2,3,11.5,Aktuelle Route optimal
+2024-11-18,18:15,TR-20241118-013,Eurogate,HHLA O'Swaldkai,48,31,22,Stau A7 + A255,Regen nachlassend,7,32,20ft Standard,3,10.9,28.5,17,35.4,Route via B4/B75
+2024-11-18,19:30,TR-20241118-014,Tollerort,CTA Altenwerder,32,28,8,Mäßiger Verkehr,Trocken,6,18,40ft HC,2,7.1,18.6,4,12.5,Terminal 2 schneller
+2024-11-18,20:45,TR-20241118-015,HHLA O'Swaldkai,Burchardkai,25,22,5,Fließend,Klar,5,12,20ft Standard,2,5.5,14.4,3,12.0,Aktuelle Route optimal
+2024-11-19,06:30,TR-20241119-001,Burchardkai,Eurogate,39,26,16,Morgendlicher Stau,Nebel,4,8,40ft Standard,3,8.9,23.3,13,33.3,Warten bis 07:00
+2024-11-19,07:15,TR-20241119-002,CTA Altenwerder,Tollerort,28,24,7,Fließend,Nebel,5,15,20ft Reefer,2,6.2,16.2,4,14.3,Aktuelle Route gut
+2024-11-19,08:00,TR-20241119-003,Eurogate,Burchardkai,44,29,19,Stau A1,Bewölkt,7,22,40ft Tank,1,10.1,26.4,15,34.1,Alternative via Wilhelmsburg
+2024-11-19,09:30,TR-20241119-004,Tollerort,HHLA O'Swaldkai,26,23,5,Fließend,Sonnig,9,18,20ft Standard,3,5.7,14.9,3,11.5,Aktuelle Route optimal
+2024-11-19,10:45,TR-20241119-005,HHLA O'Swaldkai,CTA Altenwerder,35,28,10,Mäßiger Verkehr,Sonnig,11,12,40ft HC,2,7.9,20.7,7,20.0,Terminal 3 bevorzugen
+2024-11-19,12:00,TR-20241119-006,Burchardkai,Tollerort,30,25,8,Fließend,Sonnig,13,15,20ft Open Top,1,6.6,17.3,5,16.7,Aktuelle Route gut
+2024-11-19,13:20,TR-20241119-007,CTA Altenwerder,Eurogate,52,30,27,Stau Köhlbrandbrücke,Bewölkt,12,28,40ft Standard,4,12.1,31.7,22,42.3,Route via Elbtunnel
+2024-11-19,14:45,TR-20241119-008,Eurogate,CTA Altenwerder,27,24,6,Fließend,Bewölkt,11,32,20ft Standard,2,5.9,15.4,3,11.1,Aktuelle Route optimal
+2024-11-19,16:10,TR-20241119-009,Tollerort,Burchardkai,42,28,18,Stau A255,Regen,9,38,40ft Reefer,2,9.6,25.1,14,33.3,Alternative via B4
+2024-11-19,17:30,TR-20241119-010,HHLA O'Swaldkai,Eurogate,31,26,8,Dichter Verkehr,Regen,8,42,20ft Tank,3,7.2,18.8,5,16.1,Warten empfohlen
+2024-11-20,08:00,TR-20241120-001,Burchardkai,CTA Altenwerder,40,27,17,Stau Elbtunnel,Bewölkt,6,25,40ft Standard,3,9.3,24.3,13,32.5,Route via Köhlbrandbrücke
+2024-11-20,09:15,TR-20241120-002,Eurogate,Tollerort,29,24,7,Fließend,Trocken,8,18,20ft Standard,2,6.4,16.7,5,17.2,Aktuelle Route gut
+2024-11-20,10:30,TR-20241120-003,CTA Altenwerder,HHLA O'Swaldkai,33,27,9,Mäßiger Verkehr,Sonnig,10,12,40ft HC,2,7.5,19.6,6,18.2,Terminal 2 schneller
+2024-11-20,11:45,TR-20241120-004,Tollerort,Eurogate,26,23,5,Fließend,Sonnig,12,15,20ft Open Top,1,5.7,14.9,3,11.5,Aktuelle Route optimal
+2024-11-20,13:00,TR-20241120-005,HHLA O'Swaldkai,Burchardkai,47,29,23,Stau A7,Bewölkt,11,22,40ft Tank,3,10.8,28.3,18,38.3,Alternative via B4/B75

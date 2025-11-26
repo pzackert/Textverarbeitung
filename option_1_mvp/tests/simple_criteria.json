@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2025-11-19",
+    "description": "Vereinfachter Kriterienkatalog für IFB PROFI"
+  },
+  "criteria": [
+    {
+      "id": "market_analysis",
+      "category": "Geschäftsplan",
+      "name": "Marktanalyse",
+      "description": "Prüfung der Vollständigkeit der Marktanalyse",
+      "check_type": "boolean",
+      "requirement": "Muss Wettbewerber, Zielgruppe und Marktpotential enthalten",
+      "llm_prompt": "Analysiere die Marktanalyse im Dokument. Prüfe, ob diese Aspekte vorhanden sind:\n1. Konkurrenzanalyse mit konkreten Wettbewerbern\n2. Klar definierte Zielgruppe\n3. Marktpotential mit Zahlen\n\nAntworte nur mit 'ERFÜLLT' oder 'NICHT ERFÜLLT', gefolgt von einer kurzen Begründung.",
+      "weight": 20,
+      "mandatory": true
+    },
+    {
+      "id": "revenue_forecast",
+      "category": "Finanzen",
+      "name": "Umsatzprognose",
+      "description": "Mindest-Jahresumsatzprognose",
+      "check_type": "number",
+      "requirement": "Mindestens 100.000 EUR/Jahr",
+      "threshold": {
+        "min": 100000,
+        "unit": "EUR"
+      },
+      "llm_prompt": "Ermittle die Umsatzprognose für das erste volle Geschäftsjahr aus dem Dokument.\n\nAntworte im Format:\nBETRAG: [Zahl in EUR]\nBEWERTUNG: ERFÜLLT/NICHT ERFÜLLT\nBEGRÜNDUNG: [kurze Erklärung]",
+      "weight": 15,
+      "mandatory": true
+    },
+    {
+      "id": "innovation_score",
+      "category": "Innovation",
+      "name": "Innovationsgrad",
+      "description": "Bewertung der Innovation auf Skala 1-10",
+      "check_type": "score",
+      "requirement": "Mindestens 7 von 10 Punkten",
+      "threshold": {
+        "min": 7,
+        "max": 10
+      },
+      "llm_prompt": "Bewerte den Innovationsgrad des Vorhabens auf einer Skala von 1-10.\n\nKriterien:\n- Technologische Neuheit (0-4 Punkte)\n- Marktpotential (0-3 Punkte)\n- Alleinstellungsmerkmale (0-3 Punkte)\n\nAntworte im Format:\nSCORE: [Zahl 1-10]\nBEWERTUNG: ERFÜLLT/NICHT ERFÜLLT\nBEGRÜNDUNG: [detaillierte Aufschlüsselung]",
+      "weight": 25,
+      "mandatory": true
+    },
+    {
+      "id": "team_qualification",
+      "category": "Team",
+      "name": "Team-Qualifikation",
+      "description": "Relevante Expertise des Teams",
+      "check_type": "boolean",
+      "requirement": "Team muss technische UND kaufmännische Expertise haben",
+      "llm_prompt": "Analysiere die Qualifikationen des Projektteams.\n\nPrüfe:\n1. Technische Expertise vorhanden?\n2. Kaufmännische Expertise vorhanden?\n3. Branchenerfahrung mindestens bei einem Mitglied?\n\nAntworte nur mit 'ERFÜLLT' oder 'NICHT ERFÜLLT', gefolgt von einer Auflistung der Qualifikationen.",
+      "weight": 20,
+      "mandatory": true
+    },
+    {
+      "id": "equity_capital",
+      "category": "Finanzen",
+      "name": "Eigenkapital",
+      "description": "Mindest-Eigenkapitalausstattung",
+      "check_type": "number",
+      "requirement": "Mindestens 25.000 EUR",
+      "threshold": {
+        "min": 25000,
+        "unit": "EUR"
+      },
+      "llm_prompt": "Ermittle das aktuelle Eigenkapital aus den Finanzunterlagen.\n\nAntworte im Format:\nBETRAG: [Zahl in EUR]\nBEWERTUNG: ERFÜLLT/NICHT ERFÜLLT\nBEGRÜNDUNG: [Quelle im Dokument]",
+      "weight": 20,
+      "mandatory": false
+    }
+  ]
+}
