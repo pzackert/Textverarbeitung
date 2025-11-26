@@ -47,7 +47,10 @@ build-backend = "hatchling.build"
 packages = ["backend", "frontend"]
 
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.1",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

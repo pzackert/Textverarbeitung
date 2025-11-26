@@ -1,12 +1,9 @@
 #!/bin/bash
-echo "Starting IFB Frontend V2 (Platform)..."
+echo "Starting Textverarbeitung Platform (Option 2)..."
 
-# Activate venv if exists
-if [ -d ".venv" ]; then
-    source .venv/bin/activate
-elif [ -d "../.venv" ]; then
-    source ../.venv/bin/activate
-fi
+# Ensure we are in the correct directory
+cd "$(dirname "$0")"
 
+# Run with uv
 export PYTHONPATH=$PWD
-python -m uvicorn frontend.main:app --reload --port 8000
+uv run uvicorn frontend.main:app --reload --port 8000

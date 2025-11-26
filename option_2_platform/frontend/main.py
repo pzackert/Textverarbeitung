@@ -3,21 +3,28 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
-from frontend.routers import dashboard, projects, criteria, wizard
+# from frontend.routers import dashboard, projects, criteria, wizard
 
-app = FastAPI(title="IFB Antragsprüfung")
+# Define base paths
+BASE_DIR = Path(__file__).resolve().parent
+
+app = FastAPI(title="Textverarbeitung Platform")
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 # Templates
-templates = Jinja2Templates(directory="frontend/templates")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # Include Routers
-app.include_router(dashboard.router)
-app.include_router(projects.router)
-app.include_router(criteria.router)
-app.include_router(wizard.router)
+# app.include_router(dashboard.router)
+# app.include_router(projects.router)
+# app.include_router(criteria.router)
+# app.include_router(wizard.router)
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
