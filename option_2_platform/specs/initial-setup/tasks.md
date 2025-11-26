@@ -8,9 +8,9 @@
 - [x] **Start Script**: Update `start_v2.sh` to run the new `frontend/main.py` with `uvicorn`. <!-- id: 3 -->
 
 ## Phase 2: Project Service (Backend)
-- [ ] **Data Models**: Create `backend/core/models.py` defining `Project` (id, name, description, created_at) and `Document` (id, filename, path) using Pydantic. <!-- id: 4 -->
-- [ ] **Project Service**: Create `backend/services/project_service.py`. Implement methods: `create_project`, `list_projects`, `get_project`, `save_document`. Use `data/projects` as storage root. <!-- id: 5 -->
-- [ ] **Dependency Injection**: Setup a `get_project_service` dependency in `backend/dependencies.py` (or similar) to provide the service instance. <!-- id: 6 -->
+- [x] **Data Models**: Create `backend/core/models.py` defining `Project` (id, name, description, created_at) and `Document` (id, filename, path) using Pydantic. <!-- id: 4 -->
+- [x] **Project Service**: Create `backend/services/project_service.py`. Implement methods: `create_project`, `list_projects`, `get_project`, `save_document`. Use `data/projects` as storage root. <!-- id: 5 -->
+- [x] **Dependency Injection**: Setup a `get_project_service` dependency in `backend/dependencies.py` (or similar) to provide the service instance. <!-- id: 6 -->
 
 ## Phase 3: Dashboard UI
 - [ ] **Dashboard Route**: In `frontend/routers/dashboard.py`, create a route `GET /` that fetches projects via `ProjectService` and renders `index.html`. <!-- id: 7 -->
