@@ -20,8 +20,11 @@ async def dashboard(
         "completed_week": 0 # Placeholder
     }
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "projects": projects,
-        "stats": stats
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={
+            "projects": projects,
+            "stats": stats
+        }
+    )

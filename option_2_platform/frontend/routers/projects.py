@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, Depends, Form
+from fastapi import APIRouter, Request, HTTPException, Depends, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from backend.services.project_service import ProjectService
@@ -29,8 +29,34 @@ async def project_detail(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    return templates.TemplateResponse("project_detail.html", {
-        "request": request,
-        "project": project,
-        # "criteria": CRITERIA # TODO: Add criteria later
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="project_detail.html",
+        context={
+            "project": project,
+            # "criteria": CRITERIA # TODO: Add criteria later
+        }
+    )
+
+@router.post("/{project_id}/upload", response_class=HTMLResponse)
+async def upload_document(
+    request: Request,
+    project_id: str,
+    file: UploadFile = File(...),
+    project_service: ProjectService = Depends(get_project_service)
+):
+    content = await file.read()
+    project_service.save_document(project_id, file.filename, content)
+    
+    # Reload project to get updated documents list
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/document_list.html",
+        context={
+            "project": project
+        }
+    )

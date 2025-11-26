@@ -19,7 +19,7 @@
 - [x] **New Project Form**: Add a simple form to `index.html` (or a modal) to submit to `POST /projects`. <!-- id: 10 -->
 
 ## Phase 4: Project Detail & Upload
-- [ ] **Project Detail Route**: Create `GET /projects/{project_id}` in `frontend/routers/projects.py`. Fetch project details and render `project_detail.html`. <!-- id: 11 -->
-- [ ] **Project Detail Template**: Create `frontend/templates/project_detail.html`. Show project info and a list of documents. <!-- id: 12 -->
-- [ ] **Upload Endpoint**: Create `POST /projects/{project_id}/upload`. Handle `UploadFile`, save it using `ProjectService`, and return the updated document list HTML. <!-- id: 13 -->
-- [ ] **Upload UI**: Add an `<input type="file">` form to `project_detail.html` with `hx-post` to the upload endpoint. <!-- id: 14 -->
+- [x] **Project Detail Route**: Create `GET /projects/{project_id}` in `frontend/routers/projects.py`. Fetch project details and render `project_detail.html`. <!-- id: 11 -->
+- [x] **Project Detail Template**: Create `frontend/templates/project_detail.html`. Show project info and a list of documents. <!-- id: 12 -->
+- [x] **Upload Endpoint**: Create `POST /projects/{project_id}/upload`. Handle `UploadFile`, save it using `ProjectService`, and return the updated document list HTML. <!-- id: 13 -->
+- [x] **Upload UI**: Add an `<input type="file">` form to `project_detail.html` with `hx-post` to the upload endpoint. <!-- id: 14 -->
