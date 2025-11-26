@@ -1,25 +1,27 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.templating import Jinja2Templates
-from frontend.mock_data import PROJECTS
+from backend.services.project_service import ProjectService
+from backend.dependencies import get_project_service
 
 router = APIRouter()
 templates = Jinja2Templates(directory="frontend/templates")
 
 @router.get("/")
-async def dashboard(request: Request):
-    # Calculate stats
-    open_projects = len([p for p in PROJECTS if p["status"] != "Abgeschlossen"])
-    high_priority = len([p for p in PROJECTS if p["priority"] == "Hoch"])
-    completed_week = len([p for p in PROJECTS if p["status"] == "Abgeschlossen"]) # Mock logic
-
+async def dashboard(
+    request: Request,
+    project_service: ProjectService = Depends(get_project_service)
+):
+    projects = project_service.list_projects()
+    
+    # Simple stats for MVP
     stats = {
-        "open_projects": open_projects,
-        "high_priority": high_priority,
-        "completed_week": completed_week
+        "open_projects": len(projects),
+        "high_priority": 0, # Placeholder
+        "completed_week": 0 # Placeholder
     }
 
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "projects": PROJECTS[:5], # Show recent 5
+        "projects": projects,
         "stats": stats
     })

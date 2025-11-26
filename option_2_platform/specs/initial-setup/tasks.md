@@ -13,10 +13,10 @@
 - [x] **Dependency Injection**: Setup a `get_project_service` dependency in `backend/dependencies.py` (or similar) to provide the service instance. <!-- id: 6 -->
 
 ## Phase 3: Dashboard UI
-- [ ] **Dashboard Route**: In `frontend/routers/dashboard.py`, create a route `GET /` that fetches projects via `ProjectService` and renders `index.html`. <!-- id: 7 -->
-- [ ] **Dashboard Template**: Create `frontend/templates/index.html` extending `base.html`. Display a list of projects (or "No projects found"). <!-- id: 8 -->
-- [ ] **Create Project Endpoint**: Create `POST /projects` in `frontend/routers/projects.py`. Handle form data, call `ProjectService.create_project`, and return an HTMX snippet (e.g., the new project row or full list) or redirect. <!-- id: 9 -->
-- [ ] **New Project Form**: Add a simple form to `index.html` (or a modal) to submit to `POST /projects`. <!-- id: 10 -->
+- [x] **Dashboard Route**: In `frontend/routers/dashboard.py`, create a route `GET /` that fetches projects via `ProjectService` and renders `index.html`. <!-- id: 7 -->
+- [x] **Dashboard Template**: Create `frontend/templates/index.html` extending `base.html`. Display a list of projects (or "No projects found"). <!-- id: 8 -->
+- [x] **Create Project Endpoint**: Create `POST /projects` in `frontend/routers/projects.py`. Handle form data, call `ProjectService.create_project`, and return an HTMX snippet (e.g., the new project row or full list) or redirect. <!-- id: 9 -->
+- [x] **New Project Form**: Add a simple form to `index.html` (or a modal) to submit to `POST /projects`. <!-- id: 10 -->
 
 ## Phase 4: Project Detail & Upload
 - [ ] **Project Detail Route**: Create `GET /projects/{project_id}` in `frontend/routers/projects.py`. Fetch project details and render `project_detail.html`. <!-- id: 11 -->
