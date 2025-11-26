@@ -1,6 +1,24 @@
 # IFB PROFI - Installation & Start
 
-## Schnellstart
+Das Projekt ist in zwei Optionen unterteilt:
+- **Option 1 (MVP):** Legacy Streamlit App
+- **Option 2 (Platform):** Neue FastAPI/HTMX App
+
+## Option 1: MVP (Legacy)
+
+```bash
+cd option_1_mvp
+./start.sh
+```
+
+## Option 2: Platform (Empfohlen)
+
+```bash
+cd option_2_platform
+./start_v2.sh
+```
+
+## Alte Anleitung (Archiviert)
 
 ### Option 1: Mit UV (empfohlen) ⭐
 

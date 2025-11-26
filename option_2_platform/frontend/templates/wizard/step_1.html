@@ -1,0 +1,40 @@
+{% extends "wizard/layout.html" %}
+
+{% block wizard_content %}
+<h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Schritt 1: Formale Erstprüfung</h2>
+<p class="text-sm text-gray-500 mb-6">Bitte überprüfen Sie die grundlegenden formalen Anforderungen für diesen Antrag.</p>
+
+<form id="wizard-form" method="POST" action="/wizard/{{ project.id }}/step/1">
+    <div class="space-y-6">
+        <div class="relative flex items-start">
+            <div class="flex h-6 items-center">
+                <input id="check_complete" name="check_complete" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600">
+            </div>
+            <div class="ml-3 text-sm leading-6">
+                <label for="check_complete" class="font-medium text-gray-900">Vollständigkeit der Unterlagen</label>
+                <p class="text-gray-500">Sind alle erforderlichen Dokumente (Antrag, Handelsregisterauszug, etc.) vorhanden?</p>
+            </div>
+        </div>
+
+        <div class="relative flex items-start">
+            <div class="flex h-6 items-center">
+                <input id="check_location" name="check_location" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600">
+            </div>
+            <div class="ml-3 text-sm leading-6">
+                <label for="check_location" class="font-medium text-gray-900">Unternehmenssitz Hamburg</label>
+                <p class="text-gray-500">Hat das Unternehmen seinen Sitz oder eine Betriebsstätte in Hamburg?</p>
+            </div>
+        </div>
+
+        <div class="relative flex items-start">
+            <div class="flex h-6 items-center">
+                <input id="check_deadline" name="check_deadline" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600">
+            </div>
+            <div class="ml-3 text-sm leading-6">
+                <label for="check_deadline" class="font-medium text-gray-900">Fristgerechte Einreichung</label>
+                <p class="text-gray-500">Wurde der Antrag innerhalb der geltenden Fristen eingereicht?</p>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

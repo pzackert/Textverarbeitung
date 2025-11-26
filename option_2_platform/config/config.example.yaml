@@ -1,0 +1,126 @@
+# IFB PROFI - Konfiguration
+# Version: 1.0
+
+# ============================================
+# LM STUDIO / LLM CONFIGURATION
+# ============================================
+llm:
+  provider: "lm_studio"  # lm_studio oder ollama
+  base_url: "http://localhost:1234/v1"
+  model_name: "qwen2.5-3b-instruct"  # oder qwen2.5-7b-instruct
+  api_key: "not-needed"
+  
+  # Generation Parameters
+  temperature: 0.3
+  max_tokens: 2048
+  top_p: 0.9
+  
+# ============================================
+# RAG CONFIGURATION
+# ============================================
+rag:
+  # Text Splitting
+  chunk_size: 1000
+  chunk_overlap: 200
+  separators: ["\n\n", "\n", ". ", " ", ""]
+  
+  # Embeddings
+  embedding_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  
+  # Vector Store (ChromaDB)
+  persist_directory: "./data/chromadb"
+  collection_name: "ifb_documents"
+  
+  # Retrieval
+  search_type: "similarity"  # similarity, mmr, similarity_score_threshold
+  k: 5  # Anzahl der abgerufenen Chunks
+
+# ============================================
+# STREAMLIT FRONTEND
+# ============================================
+streamlit:
+  page_title: "IFB PROFI - Textverarbeitung"
+  page_icon: "📄"
+  layout: "wide"
+  initial_sidebar_state: "expanded"
+
+# ============================================
+# DATA PATHS
+# ============================================
+paths:
+  data_root: "./data"
+  projects: "./data/projects"
+  regelwerke: "./data/regelwerke"
+  input: "./data/input"
+  chromadb: "./data/chromadb"
+
+# ============================================
+# DOCUMENT PARSING
+# ============================================
+parsing:
+  supported_formats:
+    pdf: [".pdf"]
+    docx: [".docx", ".doc"]
+    xlsx: [".xlsx", ".xls"]
+  
+  max_file_size_mb: 50
+  
+  # PDF Parsing
+  pdf:
+    extract_images: false
+    extract_tables: true
+  
+  # DOCX Parsing
+  docx:
+    preserve_formatting: false
+  
+  # XLSX Parsing
+  xlsx:
+    read_all_sheets: true
+
+# ============================================
+# REGELWERK
+# ============================================
+regelwerk:
+  foerdermodule:
+    - "PROFI Standard"
+    - "PROFI Transfer"
+    - "PROFI Transfer Plus (EFRE)"
+    - "PROFI Umwelt"
+    - "PROFI Umwelt Transfer"
+  
+  projektarten:
+    - "Industrielle Forschung"
+    - "Experimentelle Entwicklung"
+    - "Durchführbarkeitsstudie"
+  
+  # Förderquoten (%)
+  foerderquoten:
+    industrielle_forschung:
+      kmu: 70
+      mittel: 60
+      gross: 50
+    experimentelle_entwicklung:
+      kmu: 45
+      mittel: 35
+      gross: 25
+    durchfuehrbarkeit:
+      kmu: 70
+      mittel: 60
+      gross: 50
+
+# ============================================
+# LOGGING
+# ============================================
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/app.log"
+  console: true
+
+# ============================================
+# TESTING
+# ============================================
+testing:
+  test_data_path: "./tests/test_data"
+  coverage_threshold: 80  # %

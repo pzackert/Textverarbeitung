@@ -6,10 +6,16 @@ echo ""
 
 # Virtuelles Environment aktivieren
 echo "📦 Aktiviere Virtual Environment..."
-source venv/bin/activate
+if [ -d ".venv" ]; then
+    source .venv/bin/activate
+elif [ -d "../.venv" ]; then
+    source ../.venv/bin/activate
+else
+    echo "⚠️ Kein Virtual Environment gefunden!"
+fi
 
 # PYTHONPATH setzen
-export PYTHONPATH=/Users/patrick.zackert/projects/masterprojekt
+export PYTHONPATH=$PWD
 
 echo "✓ Environment bereit"
 echo ""

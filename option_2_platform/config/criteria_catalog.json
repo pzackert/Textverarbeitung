@@ -1,0 +1,251 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-11-08",
+  "documents": [
+    {
+      "type": "business_plan",
+      "name": "Geschäftsplan",
+      "description": "Detaillierte Unternehmensplanung und Strategie",
+      "supported_formats": ["pdf", "docx"],
+      "required": true,
+      "criteria": [
+        {
+          "id": "bp_market_analysis",
+          "name": "Marktanalyse",
+          "description": "Prüfung der Marktanalyse auf Vollständigkeit und Plausibilität",
+          "target": {
+            "type": "boolean",
+            "description": "Marktanalyse muss Wettbewerber, Zielgruppe und Marktpotential enthalten"
+          },
+          "prompt": {
+            "role": "Marktanalyst",
+            "instruction": "Analysiere die Marktanalyse im Geschäftsplan. Prüfe, ob folgende Aspekte ausreichend behandelt wurden: 1) Konkurrenzanalyse 2) Zielgruppendefinition 3) Marktpotential. Die Analyse muss für alle drei Bereiche konkrete Zahlen und Fakten enthalten.",
+            "expected_format": "boolean",
+            "validation_hints": ["Konkrete Zahlen", "Wettbewerbernennung", "Zielgruppengrößen"]
+          }
+        },
+        {
+          "id": "bp_revenue_forecast",
+          "name": "Umsatzprognose",
+          "description": "Prüfung der Umsatzprognose auf Plausibilität",
+          "target": {
+            "type": "number",
+            "min": 100000,
+            "unit": "EUR/Jahr"
+          },
+          "prompt": {
+            "role": "Finanzanalyst",
+            "instruction": "Ermittle die prognostizierte Jahresumsatz für das erste volle Geschäftsjahr. Prüfe die Plausibilität anhand der Marktdaten und Kapazitäten. Gib den Wert in Euro zurück.",
+            "expected_format": "number"
+          }
+        },
+        {
+          "id": "bp_innovation",
+          "name": "Innovationsgrad",
+          "description": "Bewertung des Innovationsgrades des Vorhabens",
+          "target": {
+            "type": "score",
+            "min": 7,
+            "max": 10,
+            "description": "Innovationsbewertung auf Skala 1-10"
+          },
+          "prompt": {
+            "role": "Innovationsberater",
+            "instruction": "Bewerte den Innovationsgrad des Vorhabens auf einer Skala von 1-10. Berücksichtige: Technologische Neuheit, Marktpotential, Alleinstellungsmerkmale. Gib nur die Zahl zurück.",
+            "expected_format": "number"
+          }
+        },
+        {
+          "id": "bp_team",
+          "name": "Team-Qualifikation",
+          "description": "Prüfung der Team-Qualifikation",
+          "target": {
+            "type": "boolean",
+            "description": "Team muss relevante Qualifikationen vorweisen"
+          },
+          "prompt": {
+            "role": "HR-Experte",
+            "instruction": "Analysiere die Qualifikationen des Projektteams. Das Team muss technische und kaufmännische Expertise nachweisen. Mindestens ein Teammitglied sollte Branchenerfahrung haben.",
+            "expected_format": "boolean"
+          }
+        },
+        {
+          "id": "bp_timeline",
+          "name": "Zeitplan",
+          "description": "Prüfung des Projekt-Zeitplans",
+          "target": {
+            "type": "boolean",
+            "description": "Zeitplan muss realistisch und detailliert sein"
+          },
+          "prompt": {
+            "role": "Projektmanager",
+            "instruction": "Prüfe den Projektzeitplan auf Realismus und Vollständigkeit. Der Plan muss Meilensteine, Abhängigkeiten und Ressourcenplanung enthalten.",
+            "expected_format": "boolean"
+          }
+        }
+      ]
+    },
+    {
+      "type": "financial_documents",
+      "name": "Finanzunterlagen",
+      "description": "Jahresabschlüsse und Finanzplanung",
+      "supported_formats": ["pdf", "xlsx"],
+      "required": true,
+      "criteria": [
+        {
+          "id": "fin_equity",
+          "name": "Eigenkapital",
+          "description": "Prüfung der Eigenkapitalausstattung",
+          "target": {
+            "type": "number",
+            "min": 25000,
+            "unit": "EUR"
+          },
+          "prompt": {
+            "role": "Wirtschaftsprüfer",
+            "instruction": "Ermittle das aktuelle Eigenkapital aus den Finanzunterlagen. Gib den Wert in Euro zurück.",
+            "expected_format": "number"
+          }
+        },
+        {
+          "id": "fin_liquidity",
+          "name": "Liquidität",
+          "description": "Prüfung der Liquiditätskennzahlen",
+          "target": {
+            "type": "number",
+            "min": 1.5,
+            "description": "Liquidität 2. Grades"
+          },
+          "prompt": {
+            "role": "Finanzanalyst",
+            "instruction": "Berechne die Liquidität 2. Grades (Quick Ratio). Formel: (Umlaufvermögen - Vorräte) / Kurzfristige Verbindlichkeiten. Gib nur die Zahl zurück.",
+            "expected_format": "number"
+          }
+        },
+        {
+          "id": "fin_profit",
+          "name": "Ertragslage",
+          "description": "Analyse der Ertragssituation",
+          "target": {
+            "type": "boolean",
+            "description": "Positive Ertragslage in den letzten 2 Jahren"
+          },
+          "prompt": {
+            "role": "Wirtschaftsprüfer",
+            "instruction": "Analysiere die Ertragslage der letzten 2 Jahre. Prüfe, ob in beiden Jahren ein positives Betriebsergebnis erzielt wurde.",
+            "expected_format": "boolean"
+          }
+        },
+        {
+          "id": "fin_debt",
+          "name": "Verschuldungsgrad",
+          "description": "Prüfung des Verschuldungsgrads",
+          "target": {
+            "type": "number",
+            "max": 3.0
+          },
+          "prompt": {
+            "role": "Finanzanalyst",
+            "instruction": "Berechne den Verschuldungsgrad (Fremdkapital/Eigenkapital). Gib nur die Zahl zurück.",
+            "expected_format": "number"
+          }
+        },
+        {
+          "id": "fin_cashflow",
+          "name": "Cashflow-Prognose",
+          "description": "Bewertung der Cashflow-Prognose",
+          "target": {
+            "type": "boolean",
+            "description": "Positive Cashflow-Entwicklung"
+          },
+          "prompt": {
+            "role": "Finanzplaner",
+            "instruction": "Analysiere die Cashflow-Prognose für die nächsten 3 Jahre. Prüfe auf positive Entwicklung und Plausibilität der Annahmen.",
+            "expected_format": "boolean"
+          }
+        }
+      ]
+    },
+    {
+      "type": "technical_documentation",
+      "name": "Technische Dokumentation",
+      "description": "Technische Details und Umsetzungsplanung",
+      "supported_formats": ["pdf", "docx"],
+      "required": true,
+      "criteria": [
+        {
+          "id": "tech_feasibility",
+          "name": "Technische Machbarkeit",
+          "description": "Prüfung der technischen Realisierbarkeit",
+          "target": {
+            "type": "boolean",
+            "description": "Projekt muss technisch umsetzbar sein"
+          },
+          "prompt": {
+            "role": "Technischer Gutachter",
+            "instruction": "Bewerte die technische Machbarkeit des Vorhabens. Prüfe auf: 1) Technologische Reife 2) Verfügbarkeit der Komponenten 3) Technische Risiken",
+            "expected_format": "boolean"
+          }
+        },
+        {
+          "id": "tech_resources",
+          "name": "Ressourcenplanung",
+          "description": "Prüfung der technischen Ressourcenplanung",
+          "target": {
+            "type": "boolean",
+            "description": "Ressourcenplanung muss vollständig sein"
+          },
+          "prompt": {
+            "role": "Projektmanager",
+            "instruction": "Analysiere die Ressourcenplanung auf Vollständigkeit. Prüfe Personal, Equipment und externe Dienstleister.",
+            "expected_format": "boolean"
+          }
+        },
+        {
+          "id": "tech_standards",
+          "name": "Standards & Normen",
+          "description": "Prüfung der Einhaltung technischer Standards",
+          "target": {
+            "type": "boolean",
+            "description": "Relevante Normen müssen eingehalten werden"
+          },
+          "prompt": {
+            "role": "Qualitätsmanager",
+            "instruction": "Prüfe die Einhaltung relevanter technischer Standards und Normen. Achte besonders auf Sicherheits- und Qualitätsstandards.",
+            "expected_format": "boolean"
+          }
+        },
+        {
+          "id": "tech_sustainability",
+          "name": "Nachhaltigkeit",
+          "description": "Bewertung der Nachhaltigkeitsaspekte",
+          "target": {
+            "type": "score",
+            "min": 6,
+            "max": 10,
+            "description": "Nachhaltigkeitsbewertung auf Skala 1-10"
+          },
+          "prompt": {
+            "role": "Nachhaltigkeitsexperte",
+            "instruction": "Bewerte die Nachhaltigkeitsaspekte des Vorhabens auf einer Skala von 1-10. Berücksichtige Energieeffizienz, Ressourcenschonung und Umweltauswirkungen.",
+            "expected_format": "number"
+          }
+        },
+        {
+          "id": "tech_scalability",
+          "name": "Skalierbarkeit",
+          "description": "Prüfung der technischen Skalierbarkeit",
+          "target": {
+            "type": "boolean",
+            "description": "Lösung muss skalierbar sein"
+          },
+          "prompt": {
+            "role": "Technischer Architekt",
+            "instruction": "Bewerte die Skalierbarkeit der technischen Lösung. Prüfe, ob das System bei steigender Nachfrage erweitert werden kann.",
+            "expected_format": "boolean"
+          }
+        }
+      ]
+    }
+  ]
+}

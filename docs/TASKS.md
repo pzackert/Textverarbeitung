@@ -231,9 +231,139 @@ dependencies = [
 
 ---
 
-**Arbeitsweise:**
-1. **Ein Task nach dem anderen**
-2. **Jeder Task wird getestet bevor weiter**
-3. **Minimalistisch - keine Extras!**
-4. **Logging statt Print**
-5. **Temp-Files nach Test löschen**
+# Projekt Aufgaben & Status
+
+> **Hinweis:** Die Pfade in diesem Dokument beziehen sich auf die ursprüngliche Struktur. Die Dateien befinden sich nun unter `option_1_mvp/`. Neue Aufgaben für die Plattform werden separat getrackt.
+
+## 1. Projekt-Initialisierung 🏗️
+
+### 1.1. Repository & Ordnerstruktur
+- [x] Git Repository erstellen
+- [x] Ordnerstruktur gemäß Dokumentation anlegen
+- [x] `data/` Ordner für Inputs/Outputs
+- [x] `docs/` Ordner für Dokumentation
+- [x] `option_1_mvp/` für die Entwicklungsumgebung
+- **Status:** ABGESCHLOSSEN
+
+### 1.2. Zugriffskontrolle
+- [x] `.gitignore` für Python/Umgebungsdateien
+- [x] Sensible Daten (API Keys) in Umgebungsvariablen
+- **Status:** ABGESCHLOSSEN
+
+### 1.3. Projekt-Metadaten
+- [x] `pyproject.toml` mit Projektinformationen
+- [x] Abhängigkeiten: `streamlit`, `pymupdf`, `python-docx`, `openpyxl`, `chromadb`, `sentence-transformers`, `openai`, `pyyaml`
+- **Status:** ABGESCHLOSSEN
+
+### 1.4. Entwicklungsumgebung
+- [x] Virtuelle Umgebung mit `python -m venv .venv`
+- [x] Aktivierung der Umgebung: `source .venv/bin/activate`
+- [x] Installation der Abhängigkeiten mit `uv sync`
+- **Status:** ABGESCHLOSSEN
+
+### 1.5. Basis-Konfiguration
+- [x] `config/config.yaml` mit Standardwerten
+- [x] Logging-Konfiguration in `backend/utils/logger.py`
+- **Status:** ABGESCHLOSSEN
+
+---
+
+## 2. Dokumentation & Kommunikation 📚
+
+### 2.1. Dokumentation
+- [ ] Detaillierte Beschreibung der Projektstruktur
+- [ ] Erklärung der Hauptkomponenten und deren Zusammenwirken
+- [ ] Nutzung von Diagrammen zur Veranschaulichung
+- **Status:** AUSSTEHEND
+
+### 2.2. API-Dokumentation
+- [ ] Endpunkte der LM Studio API dokumentieren
+- [ ] Beispielanfragen und -antworten
+- **Status:** AUSSTEHEND
+
+### 2.3. Benutzerhandbuch
+- [ ] Anleitung zur Nutzung der Streamlit-App
+- [ ] Erklärung der Funktionen und wie man sie nutzt
+- **Status:** AUSSTEHEND
+
+### 2.4. Technische Kommunikation
+- [ ] Regelmäßige Updates im Team-Chat
+- [ ] Wöchentliche Meetings zur Fortschrittsbesprechung
+- **Status:** AUSSTEHEND
+
+---
+
+## 3. Qualitätssicherung & Tests 🔍
+
+### 3.1. Teststrategie
+- [ ] Unit-Tests für einzelne Komponenten
+- [ ] Integrationstests für das Zusammenspiel der Komponenten
+- [ ] End-to-End-Tests für den gesamten Workflow
+- **Status:** AUSSTEHEND
+
+### 3.2. Testdaten
+- [ ] Erstellung von Test-PDFs, DOCXs und XLSXs
+- [ ] Dummy-Daten für API-Tests
+- **Status:** AUSSTEHEND
+
+### 3.3. Testautomatisierung
+- [ ] Einrichtung von CI/CD für automatisierte Tests
+- [ ] Tests bei jedem Commit ausführen
+- **Status:** AUSSTEHEND
+
+### 3.4. Fehlerbehandlung
+- [ ] Einheitliche Fehlerbehandlung in der gesamten Anwendung
+- [ ] Benutzerfreundliche Fehlermeldungen
+- **Status:** AUSSTEHEND
+
+---
+
+## 4. Deployment & Betrieb 🚀
+
+### 4.1. Deployment-Strategie
+- [ ] Dokumentation der Schritte für das Deployment
+- [ ] Rollback-Strategie im Fehlerfall
+- **Status:** AUSSTEHEND
+
+### 4.2. Monitoring & Logging
+- [ ] Einrichtung von Monitoring-Tools für die Anwendung
+- [ ] Zentrale Logging-Lösung (z.B. ELK Stack)
+- **Status:** AUSSTEHEND
+
+### 4.3. Wartung & Support
+- [ ] Regelmäßige Wartungsfenster planen
+- [ ] Support-Kanäle für Benutzeranfragen
+- **Status:** AUSSTEHEND
+
+---
+
+## 5. Weiterentwicklung & Skalierung 🌱
+
+### 5.1. Feedback-Mechanismus
+- [ ] Möglichkeit für Benutzer, Feedback zu geben
+- [ ] Regelmäßige Auswertung des Feedbacks
+- **Status:** AUSSTEHEND
+
+### 5.2. Roadmap für neue Funktionen
+- [ ] Planung von neuen Features basierend auf Benutzerfeedback
+- [ ] Priorisierung der Features
+- **Status:** AUSSTEHEND
+
+### 5.3. Skalierung der Infrastruktur
+- [ ] Analyse der aktuellen Infrastruktur
+- [ ] Planung für horizontale/vertikale Skalierung
+- **Status:** AUSSTEHEND
+
+---
+
+## 6. Sonstiges
+
+### 6.1. Risiken & Herausforderungen
+- [ ] Identifikation potenzieller Risiken
+- [ ] Strategien zur Risikominderung
+- **Status:** AUSSTEHEND
+
+### 6.2. Lessons Learned
+- [ ] Dokumentation von Erkenntnissen während des Projekts
+- [ ] Regelmäßige Reflexion im Team
+- **Status:** AUSSTEHEND
