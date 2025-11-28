@@ -1,14 +1,15 @@
 # IFB PROFI - Option 1 (Super-Lite) Configuration
 # Minimal RAG system with LM Studio + Qwen 4B
 
-# LM Studio Settings
+# Ollama Settings (Direct GGUF Loading)
 llm:
-  provider: "lm_studio"
-  base_url: "http://192.168.1.132:1234/v1"  # Externe LM Studio Instanz
-  model: "qwen2.5-4b-instruct"  # Oder wie das Modell in LM Studio heißt
-  temperature: 0.1  # Niedrig für konsistente Ergebnisse
-  max_tokens: 1024
-  timeout: 60  # Sekunden
+  provider: "ollama"
+  base_url: "http://localhost:11434"
+  models_dir: "~/.cache/lm-studio/models"
+  model: "qwen2.5:7b"  # Ollama model tag
+  temperature: 0.1
+  max_tokens: 2048
+  timeout: 120
 
 # RAG Settings
 rag:

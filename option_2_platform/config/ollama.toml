@@ -1,0 +1,10 @@
+[ollama]
+provider = "ollama"
+base_url = "http://localhost:11434"
+default_model = "qwen2.5:7b"
+timeout = 30
+
+[models]
+# Available models
+qwen_7b = "qwen2.5:7b"
+# Add more models here

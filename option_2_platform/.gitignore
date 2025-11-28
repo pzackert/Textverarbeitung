@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+data/*
+!data/.gitignore
+logs/*
+!logs/.gitignore
+temp/
+tmp/
+*.log
+
+# UV
+.uv/
+uv.lock
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+test_report.html
+option_2_platform_backup_*
