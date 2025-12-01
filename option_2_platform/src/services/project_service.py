@@ -2,7 +2,7 @@ import json
 import shutil
 from pathlib import Path
 from typing import List, Optional
-from backend.core.models import Project, Document
+from src.core.models import Project, Document
 
 class ProjectService:
     def __init__(self, storage_root: Path):
