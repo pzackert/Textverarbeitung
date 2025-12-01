@@ -1,10 +1,96 @@
+# ============================================================================
+# Ollama Configuration
+# ============================================================================
+# This file configures the LLM provider (Ollama or LM Studio) and model settings.
+# Changes take effect after restarting the application.
+
 [ollama]
+# Provider: "ollama" or "lmstudio"
+# - ollama: Local Ollama server (default port: 11434)
+# - lmstudio: LM Studio server (default port: 1234)
 provider = "ollama"
+
+# Base URL: API endpoint for the LLM provider
+# - Ollama: http://localhost:11434
+# - LM Studio: http://localhost:1234/v1
 base_url = "http://localhost:11434"
+
+# Default Model: Model to use when no model is specified
+# Available Ollama models:
+# - qwen2.5:7b (7.6B params, best quality, 4.6 GiB VRAM, ~0.47s response)
+# - qwen2.5:0.5b (494M params, fast, 0.5 GiB VRAM, ~0.19s response)
 default_model = "qwen2.5:7b"
+
+# Timeout: Maximum seconds to wait for LLM response
 timeout = 30
 
+# ============================================================================
+# Model Configuration Examples
+# ============================================================================
+# Uncomment and modify to switch models or providers
+
+# --- Example: Use smaller, faster model for development ---
+# default_model = "qwen2.5:0.5b"
+
+# --- Example: Use LM Studio instead of Ollama ---
+# provider = "lmstudio"
+# base_url = "http://localhost:1234/v1"
+# default_model = "qwen/qwen3-4b-thinking-2507"
+
 [models]
-# Available models
+# Available Ollama Models
+# Pull with: ollama pull <model_name>
 qwen_7b = "qwen2.5:7b"
-# Add more models here
+qwen_0_5b = "qwen2.5:0.5b"
+
+# Available LM Studio Models (if running)
+# lm_qwen3_4b = "qwen/qwen3-4b-thinking-2507"
+# lm_embedding = "text-embedding-nomic-embed-text-v1.5"
+# lm_qwen3_vl_8b = "qwen/qwen3-vl-8b"
+
+[generation]
+# Token Configuration
+# -------------------
+# max_tokens: Maximum number of tokens to generate per request
+# Recommendation: 2048 for most tasks, up to 4096 for long outputs
+max_tokens = 2048
+
+# n_ctx: Context window size (how much text the model can "remember")
+# - qwen2.5:7b supports up to 32768 tokens
+# - qwen2.5:0.5b supports up to 32768 tokens
+# - Higher values = more memory usage
+n_ctx = 4096
+
+# temperature: Randomness of generation (0.0 - 1.0)
+# - 0.0: Deterministic (same input = same output)
+# - 0.7: Balanced (default)
+# - 1.0: Creative (more variation)
+temperature = 0.7
+
+# top_p: Nucleus sampling parameter (0.0 - 1.0)
+# - Controls diversity of token selection
+# - Default: 0.9
+top_p = 0.9
+
+# top_k: Top-K sampling (0 = disabled)
+# - Only consider top K most likely tokens
+# - Default: 40
+top_k = 40
+
+# repeat_penalty: Penalty for repeating tokens (1.0 = no penalty)
+# - Higher values reduce repetition
+# - Default: 1.1
+repeat_penalty = 1.1
+
+# ============================================================================
+# Performance Notes
+# ============================================================================
+# Tested on Apple M1 Pro:
+# - qwen2.5:7b: 0.47s avg, ~84 req/min, 4.6 GiB VRAM
+# - qwen2.5:0.5b: 0.19s avg, ~200 req/min, 0.5 GiB VRAM
+# - First request: +2.5s warmup (model loading)
+#
+# Recommendations:
+# - Development: Use qwen2.5:0.5b (faster iteration)
+# - Production: Use qwen2.5:7b (better quality)
+# - Memory limited: Lower n_ctx to 2048 or 1024
