@@ -1,40 +1,37 @@
-# Document Parsing - Specification
+# Phase 2: Document Parsing Specification
 
 ## Overview
-This module is responsible for converting raw document files (PDF, DOCX, XLSX) into a standardized internal representation suitable for RAG (Retrieval-Augmented Generation) processing. It handles text extraction, metadata parsing, and error management.
+Convert PDF, DOCX, XLSX files into standardized Document representation.
 
 ## Implementation Order
-1.  **PDF Parser**: High priority, most common format.
-2.  **DOCX Parser**: Medium priority, editable documents.
-3.  **XLSX Parser**: Medium priority, financial/tabular data.
+1. PDF Parser (pymupdf)
+2. DOCX Parser (python-docx)
+3. XLSX Parser (openpyxl)
 
 ## Document Model
-The internal representation of a parsed document is defined as:
-
-```python
 @dataclass
 class Document:
-    content: str            # The full extracted text
-    metadata: Dict[str, Any] # Extracted metadata
-    source_file: Path       # Path to the original file
-    file_type: str          # Extension (e.g., 'pdf', 'docx')
-```
+    content: str
+    metadata: Dict[str, Any]
+    source_file: str
+    file_type: str
 
 ## Metadata Schemas
-See `metadata_schema.md` for detailed schema definitions per file type.
 
-## Error Handling
-The system must handle the following error cases gracefully:
--   `ParserError`: Base class for all parsing errors.
--   `UnsupportedFormatError`: When a file extension is not supported.
--   `CorruptedFileError`: When a file cannot be opened or read.
--   `EmptyDocumentError`: When a file contains no extractable text.
+### PDF
+page_number, total_pages, file_size, created_date, modified_date, author, title
 
-## Testing Requirements
--   **Unit Tests**: Minimum 5 tests per parser (Init, Valid, Invalid, Missing, Corrupted).
--   **Integration Tests**: Test against real-world files in `data/input`.
+### DOCX
+paragraph_count, table_count, file_size, modified_date, author, title, last_modified_by
 
-## Dependencies
--   `pymupdf` (PDF)
--   `python-docx` (DOCX)
--   `openpyxl` (XLSX)
+### XLSX
+sheet_name, row_number, column_headers, file_size, modified_date
+
+## Error Classes
+- ParserError (base)
+- UnsupportedFormatError
+- CorruptedFileError
+- EmptyDocumentError
+
+## Testing
+5 unit tests per parser (15 total)

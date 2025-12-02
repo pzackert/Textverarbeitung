@@ -66,3 +66,33 @@
 ### 2.4 Real-World Testing
 - [ ] Test all files in `option_1_mvp/data/input` subdirectories
 - [ ] Generate test report
+
+## Phase 2: Document Parsing
+
+### 2.1 PDF Parser
+- [ ] Implement PDFParser class
+- [ ] Extract text per page
+- [ ] Extract metadata
+- [ ] 5 unit tests
+- [ ] Test with real files
+
+### 2.2 DOCX Parser
+- [ ] Implement DocxParser class
+- [ ] Extract paragraphs and tables
+- [ ] Extract metadata
+- [ ] 5 unit tests
+- [ ] Test with real files
+
+### 2.3 XLSX Parser
+- [ ] Implement XlsxParser class
+- [ ] Extract rows with headers
+- [ ] Extract metadata
+- [ ] 5 unit tests
+- [ ] Test with real files
+
+### 2.4 Real-World Testing
+- [ ] Test all files in A_Perfekter_Fall
+- [ ] Test all files in B_Mangelhafter_Fall
+- [ ] Test all files in C_Umwelt-Kriterien
+- [ ] Test all files in D_Test
+- [ ] Generate test report
