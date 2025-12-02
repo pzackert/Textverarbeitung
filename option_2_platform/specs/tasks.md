@@ -40,3 +40,29 @@
 - [ ] **Analysis UI**: Update `project_detail.html` to include an "Analyze" button and a results section. <!-- id: 25 -->
 - [ ] **HTMX Polling**: Implement HTMX polling to check the status of the analysis (since it might take time). <!-- id: 26 -->
 - [ ] **Result Visualization**: Create a template to display the criteria results (Green/Red badges, reasoning text). <!-- id: 27 -->
+
+## Phase 2: Document Parser Implementation
+
+### 2.1 PDF Parser
+- [ ] Implement `PDFParser` class using `pymupdf`
+- [ ] Extract text and metadata (pages, author, dates)
+- [ ] Unit tests (Init, Valid, Invalid, Missing, Corrupted)
+- [ ] Real file tests (A_Perfekter_Fall, B_Mangelhafter_Fall)
+
+### 2.2 DOCX Parser
+- [ ] Implement `DocxParser` class using `python-docx`
+- [ ] Extract text from paragraphs and tables
+- [ ] Extract metadata (paragraphs, tables, author)
+- [ ] Unit tests (Init, Valid, Invalid, Missing, Corrupted)
+- [ ] Real file tests (A_Perfekter_Fall, B_Mangelhafter_Fall)
+
+### 2.3 XLSX Parser
+- [ ] Implement `XlsxParser` class using `openpyxl`
+- [ ] Extract rows as individual documents
+- [ ] Extract metadata (sheet, row, headers)
+- [ ] Unit tests (Init, Valid, Invalid, Missing, Corrupted)
+- [ ] Real file tests (D_Test)
+
+### 2.4 Real-World Testing
+- [ ] Test all files in `option_1_mvp/data/input` subdirectories
+- [ ] Generate test report
