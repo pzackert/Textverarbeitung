@@ -22,6 +22,18 @@ rag:
   vector_store_path: "data/chromadb"
   collection_name: "ifb_documents"
 
+  # LLM Settings
+  llm_provider: "ollama"
+  llm_model: "qwen2.5:7b"
+  llm_base_url: "http://localhost:11434"
+  llm_temperature: 0.7
+  llm_max_tokens: 2000
+
+  # Prompt Settings
+  default_template: "standard"
+  include_scores: false
+  max_context_chunks: 5
+
 # Document Parsing
 parsing:
   pdf:

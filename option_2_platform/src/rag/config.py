@@ -14,6 +14,18 @@ class RAGConfig(BaseModel):
     collection_name: str = "ifb_documents"
     vector_store_path: str = "data/chromadb"
 
+    # LLM Settings
+    llm_provider: str = "ollama"
+    llm_model: str = "qwen2.5:7b"
+    llm_base_url: str = "http://localhost:11434"
+    llm_temperature: float = 0.7
+    llm_max_tokens: int = 2000
+
+    # Prompt Settings
+    default_template: str = "standard"
+    include_scores: bool = False
+    max_context_chunks: int = 5
+
     @classmethod
     def from_yaml(cls) -> "RAGConfig":
         """
