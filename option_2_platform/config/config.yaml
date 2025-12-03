@@ -19,6 +19,7 @@ rag:
   top_k: 5
   similarity_threshold: 0.7
   persist_directory: "data/chromadb"
+  vector_store_path: "data/chromadb"
   collection_name: "ifb_documents"
 
 # Document Parsing

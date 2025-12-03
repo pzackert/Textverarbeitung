@@ -7,11 +7,12 @@ class RAGConfig(BaseModel):
     """
     chunk_size: int = 500
     chunk_overlap: int = 50
-    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
     top_k: int = 5
     similarity_threshold: float = 0.7
     persist_directory: str = "data/chromadb"
     collection_name: str = "ifb_documents"
+    vector_store_path: str = "data/chromadb"
 
     @classmethod
     def from_yaml(cls) -> "RAGConfig":
