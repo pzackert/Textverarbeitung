@@ -27,22 +27,50 @@ class Chunker:
         # Note: ". " is important for German sentence boundaries
         self.separators = separators or ["\n\n", "\n", ". ", " ", ""]
 
-    def split(self, document: Union[Document, str]) -> List[str]:
+    def split(self, document: Union[Document, str]) -> List[Chunk]:
         """
-        Splits a document into text chunks.
+        Splits a document into chunks.
         
         Args:
             document: The parsed document or text string to split.
             
         Returns:
-            List[str]: A list of text chunks.
+            List[Chunk]: A list of Chunk objects with metadata preserved.
         """
         if isinstance(document, str):
             text = document
+            base_metadata = {}
         else:
             text = document.content
+            base_metadata = document.metadata.copy()
+            # Add document specific fields to metadata
+            if document.source_file:
+                base_metadata["source"] = document.source_file
+            if document.file_type:
+                base_metadata["doc_type"] = document.file_type
             
-        return self._split_text(text, self.separators)
+        text_chunks = self._split_text(text, self.separators)
+        
+        final_chunks = []
+        total_chunks = len(text_chunks)
+        
+        for i, chunk_text in enumerate(text_chunks):
+            chunk_metadata = base_metadata.copy()
+            chunk_metadata.update({
+                "chunk_id": i,
+                "chunk_index": i,
+                "total_chunks": total_chunks,
+                "chunk_size": self.chunk_size,
+                "chunk_overlap": self.chunk_overlap
+            })
+            
+            chunk = Chunk(
+                content=chunk_text,
+                metadata=chunk_metadata
+            )
+            final_chunks.append(chunk)
+            
+        return final_chunks
 
     def _split_text(self, text: str, separators: List[str]) -> List[str]:
         """
