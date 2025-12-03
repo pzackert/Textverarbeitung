@@ -529,8 +529,8 @@ uv run pytest tests/ -v && git commit -m "Your message"
 ## Additional Resources
 
 - **[PyTest Documentation](https://docs.pytest.org/):** Official PyTest docs
-- **[Project Constitution](../specs/constitution.md):** Testing principles
-- **[LLM Integration Report](../logs/llm_integration_test_summary.txt):** Performance metrics
+- **[Project Constitution](../option_2_platform/specs/constitution.md):** Testing principles
+- **[LLM Integration Report](../option_2_platform/logs/llm_integration_test_summary.txt):** Performance metrics
 
 ---
 

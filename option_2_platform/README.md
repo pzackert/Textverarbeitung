@@ -23,191 +23,26 @@ Local AI-powered grant application review platform with privacy-first architectu
 
 ## 🚀 Quick Start
 
+For detailed installation instructions, please refer to the platform-specific guides:
+
+- **macOS:** [Installation Guide](../docs/INSTALLATION_MAC.md)
+- **Windows:** [Installation Guide](../docs/INSTALLATION_WINDOWS.md)
+
+### Quick Command (macOS/Linux)
 ```bash
-# 1. Install UV package manager (if not installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 2. Clone and navigate
-cd /path/to/option_2_platform
-
-# 3. Create virtual environment
-uv venv
-
-# 4. Install dependencies
-uv sync
-
-# 5. Test installation
-uv run pytest tests/test_ollama/ -v
-```
-
-## 📋 Prerequisites
-
-### All Platforms
-- **Python:** 3.12 or higher
-- **UV Package Manager:** Latest version
-- **Ollama:** 0.13.0+ (for local LLM inference)
-- **Git:** For version control
-
-### Optional
-- **LM Studio:** Alternative to Ollama (localhost:1234)
-
----
-
-## 🍎 macOS Setup
-
-### 1. Install UV Package Manager
-
-```bash
-# Via curl (recommended)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Or via Homebrew
-brew install uv
-
-# Verify installation
-uv --version
-```
-
-### 2. Install Ollama
-
-```bash
-# Via Homebrew
-brew install ollama
-
-# Start Ollama server
-ollama serve &
-
-# Pull required model
-ollama pull qwen2.5:7b
-ollama pull qwen2.5:0.5b  # Optional: faster, smaller model
-```
-
-### 3. Clone Repository
-
-```bash
-git clone https://github.com/pzackert/Textverarbeitung.git
-cd Textverarbeitung/option_2_platform
-```
-
-### 4. Setup Python Environment
-
-```bash
-# Create virtual environment
-uv venv
-
-# Install all dependencies (automatically activates venv)
-uv sync
-
-# Verify installation
-uv run python -c "import src.ollama; print('✅ Imports working')"
-```
-
-### 5. Run Tests
-
-```bash
-# Run all tests
+cd option_2_platform
+uv venv && uv sync
 uv run pytest tests/ -v
-
-# Run specific phase tests
-uv run pytest tests/test_ollama/ -v
 ```
 
-### 6. Common macOS Issues
 
-**Issue:** `ollama: command not found`
-```bash
-# Ensure Ollama is in PATH
-export PATH="/opt/homebrew/bin:$PATH"
-# Or restart terminal
-```
 
-**Issue:** `Metal acceleration not working`
-```bash
-# Check if running on Apple Silicon
-uname -m  # Should show "arm64"
-# Ollama automatically uses Metal on M1/M2/M3
-```
 
----
 
-## 🪟 Windows Setup
 
-### 1. Install UV Package Manager
 
-```powershell
-# Via PowerShell (run as Administrator)
-irm https://astral.sh/uv/install.ps1 | iex
 
-# Or download from: https://github.com/astral-sh/uv/releases
-
-# Verify installation
-uv --version
-```
-
-### 2. Install Ollama
-
-```powershell
-# Download from: https://ollama.com/download/windows
-# Run installer: OllamaSetup.exe
-
-# Start Ollama (runs as service)
-ollama serve
-
-# Pull required model
-ollama pull qwen2.5:7b
-ollama pull qwen2.5:0.5b
-```
-
-### 3. Clone Repository
-
-```powershell
-git clone https://github.com/pzackert/Textverarbeitung.git
-cd Textverarbeitung\option_2_platform
-```
-
-### 4. Setup Python Environment
-
-```powershell
-# Create virtual environment
-uv venv
-
-# Install all dependencies
-uv sync
-
-# Verify installation
-uv run python -c "import src.ollama; print('✅ Imports working')"
-```
-
-### 5. Run Tests
-
-```powershell
-# Run all tests
-uv run pytest tests\ -v
-
-# Run specific phase tests
-uv run pytest tests\test_ollama\ -v
-```
-
-### 6. Common Windows Issues
-
-**Issue:** `uv: command not found`
-```powershell
-# Add UV to PATH manually
-$env:Path += ";C:\Users\YourName\.local\bin"
-# Or restart PowerShell/CMD
-```
-
-**Issue:** `Execution policy error`
-```powershell
-# Run as Administrator
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-**Issue:** `Path separator issues`
-- Use backslashes `\` for Windows paths
-- Or use forward slashes `/` (works in most cases)
-
----
 
 ## 🏗️ Architecture
 
