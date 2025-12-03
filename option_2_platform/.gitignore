@@ -21,19 +21,21 @@ build/
 # Project specific
 data/*
 !data/.gitignore
+!data/input/.gitignore
+!data/projects/.gitignore
+!data/regelwerke/.gitignore
 logs/*
 !logs/.gitignore
 temp/
 tmp/
+*.tmp
 *.log
-
-# UV
-.uv/
-uv.lock
 
 # Testing
 .pytest_cache/
-htmlcov/
 .coverage
+htmlcov/
 test_report.html
 option_2_platform_backup_*
+data/chromadb_test/
+data/chromadb_demo/

@@ -4,8 +4,8 @@ Local AI-powered grant application review platform with privacy-first architectu
 
 ## 🎯 Project Status
 
-**Current Phase:** Phase 1 Complete ✅  
-**Next Phase:** Phase 2 - Document Parser
+**Current Phase:** Phase 3 Complete ✅  
+**Next Phase:** Phase 4 - LLM Integration
 
 ### Implemented Features
 - ✅ Project Structure (Spec Kit compliant)
@@ -13,13 +13,14 @@ Local AI-powered grant application review platform with privacy-first architectu
 - ✅ Configuration System (ollama.toml)
 - ✅ Test Framework (PyTest)
 - ✅ LM Studio Support (5 models available)
+- ✅ Document Parsing (PDF, DOCX, XLSX)
+- ✅ RAG System (ChromaDB, Embeddings, Retrieval)
 
 ### In Development
-- ⏳ Document Parsing (Phase 2)
-- ⏳ RAG System (Phase 3)
-- ⏳ Criteria Engine (Phase 4)
-- ⏳ API Layer (Phase 5)
-- ⏳ UI Integration (Phase 6)
+- ⏳ LLM Integration (Phase 4)
+- ⏳ Criteria Engine (Phase 5)
+- ⏳ API Layer (Phase 6)
+- ⏳ UI Integration (Phase 7)
 
 ## 🚀 Quick Start
 
@@ -34,6 +35,12 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd option_2_platform
 uv venv && uv sync
 uv run pytest tests/ -v
+```
+
+### RAG Demo
+To test the vector store and retrieval system:
+```bash
+uv run python examples/vector_store_demo.py
 ```
 
 
