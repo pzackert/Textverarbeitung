@@ -27,7 +27,15 @@ Dieses Repository dokumentiert die Entwicklung und Evolution eines RAG-basierten
 - **Weitere Infos:** [Detailiertes README](./option_3_cloud/README.md)
 
 ## Dokumentation
-Allgemeine Projektdokumentation befindet sich im Ordner `docs/`.
+Die gesamte Projektdokumentation ist zentral im Ordner `docs/` konsolidiert.
+
+- **[00_ARBEITSWEISE_GUIDE.md](docs/00_ARBEITSWEISE_GUIDE.md)** - Methodik & Best Practices
+- **[INSTALLATION_MAC.md](docs/INSTALLATION_MAC.md)** - Installationsanleitung macOS
+- **[INSTALLATION_WINDOWS.md](docs/INSTALLATION_WINDOWS.md)** - Installationsanleitung Windows
+- **[10_PARSER_FINDINGS.md](docs/10_PARSER_FINDINGS.md)** - Erkenntnisse aus Phase 2 (Parser)
+- **[11_PARSER_USAGE.md](docs/11_PARSER_USAGE.md)** - Nutzung der Parser
+- **[12_TESTING_GUIDE.md](docs/12_TESTING_GUIDE.md)** - Testing Guide
+
 Spezifische Anleitungen finden sich in den READMEs der jeweiligen Unterordner.
 
 ## Quick Start

@@ -13,13 +13,14 @@ llm:
 
 # RAG Settings
 rag:
-  vector_store: "chromadb"
-  chroma_path: "data/chromadb"
-  collection_name: "ifb_documents"
+  chunk_size: 500
+  chunk_overlap: 50
   embedding_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-  chunk_size: 500  # Zeichen pro Chunk
-  chunk_overlap: 50  # Zeichen Überlappung
-  top_k: 3  # Anzahl relevanter Chunks für Retrieval
+  top_k: 5
+  similarity_threshold: 0.7
+  persist_directory: "data/chromadb"
+  vector_store_path: "data/chromadb"
+  collection_name: "ifb_documents"
 
 # Document Parsing
 parsing:
