@@ -1,10 +1,10 @@
 # Parser Integration Strategy
 
 ## 1. Input Interface
-The RAG system receives data from the Phase 2 Parsers via the `Document` model.
+Das RAG System empfängt Daten von den Phase 2 Parsern via `Document` Model.
 
 ```python
-# From Phase 2
+# Aus Phase 2 (src/parsers/models.py)
 @dataclass
 class Document:
     content: str
@@ -12,29 +12,30 @@ class Document:
 ```
 
 ## 2. Ingestion Workflow
-1.  **Load**: `Parser.parse(file_path)` -> Returns `Document`.
-2.  **Validate**: Check if `Document.content` is not empty.
-3.  **Chunk**: Pass `Document` to `Chunker.split(document)`.
-4.  **Embed & Store**: Pass chunks to `VectorStore.add(chunks)`.
+1.  **Load**: `Parser.parse(file_path)` -> Liefert `Document`.
+2.  **Validate**: Prüfen ob `Document.content` nicht leer ist.
+3.  **Chunk**: `Document` an `Chunker.split(document)` übergeben.
+4.  **Embed & Store**: Chunks an `VectorStore.add(chunks)` übergeben.
 
 ## 3. Metadata Mapping
-The Parser metadata must be mapped to ChromaDB metadata (flat dict).
+Parser-Metadaten müssen auf ChromaDB-Metadaten (flaches Dict) gemappt werden.
 
 | Parser Metadata | ChromaDB Metadata | Handling |
 |-----------------|-------------------|----------|
-| `filename` | `source` | Direct copy |
-| `file_type` | `doc_type` | Direct copy |
-| `page_count` | `total_pages` | Direct copy |
-| `creation_date` | `created_at` | Convert to ISO string |
-| `author` | `author` | Direct copy |
+| `filename` | `source` | 1:1 Kopie |
+| `file_type` | `doc_type` | 1:1 Kopie |
+| `page_count` | `total_pages` | 1:1 Kopie |
+| `creation_date` | `created_at` | Konvertierung zu ISO String |
+| `author` | `author` | 1:1 Kopie |
 
 ## 4. Error Propagation
-- **Parser Error**: If a file fails to parse, log the error and skip the file. Do not halt the entire batch ingestion.
-- **Empty Content**: If a file parses but has no text (e.g., scanned PDF without OCR), log a warning "Skipping empty document: {filename}".
+- **Parser Error**: Loggen und Datei überspringen. Batch-Prozess läuft weiter.
+- **Empty Content**: Warnung loggen "Skipping empty document: {filename}".
 
 ## 5. Testing Integration
-- Create a test script `scripts/test_ingestion.py` that:
-    1.  Iterates over `option_1_mvp/data/input/`.
-    2.  Parses each file.
-    3.  Ingests into a *temporary* ChromaDB collection.
-    4.  Verifies count of chunks in DB.
+- Test-Skript `scripts/test_ingestion.py` erstellen:
+    1.  Iteriert über `option_1_mvp/data/input/`.
+    2.  Parst jede Datei.
+    3.  Ingestiert in *temporäre* ChromaDB Collection.
+    4.  Verifiziert Chunk-Anzahl.
+

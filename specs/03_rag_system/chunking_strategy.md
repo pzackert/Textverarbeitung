@@ -2,30 +2,37 @@
 
 ## 1. Chunk Size & Overlap
 - **Algorithm**: Recursive Character Text Splitter.
-- **Chunk Size**: 500 tokens (approx. 2000 characters).
-    - *Rationale*: Large enough to contain a full paragraph/regulation, small enough to fit multiple chunks in context.
-- **Overlap**: 50 tokens (approx. 200 characters).
-    - *Rationale*: Ensures context isn't lost at split boundaries.
+- **Chunk Size**: 500 Tokens (ca. 2000 Zeichen).
+    - *Grund*: Groß genug für einen kompletten Absatz/Regelwerk, klein genug für mehrere Chunks im Kontext.
+- **Overlap**: 50 Tokens (ca. 200 Zeichen).
+    - *Grund*: Verhindert Kontextverlust an Schnittstellen.
 
 ## 2. Boundary Handling
-The splitter should respect the following hierarchy when splitting:
-1.  `\n\n` (Paragraphs)
-2.  `\n` (Lines)
-3.  `. ` (Sentences)
-4.  ` ` (Words)
-5.  `` (Characters)
+Der Splitter respektiert folgende Hierarchie:
+1.  `\n\n` (Absätze)
+2.  `\n` (Zeilen)
+3.  `. ` (Sätze)
+4.  ` ` (Wörter)
+5.  `` (Zeichen)
 
 ## 3. Special Content Handling
-- **Tables**: Should ideally be kept together. If a table is larger than chunk size, it will be split, but the header should ideally be repeated (Future optimization). For MVP, standard text splitting is accepted.
-- **Lists**: Keep list items together with their introductory sentence if possible.
+- **Tabellen**: Werden idealerweise zusammengehalten. Wenn größer als Chunk-Size, wird gesplittet (Header-Wiederholung als Future Feature).
+- **Listen**: Listenelemente werden mit ihrem Einleitungssatz zusammengehalten.
 
 ## 4. Metadata Preservation
-Each chunk must retain the metadata of its parent document:
-- `source`: Filename
-- `page`: Page number (critical for citations)
-- `doc_type`: File extension
+Jeder Chunk erbt Metadaten vom Elterndokument:
+- `source`: Dateiname
+- `page`: Seitennummer (kritisch für Zitate)
+- `doc_type`: Dateityp
+- `chunk_id`: Sequentielle ID im Dokument
 
 ## 5. Quality Metrics
-- **Coherence**: Does the chunk make sense on its own?
-- **Completeness**: Does it cut off in the middle of a critical sentence?
-- **Validation**: Random sampling of chunks during testing to verify readability.
+- **Kohärenz**: Ergibt der Chunk alleine Sinn?
+- **Vollständigkeit**: Wird ein Satz mitten drin abgeschnitten?
+- **Validierung**: Stichprobenartige Prüfung der Lesbarkeit.
+
+## 6. Deutsche Sprache
+- **Besonderheiten**: Lange Komposita (z.B. "Investitionsförderungsrichtlinie").
+- **Handling**: Tokenizer muss mit deutschen Wortstrukturen umgehen können.
+- **Umlaute**: Korrektes Encoding (UTF-8) sicherstellen.
+

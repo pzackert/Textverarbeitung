@@ -1,35 +1,36 @@
 # Retrieval Strategy
 
 ## 1. Query Processing
-Before a user query is sent to the vector store, it undergoes preprocessing:
-1.  **Cleaning**: Remove excessive whitespace and special characters that might distort meaning.
-2.  **Expansion (Optional)**: Add synonyms or related terms (Future feature).
-3.  **Embedding**: Convert query text to vector using the *same* model as ingestion (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`).
+Bevor eine User-Query an den Vector Store geht:
+1.  **Cleaning**: Entfernen von überflüssigen Whitespaces.
+2.  **Expansion (Optional)**: Synonyme hinzufügen (Future Feature).
+3.  **Embedding**: Umwandlung in Vektor mit *demselben* Modell wie Ingestion (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`).
 
 ## 2. Similarity Search
-- **Metric**: Cosine Similarity.
-- **Top-K**: Retrieve top `k` results (Configurable, default `k=5`).
-- **Threshold**: Discard results with similarity score < `threshold` (Configurable, default `0.7`).
+- **Metrik**: Cosine Similarity.
+- **Top-K**: Abruf der Top `k` Ergebnisse (Konfigurierbar, Default `k=5`).
+- **Threshold**: Verwerfen von Ergebnissen mit Score < `threshold` (Default `0.7`).
 
 ## 3. Ranking & Filtering
-1.  **Primary Sort**: By Similarity Score (Descending).
+1.  **Primary Sort**: Nach Similarity Score (Absteigend).
 2.  **Metadata Filtering**:
-    - If user specifies a document context (e.g., "In Document A..."), apply metadata filter `where={"source": "Document A"}`.
-3.  **Deduplication**: If multiple chunks from the exact same section are returned (due to overlap), keep only the highest scoring one or merge them.
+    - Wenn User Kontext spezifiziert (z.B. "In Dokument A..."), Filter `where={"source": "Dokument A"}` anwenden.
+3.  **Deduplication**: Wenn mehrere Chunks aus demselben Abschnitt kommen, nur den besten behalten oder mergen.
 
 ## 4. Context Assembly
-Constructing the context window for the LLM:
+Zusammenbau des Kontext-Fensters für das LLM:
 1.  **Format**:
     ```text
-    Source: {filename} (Page {page})
-    Content: {chunk_text}
+    Quelle: {filename} (Seite {page})
+    Inhalt: {chunk_text}
     ---
-    Source: {filename} (Page {page})
-    Content: {chunk_text}
+    Quelle: {filename} (Seite {page})
+    Inhalt: {chunk_text}
     ```
-2.  **Token Limit**: Ensure total context tokens + prompt tokens < Model Context Window (e.g., 4096 or 8192).
-3.  **Truncation**: If `Top-K` chunks exceed the limit, drop the lowest-scoring chunks until it fits.
+2.  **Token Limit**: Sicherstellen, dass Kontext + Prompt < Model Context Window (z.B. 4096).
+3.  **Truncation**: Wenn `Top-K` Chunks das Limit sprengen, die schlechtesten verwerfen.
 
-## 5. Fallback Strategies
-- **No Results**: If no chunks meet the threshold -> Return "No relevant information found in the provided documents."
-- **Low Confidence**: If top score is between 0.5 and 0.7 -> Add disclaimer "Note: The following information might be only partially relevant."
+## 5. Fallback Strategien
+- **Keine Ergebnisse**: Wenn kein Chunk den Threshold erreicht -> "Keine relevanten Informationen in den Dokumenten gefunden."
+- **Niedrige Konfidenz**: Score zwischen 0.5 und 0.7 -> Hinweis "Informationen sind möglicherweise nur teilweise relevant."
+

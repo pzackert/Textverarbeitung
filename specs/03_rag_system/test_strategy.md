@@ -1,42 +1,44 @@
 # Test Strategy (Phase 3)
 
 ## 1. Unit Tests (`tests/test_rag/`)
-Isolated tests for individual components.
+Isolierte Tests für einzelne Komponenten.
 
 ### 1.1 Chunker Tests
-- `test_chunk_size`: Verify chunks do not exceed max size.
-- `test_chunk_overlap`: Verify overlap exists between sequential chunks.
-- `test_metadata_preservation`: Ensure chunks carry over parent doc metadata.
+- `test_chunk_size`: Verifiziert, dass Chunks Max-Size nicht überschreiten.
+- `test_chunk_overlap`: Verifiziert Überlappung.
+- `test_metadata_preservation`: Prüft Metadaten-Vererbung.
+- `test_german_splitting`: Prüft Splitting bei deutschen Umlauten/Sonderzeichen.
 
 ### 1.2 Vector Store Tests
-- `test_add_documents`: Add dummy docs and verify count.
-- `test_query_similarity`: Add known vectors and query for them.
-- `test_persistence`: Verify data remains after client restart.
+- `test_add_documents`: Dummy-Docs hinzufügen und Count prüfen.
+- `test_query_similarity`: Bekannte Vektoren suchen.
+- `test_persistence`: Daten nach Client-Neustart noch da?
 
 ### 1.3 LLM Client Tests
-- `test_ollama_connection`: Ping Ollama server.
-- `test_generate_response`: Send simple prompt, check response format.
-- `test_error_handling`: Simulate timeout/connection error.
+- `test_ollama_connection`: Ping an Server.
+- `test_generate_response`: Einfacher Prompt, Format-Check.
+- `test_error_handling`: Timeout/Connection Error Simulation.
 
 ## 2. Integration Tests
-End-to-End pipeline tests.
+End-to-End Pipeline Tests.
 
 - `test_ingestion_pipeline`: Parser -> Chunker -> Vector Store.
 - `test_retrieval_pipeline`: Query -> Vector Store -> Result Chunks.
-- `test_full_rag_chain`: Query -> Retrieval -> LLM -> Answer.
+- `test_full_rag_chain`: Query -> Retrieval -> LLM -> Antwort.
 
-## 3. Test Data
-- **Synthetic Data**: Simple text files for unit tests.
-- **Real Data**: The 12 files from Phase 2 (`option_1_mvp/data/input/`) for integration tests.
+## 3. Test Daten
+- **Synthetisch**: Einfache Textfiles für Unit Tests.
+- **Real World**: Die 12 Dateien aus Phase 2 (`option_1_mvp/data/input/`) für Integration Tests.
 
 ## 4. Performance Tests
-- **Ingestion Speed**: Measure time to ingest 10 documents.
-- **Retrieval Latency**: Measure time for 100 queries.
+- **Ingestion Speed**: Zeit für 10 Dokumente messen.
+- **Retrieval Latency**: Zeit für 100 Queries messen.
 - **Target**: Retrieval < 200ms.
 
 ## 5. Quality Metrics
-- **Recall@5**: Is the correct chunk in the top 5 results? (Manual verification for a set of 10 queries).
-- **Answer Relevance**: Does the LLM answer match the ground truth? (Manual review).
+- **Recall@5**: Ist der korrekte Chunk in den Top 5? (Manuelle Verifikation).
+- **Answer Relevance**: Passt die Antwort zur Ground Truth?
 
 ## 6. Coverage Target
-- Minimum **80%** code coverage for `src/rag/`.
+- Minimum **80%** Code Coverage für `src/rag/`.
+
