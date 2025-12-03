@@ -43,6 +43,13 @@ venv.bak/
 data/chromadb/*.sqlite3
 data/chromadb/*.parquet
 data/chromadb/chroma.sqlite3-*
+data/chromadb_test/
+data/chromadb_demo/
+
+# Logs
+*.log
+logs/*.log
+!logs/.gitkeep
 
 # Project Data (uploads & results)
 data/projects/*/uploads/*
