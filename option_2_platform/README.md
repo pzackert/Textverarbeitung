@@ -4,20 +4,19 @@ Local AI-powered grant application review platform with privacy-first architectu
 
 ## 🎯 Project Status
 
-**Current Phase:** Phase 3 Complete ✅  
-**Next Phase:** Phase 4 - LLM Integration
+**Current Phase:** Phase 4 Complete ✅  
+**Next Phase:** Phase 5 - Criteria Engine
 
 ### Implemented Features
 - ✅ Project Structure (Spec Kit compliant)
-- ✅ Ollama Integration (qwen2.5:7b, qwen2.5:0.5b tested)
-- ✅ Configuration System (ollama.toml)
+- ✅ Ollama Integration (qwen2.5:7b)
+- ✅ Configuration System (config.yaml)
 - ✅ Test Framework (PyTest)
-- ✅ LM Studio Support (5 models available)
 - ✅ Document Parsing (PDF, DOCX, XLSX)
 - ✅ RAG System (ChromaDB, Embeddings, Retrieval)
+- ✅ LLM Chain (Prompting, Generation, Citations)
 
 ### In Development
-- ⏳ LLM Integration (Phase 4)
 - ⏳ Criteria Engine (Phase 5)
 - ⏳ API Layer (Phase 6)
 - ⏳ UI Integration (Phase 7)
@@ -28,6 +27,7 @@ For detailed installation instructions, please refer to the platform-specific gu
 
 - **macOS:** [Installation Guide](../docs/INSTALLATION_MAC.md)
 - **Windows:** [Installation Guide](../docs/INSTALLATION_WINDOWS.md)
+- **Deployment:** [Deployment Guide](../docs/18_deployment_guide.md)
 
 ### Quick Command (macOS/Linux)
 ```bash
@@ -38,10 +38,16 @@ uv run pytest tests/ -v
 ```
 
 ### RAG Demo
-To test the vector store and retrieval system:
+To test the complete RAG system (requires Ollama):
 ```bash
-uv run python examples/vector_store_demo.py
+uv run python examples/rag_demo.py
 ```
+
+### Documentation
+- [User Guide](../docs/19_user_guide.md)
+- [Deployment Guide](../docs/18_deployment_guide.md)
+- [Performance Report](../docs/17_performance_report.md)
+
 
 
 
