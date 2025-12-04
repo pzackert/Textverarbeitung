@@ -1,23 +1,39 @@
-# IFB Antragsprüfung Frontend V2
+# IFB PROFI Frontend
 
-Ein modernes, produktionsreifes Frontend für das IFB Antragsprüfungssystem, basierend auf FastAPI, HTMX und Tailwind CSS.
+The frontend for the IFB Document Analysis Platform.
+
+## Architecture
+
+- **Framework:** FastAPI (Server-Side Rendering)
+- **Templating:** Jinja2
+- **Interactivity:** HTMX
+- **Styling:** Tailwind CSS
+- **State:** Alpine.js
+
+## Integration
+
+The frontend communicates with the RAG Backend via the API Layer (`src/api`).
+All API calls are handled by `frontend/services/api_client.py`.
 
 ## Features
 
-- **Dashboard**: Übersicht über offene Anträge, Prioritäten und Statistiken.
-- **Antragsverwaltung**: Detaillierte Ansicht von Anträgen mit Dokumenten und Status.
-- **Prüf-Wizard**: Geführter Prozess durch die Antragsprüfung (Formale Prüfung, Dokumenten-Scan, Kriterien, etc.).
-- **Modernes UI**: Responsive Design mit Tailwind CSS.
-- **Interaktivität**: HTMX für dynamische Inhalte ohne komplexe SPAs.
+- **Dashboard:** Overview of projects and system status.
+- **Projects:** Manage document uploads.
+- **Chat:** Interactive Q&A with the RAG system.
 
-## Tech Stack
+## Development
 
-- **Backend**: Python 3.11+, FastAPI
-- **Frontend**: Jinja2 Templates, HTMX, Alpine.js
-- **Styling**: Tailwind CSS (via CDN für Development)
-- **Dependency Management**: uv
+Start the full application (Frontend + API):
+```bash
+python scripts/start_app.py
+```
 
-## Installation
+## Directory Structure
+
+- `routers/`: FastAPI route handlers.
+- `services/`: Business logic and API client.
+- `templates/`: HTML templates.
+- `static/`: CSS/JS assets.
 
 Voraussetzung: [uv](https://github.com/astral-sh/uv) ist installiert.
 

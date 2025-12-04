@@ -1,0 +1,41 @@
+<div class="bg-gray-50 rounded-lg p-3 space-y-3" id="system-status">
+    <!-- Ollama Status -->
+    <div class="flex items-center justify-between">
+        <span class="text-sm text-gray-600">Ollama</span>
+        {% if health.ollama_available %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                Running
+            </span>
+        {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                Offline
+            </span>
+        {% endif %}
+    </div>
+
+    <!-- ChromaDB Status -->
+    <div class="flex items-center justify-between">
+        <span class="text-sm text-gray-600">Database</span>
+        {% if health.chromadb_available %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                Connected
+            </span>
+        {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                Error
+            </span>
+        {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="border-t border-gray-200 pt-2 mt-2">
+        <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-500">Documents</span>
+            <span class="text-xs font-medium text-gray-900">{{ health.documents_count }}</span>
+        </div>
+        <div class="flex items-center justify-between mt-1">
+            <span class="text-xs text-gray-500">Embeddings</span>
+            <span class="text-xs font-medium text-gray-900">{{ health.embeddings_cached }}</span>
+        </div>
+    </div>
+</div>
