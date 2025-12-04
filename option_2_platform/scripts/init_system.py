@@ -44,39 +44,69 @@ def check_directories():
     else:
         logger.info("✅ Directories: OK")
 
-def check_ollama():
-    """Check if Ollama is running and model is available."""
+import subprocess
+import time
+
+# ...existing code...
+
+def check_and_start_ollama():
+    """Check if Ollama is running, if not: provide instructions or auto-start."""
     try:
-        # Check service
-        response = requests.get("http://localhost:11434", timeout=2)
-        if response.status_code == 200:
-            logger.info("✅ Ollama Service: Running")
-        else:
-            logger.warning("⚠️  Ollama Service: Running but returned unexpected status")
+        requests.get("http://localhost:11434", timeout=2)
+        return True
+    except requests.exceptions.ConnectionError:
+        # Try to auto-start
+        try:
+            logger.info("🔄 Attempting to auto-start Ollama...")
+            subprocess.Popen(["ollama", "serve"], 
+                             stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
             
-        # Check model
-        config = load_config()
-        model_name = config.llm.model
-        
+            # Wait for startup
+            for _ in range(10):
+                time.sleep(1)
+                try:
+                    requests.get("http://localhost:11434", timeout=2)
+                    logger.info("✅ Ollama auto-started successfully")
+                    return True
+                except:
+                    continue
+        except FileNotFoundError:
+            logger.error("❌ Ollama executable not found")
+        except Exception as e:
+            logger.error(f"❌ Auto-start failed: {e}")
+            
+        logger.error("❌ Ollama Service: Not Running")
+        logger.info("   → Run: ollama serve")
+        return False
+
+def ensure_model_loaded(model_name: str):
+    """Ensure model is pulled and ready."""
+    try:
         response = requests.get("http://localhost:11434/api/tags", timeout=5)
         if response.status_code == 200:
             models = response.json().get("models", [])
-            found = False
             for m in models:
                 if model_name in m.get("name", ""):
-                    found = True
                     size_gb = m.get("size", 0) / (1024**3)
                     logger.info(f"✅ Model {model_name}: Loaded ({size_gb:.1f}GB)")
-                    break
+                    return True
             
-            if not found:
-                logger.warning(f"⚠️  Model {model_name}: Not found in Ollama")
-                logger.info(f"   → Run: ollama pull {model_name}")
-    except requests.exceptions.ConnectionError:
-        logger.error("❌ Ollama Service: Not Running")
-        logger.info("   → Run: ollama serve")
+            # Not found, try to pull
+            logger.info(f"🔄 Pulling model {model_name} (this may take a while)...")
+            subprocess.run(["ollama", "pull", model_name], check=True)
+            logger.info(f"✅ Model {model_name} pulled successfully")
+            return True
     except Exception as e:
-        logger.error(f"❌ Ollama Check Failed: {e}")
+        logger.error(f"❌ Model Check Failed: {e}")
+        return False
+
+def check_ollama():
+    """Check if Ollama is running and model is available."""
+    if check_and_start_ollama():
+        config = load_config()
+        model_name = config.get("llm", {}).get("model", "qwen2.5:7b")
+        ensure_model_loaded(model_name)
 
 def check_chromadb():
     """Check if ChromaDB persistence directory is accessible."""

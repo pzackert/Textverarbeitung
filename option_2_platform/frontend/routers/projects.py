@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, HTTPException, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
-from frontend.services.project_service import project_service
+from src.services.project_service import project_service
 from frontend.services.api_client import api_client
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -11,8 +11,12 @@ templates = Jinja2Templates(directory="frontend/templates")
 @router.get("", response_class=HTMLResponse)
 async def list_projects(request: Request):
     """List all projects."""
-    # For now, the dashboard is the main project list view
-    return RedirectResponse(url="/")
+    projects = project_service.list_projects()
+    return templates.TemplateResponse(
+        request=request,
+        name="projects_list.html",
+        context={"projects": projects}
+    )
 
 @router.post("", response_class=HTMLResponse)
 async def create_project(
@@ -21,8 +25,8 @@ async def create_project(
     description: Optional[str] = Form(None)
 ):
     project_service.create_project(name=name, description=description)
-    # For MVP, redirect back to dashboard to see the new list
-    return RedirectResponse(url="/", status_code=303)
+    # Redirect to projects list
+    return RedirectResponse(url="/projects", status_code=303)
 
 @router.get("/{project_id}")
 async def project_detail(

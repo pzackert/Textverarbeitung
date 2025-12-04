@@ -38,11 +38,15 @@ class LLMServiceStatus(BaseModel):
     available: bool
     provider: str
     base_url: str
+    can_autostart: bool = False
+    instructions: Optional[str] = None
 
 class LLMModelStatus(BaseModel):
     loaded: bool
     name: str
     size: Optional[str] = None
+    can_autopull: bool = False
+    instructions: Optional[str] = None
 
 class VectorDBStatus(BaseModel):
     available: bool

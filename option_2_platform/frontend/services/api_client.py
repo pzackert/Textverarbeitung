@@ -10,14 +10,20 @@ API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 class APIClient:
     def __init__(self, base_url: str = API_BASE_URL):
         self.base_url = base_url
-        self.timeout_query = 60.0
-        self.timeout_upload = 120.0
+        self.timeout = httpx.Timeout(
+            connect=5.0,
+            read=120.0,  # LLM kann lange dauern
+            write=30.0,
+            pool=5.0
+        )
 
-    async def _get(self, endpoint: str, timeout: float = 10.0) -> Dict[str, Any]:
+    async def _get(self, endpoint: str, timeout: Optional[float] = None) -> Dict[str, Any]:
         url = f"{self.base_url}{endpoint}"
-        async with httpx.AsyncClient() as client:
+        # Use instance timeout if not provided
+        req_timeout = timeout if timeout else self.timeout
+        async with httpx.AsyncClient(timeout=req_timeout) as client:
             try:
-                response = await client.get(url, timeout=timeout)
+                response = await client.get(url)
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as e:
@@ -27,14 +33,15 @@ class APIClient:
                 logger.error(f"Connection Error GET {endpoint}: {e}")
                 raise Exception(f"Connection Error: {str(e)}")
 
-    async def _post(self, endpoint: str, json: Optional[Dict] = None, files: Optional[Dict] = None, timeout: float = 30.0) -> Dict[str, Any]:
+    async def _post(self, endpoint: str, json: Optional[Dict] = None, files: Optional[Dict] = None, timeout: Optional[float] = None) -> Dict[str, Any]:
         url = f"{self.base_url}{endpoint}"
-        async with httpx.AsyncClient() as client:
+        req_timeout = timeout if timeout else self.timeout
+        async with httpx.AsyncClient(timeout=req_timeout) as client:
             try:
                 if files:
-                    response = await client.post(url, files=files, timeout=timeout)
+                    response = await client.post(url, files=files)
                 else:
-                    response = await client.post(url, json=json, timeout=timeout)
+                    response = await client.post(url, json=json)
                 
                 response.raise_for_status()
                 return response.json()
@@ -68,7 +75,7 @@ class APIClient:
 
         with open(file_path, "rb") as f:
             files = {"file": (filename, f, content_type)}
-            return await self._post("/ingest/upload", files=files, timeout=self.timeout_upload)
+            return await self._post("/ingest/upload", files=files)
 
     async def query_rag(self, question: str, template_type: str = "standard", top_k: int = 5) -> Dict[str, Any]:
         payload = {
@@ -76,7 +83,7 @@ class APIClient:
             "template_type": template_type,
             "top_k": top_k
         }
-        return await self._post("/query", json=payload, timeout=self.timeout_query)
+        return await self._post("/query", json=payload)
 
 # Singleton instance
 api_client = APIClient()

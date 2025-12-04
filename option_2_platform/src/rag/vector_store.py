@@ -92,7 +92,15 @@ class VectorStore:
         try:
             # Prepare data for ChromaDB
             documents = [chunk.content for chunk in chunks]
-            metadatas = [chunk.metadata for chunk in chunks]
+            
+            # Sanitize metadata (convert lists to strings)
+            metadatas = []
+            for chunk in chunks:
+                meta = chunk.metadata.copy()
+                for k, v in meta.items():
+                    if isinstance(v, (list, dict)):
+                        meta[k] = str(v)
+                metadatas.append(meta)
             
             # Generate IDs: source_file_chunk_id or UUID if source missing
             ids = []
@@ -100,18 +108,40 @@ class VectorStore:
                 source = chunk.metadata.get("source", "unknown")
                 chunk_id = chunk.metadata.get("chunk_id", uuid.uuid4().hex)
                 page_num = chunk.metadata.get("page_number", "")
+                row_num = chunk.metadata.get("row_number", "")
+                sheet_name = chunk.metadata.get("sheet_name", "")
                 
-                # Create unique ID using parent folder, filename, page (if any) and chunk ID
+                # Create unique ID using project ID if available, else parent folder
                 path_obj = Path(source)
-                if path_obj.parent.name and path_obj.parent.name != ".":
-                    safe_source = f"{path_obj.parent.name}_{path_obj.name}"
-                else:
-                    safe_source = path_obj.name
                 
+                prefix = ""
+                parts = path_obj.parts
+                if "projects" in parts:
+                    try:
+                        idx = parts.index("projects")
+                        if idx + 1 < len(parts):
+                            prefix = parts[idx+1] # Project ID
+                    except:
+                        pass
+                
+                if not prefix and path_obj.parent.name and path_obj.parent.name != ".":
+                    prefix = path_obj.parent.name
+                
+                safe_source = f"{prefix}_{path_obj.name}" if prefix else path_obj.name
+                
+                # Construct ID with available metadata
+                id_parts = [safe_source]
                 if page_num:
-                    ids.append(f"{safe_source}_p{page_num}_{chunk_id}")
-                else:
-                    ids.append(f"{safe_source}_{chunk_id}")
+                    id_parts.append(f"p{page_num}")
+                if sheet_name:
+                    # Sanitize sheet name
+                    safe_sheet = "".join(c for c in sheet_name if c.isalnum() or c in "_-")
+                    id_parts.append(f"s{safe_sheet}")
+                if row_num:
+                    id_parts.append(f"r{row_num}")
+                id_parts.append(str(chunk_id))
+                
+                ids.append("_".join(id_parts))
             
             # Generate embeddings
             embeddings = self.embedding_function.embed_batch(documents)

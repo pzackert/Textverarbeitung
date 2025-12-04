@@ -52,8 +52,14 @@ async def chat_query(
             }
         )
     except Exception as e:
-        return HTMLResponse(f"""
-            <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
-                <span class="font-medium">Error:</span> {str(e)}
-            </div>
-        """)
+        error_msg = str(e)
+        if "Connection Error" in error_msg:
+            error_msg = "LLM Service nicht erreichbar. Bitte stellen Sie sicher, dass Ollama läuft."
+        elif "Timeout" in error_msg:
+            error_msg = "Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es mit einer kürzeren Frage erneut."
+            
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/chat_error.html",
+            context={"error_message": error_msg}
+        )

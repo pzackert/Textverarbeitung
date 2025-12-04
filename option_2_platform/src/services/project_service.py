@@ -1,75 +1,75 @@
 import json
-import shutil
+import uuid
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
+from datetime import datetime
 from src.core.models import Project, Document
 
 class ProjectService:
-    def __init__(self, storage_root: Path):
-        self.storage_root = storage_root
-        self.storage_root.mkdir(parents=True, exist_ok=True)
-
+    def __init__(self):
+        self.storage_path = Path("data/projects/projects.json")
+        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+        
+    def _load_projects(self) -> Dict[str, Project]:
+        """Load all projects from JSON file."""
+        if not self.storage_path.exists():
+            return {}
+        with open(self.storage_path) as f:
+            try:
+                data = json.load(f)
+                return {pid: Project(**pdata) for pid, pdata in data.items()}
+            except json.JSONDecodeError:
+                return {}
+    
+    def _save_projects(self, projects: Dict[str, Project]):
+        """Save all projects to JSON file."""
+        with open(self.storage_path, 'w') as f:
+            # Use model_dump for Pydantic v2
+            data = {pid: p.model_dump(mode='json') for pid, p in projects.items()}
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    
     def create_project(self, name: str, description: Optional[str] = None) -> Project:
-        project = Project(name=name, description=description)
-        project_dir = self.storage_root / project.id
-        project_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create documents folder
-        (project_dir / "documents").mkdir(exist_ok=True)
-        
-        self._save_metadata(project)
+        """Create new project and persist."""
+        projects = self._load_projects()
+        project = Project(
+            name=name,
+            description=description
+        )
+        projects[project.id] = project
+        self._save_projects(projects)
         return project
-
+    
     def list_projects(self) -> List[Project]:
-        projects = []
-        for project_dir in self.storage_root.iterdir():
-            if project_dir.is_dir():
-                metadata_file = project_dir / "metadata.json"
-                if metadata_file.exists():
-                    try:
-                        with open(metadata_file, "r") as f:
-                            data = json.load(f)
-                            projects.append(Project(**data))
-                    except Exception:
-                        # Skip malformed projects
-                        continue
-        
+        """List all projects."""
+        projects = self._load_projects()
         # Sort by created_at desc
-        projects.sort(key=lambda p: p.created_at, reverse=True)
-        return projects
+        return sorted(projects.values(), key=lambda p: p.created_at, reverse=True)
 
     def get_project(self, project_id: str) -> Optional[Project]:
-        metadata_file = self.storage_root / project_id / "metadata.json"
-        if not metadata_file.exists():
-            return None
-        
-        try:
-            with open(metadata_file, "r") as f:
-                data = json.load(f)
-                return Project(**data)
-        except Exception:
-            return None
-
-    def _save_metadata(self, project: Project):
-        project_dir = self.storage_root / project.id
-        metadata_file = project_dir / "metadata.json"
-        with open(metadata_file, "w") as f:
-            f.write(project.model_dump_json())
+        projects = self._load_projects()
+        return projects.get(project_id)
 
     def save_document(self, project_id: str, filename: str, content: bytes) -> Optional[Document]:
-        project = self.get_project(project_id)
+        projects = self._load_projects()
+        project = projects.get(project_id)
         if not project:
             return None
             
-        doc = Document(filename=filename, path=f"documents/{filename}")
+        # Save file physically
+        project_dir = self.storage_path.parent / project_id / "documents"
+        project_dir.mkdir(parents=True, exist_ok=True)
+        file_path = project_dir / filename
         
-        # Save file
-        file_path = self.storage_root / project_id / "documents" / filename
         with open(file_path, "wb") as f:
             f.write(content)
             
-        # Update project metadata
+        doc = Document(filename=filename, path=str(file_path))
         project.documents.append(doc)
-        self._save_metadata(project)
+        
+        projects[project_id] = project
+        self._save_projects(projects)
         
         return doc
+
+# Singleton instance
+project_service = ProjectService()

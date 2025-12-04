@@ -41,12 +41,16 @@ async def health_check(
         llm_service=LLMServiceStatus(
             available=ollama_available,
             provider="ollama",
-            base_url=llm_chain.llm_provider.base_url
+            base_url=llm_chain.llm_provider.base_url,
+            can_autostart=not ollama_available,
+            instructions="Run: ollama serve" if not ollama_available else None
         ),
         llm_model=LLMModelStatus(
             loaded=model_info["loaded"],
             name=model_info["name"],
-            size=model_info["size"]
+            size=model_info["size"],
+            can_autopull=not model_info["loaded"],
+            instructions=f"Run: ollama pull {model_info['name']}" if not model_info["loaded"] else None
         ),
         vector_db=VectorDBStatus(
             available=chromadb_available,
