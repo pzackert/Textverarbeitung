@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from frontend.services.api_client import api_client
+import markdown
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 templates = Jinja2Templates(directory="frontend/templates")
@@ -34,12 +35,18 @@ async def chat_query(
         # Call API
         response = await api_client.query_rag(question)
         
+        # Convert Markdown to HTML
+        answer_html = markdown.markdown(
+            response.get("answer", ""),
+            extensions=['fenced_code', 'tables', 'nl2br']
+        )
+        
         return templates.TemplateResponse(
             request=request,
             name="partials/chat_message.html",
             context={
                 "question": question,
-                "answer": response.get("answer"),
+                "answer": answer_html,
                 "sources": response.get("sources", []),
                 "citations": response.get("citations", [])
             }

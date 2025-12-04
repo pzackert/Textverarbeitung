@@ -34,8 +34,26 @@ class QueryResponse(BaseModel):
 
 # --- System Schemas ---
 
+class LLMServiceStatus(BaseModel):
+    available: bool
+    provider: str
+    base_url: str
+
+class LLMModelStatus(BaseModel):
+    loaded: bool
+    name: str
+    size: Optional[str] = None
+
+class VectorDBStatus(BaseModel):
+    available: bool
+    documents: int
+
 class SystemStatus(BaseModel):
+    llm_service: LLMServiceStatus
+    llm_model: LLMModelStatus
+    vector_db: VectorDBStatus
+    # Backward compatibility
     ollama_available: bool
     chromadb_available: bool
     documents_count: int
-    embeddings_cached: int
+    embeddings_cached: int = 0

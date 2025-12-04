@@ -149,5 +149,48 @@
             </div>
         </div>
     </div>
+
+    <!-- Admin Actions -->
+    <div class="mt-8 bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-base font-semibold leading-6 text-gray-900">Admin Actions</h3>
+            <div class="mt-2 max-w-xl text-sm text-gray-500">
+                <p>Generate and ingest sample data for testing purposes.</p>
+            </div>
+            <div class="mt-5">
+                <button hx-post="/admin/load-samples" 
+                        hx-target="#admin-response" 
+                        hx-indicator="#loading-indicator"
+                        type="button" 
+                        class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                    Load Sample Data
+                </button>
+                <span id="loading-indicator" class="htmx-indicator ml-2 text-sm text-gray-500">Processing...</span>
+            </div>
+            <div id="admin-response" class="mt-4"></div>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="mt-8">
+        <h3 class="text-base font-semibold leading-6 text-gray-900">System Status</h3>
+        <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500">AI Engine (Ollama)</dt>
+                <dd class="mt-1 text-xl font-semibold tracking-tight text-gray-900">
+                    <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20" x-show="'{{ stats.ollama_status }}' == 'Running'">{{ stats.ollama_status }}</span>
+                    <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20" x-show="'{{ stats.ollama_status }}' != 'Running'">{{ stats.ollama_status }}</span>
+                </dd>
+            </div>
+            <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500">Vector DB (Chroma)</dt>
+                <dd class="mt-1 text-xl font-semibold tracking-tight text-gray-900">{{ stats.chromadb_status }}</dd>
+            </div>
+            <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500">Indexierte Dokumente</dt>
+                <dd class="mt-1 text-xl font-semibold tracking-tight text-gray-900">{{ stats.documents_count }}</dd>
+            </div>
+        </dl>
+    </div>
 </div>
 {% endblock %}

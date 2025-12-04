@@ -23,6 +23,10 @@ class BaseLLMProvider(ABC):
         """Check if LLM service is running and accessible."""
         pass
 
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get info about the configured model."""
+        return {"loaded": False, "name": self.model_name, "size": None}
+
 class OllamaProvider(BaseLLMProvider):
     """Ollama LLM provider implementation."""
     
@@ -58,6 +62,31 @@ class OllamaProvider(BaseLLMProvider):
             return response.status_code == 200
         except requests.exceptions.RequestException:
             return False
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get info about the configured model."""
+        try:
+            url = f"{self.base_url}/api/tags"
+            response = requests.get(url, timeout=5)
+            if response.status_code != 200:
+                return {"loaded": False, "name": self.model_name, "size": None}
+                
+            models_data = response.json()
+            models = models_data.get("models", [])
+            
+            for m in models:
+                if self.model_name in m.get("name", ""):
+                    size_gb = m.get("size", 0) / (1024**3)
+                    return {
+                        "loaded": True,
+                        "name": m.get("name"),
+                        "size": f"{size_gb:.1f}GB"
+                    }
+            
+            return {"loaded": False, "name": self.model_name, "size": None}
+        except Exception as e:
+            logger.error(f"Failed to get model info: {e}")
+            return {"loaded": False, "name": self.model_name, "size": None}
 
     def test_connection(self) -> Dict[str, Any]:
         """

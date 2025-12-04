@@ -58,3 +58,26 @@ Question: {query}
 
 Answer based on the given context. If the information is not in the context, say so clearly."""
         return self.generate(prompt, system_prompt)
+    
+    def is_available(self) -> bool:
+        """Check if Ollama service is reachable"""
+        try:
+            ollama.list()
+            return True
+        except Exception:
+            return False
+
+    def get_model_info(self) -> dict:
+        """Get info about the configured model"""
+        try:
+            models = ollama.list()
+            for m in models.get('models', []):
+                if self.model in m['name']:
+                    return {
+                        "loaded": True,
+                        "name": m['name'],
+                        "size": f"{m.get('size', 0) / 1024 / 1024 / 1024:.1f}GB"
+                    }
+            return {"loaded": False, "name": self.model, "size": None}
+        except Exception:
+            return {"loaded": False, "name": self.model, "size": None}

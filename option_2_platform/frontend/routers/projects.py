@@ -8,6 +8,12 @@ from frontend.services.api_client import api_client
 router = APIRouter(prefix="/projects", tags=["projects"])
 templates = Jinja2Templates(directory="frontend/templates")
 
+@router.get("", response_class=HTMLResponse)
+async def list_projects(request: Request):
+    """List all projects."""
+    # For now, the dashboard is the main project list view
+    return RedirectResponse(url="/")
+
 @router.post("", response_class=HTMLResponse)
 async def create_project(
     request: Request,

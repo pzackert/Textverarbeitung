@@ -99,9 +99,19 @@ class VectorStore:
             for chunk in chunks:
                 source = chunk.metadata.get("source", "unknown")
                 chunk_id = chunk.metadata.get("chunk_id", uuid.uuid4().hex)
-                # Sanitize ID (remove path chars if present in source)
-                safe_source = Path(source).name
-                ids.append(f"{safe_source}_{chunk_id}")
+                page_num = chunk.metadata.get("page_number", "")
+                
+                # Create unique ID using parent folder, filename, page (if any) and chunk ID
+                path_obj = Path(source)
+                if path_obj.parent.name and path_obj.parent.name != ".":
+                    safe_source = f"{path_obj.parent.name}_{path_obj.name}"
+                else:
+                    safe_source = path_obj.name
+                
+                if page_num:
+                    ids.append(f"{safe_source}_p{page_num}_{chunk_id}")
+                else:
+                    ids.append(f"{safe_source}_{chunk_id}")
             
             # Generate embeddings
             embeddings = self.embedding_function.embed_batch(documents)

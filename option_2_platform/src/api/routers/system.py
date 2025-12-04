@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException
-from src.api.schemas import SystemStatus
+from src.api.schemas import SystemStatus, LLMServiceStatus, LLMModelStatus, VectorDBStatus
 from src.api.dependencies import get_config, get_llm_chain
 from src.rag.config import RAGConfig
 from src.rag.llm_chain import LLMChain
@@ -18,16 +18,18 @@ async def health_check(
     """
     logger.info("Health check performed")
     
-    ollama_status = llm_chain.llm_provider.is_available()
+    # Check Ollama
+    ollama_available = llm_chain.llm_provider.is_available()
+    model_info = llm_chain.llm_provider.get_model_info()
     
     # Check ChromaDB via VectorStore
     try:
         # Accessing the underlying collection count to verify connection
         doc_count = llm_chain.retrieval_engine.vector_store.collection.count()
-        chromadb_status = True
+        chromadb_available = True
     except Exception as e:
         logger.error(f"ChromaDB check failed: {e}")
-        chromadb_status = False
+        chromadb_available = False
         doc_count = 0
         
     # Check embedding cache (if available)
@@ -36,8 +38,23 @@ async def health_check(
          embeddings_cached = len(llm_chain.retrieval_engine.vector_store.embedding_function._cache or {})
 
     return SystemStatus(
-        ollama_available=ollama_status,
-        chromadb_available=chromadb_status,
+        llm_service=LLMServiceStatus(
+            available=ollama_available,
+            provider="ollama",
+            base_url=llm_chain.llm_provider.base_url
+        ),
+        llm_model=LLMModelStatus(
+            loaded=model_info["loaded"],
+            name=model_info["name"],
+            size=model_info["size"]
+        ),
+        vector_db=VectorDBStatus(
+            available=chromadb_available,
+            documents=doc_count
+        ),
+        # Backward compatibility
+        ollama_available=ollama_available,
+        chromadb_available=chromadb_available,
         documents_count=doc_count,
         embeddings_cached=embeddings_cached
     )

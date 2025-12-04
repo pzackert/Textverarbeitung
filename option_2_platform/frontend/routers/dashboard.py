@@ -22,8 +22,14 @@ async def dashboard(request: Request):
         chromadb_status = "Error"
         doc_count = 0
     
+    # Calculate stats from projects
+    high_priority = sum(1 for p in projects if p.get("priority") == "Hoch")
+    completed_week = sum(1 for p in projects if p.get("status") == "Abgeschlossen") # Simplified
+
     stats = {
         "open_projects": len(projects),
+        "high_priority": high_priority,
+        "completed_week": completed_week,
         "documents_count": doc_count,
         "ollama_status": ollama_status,
         "chromadb_status": chromadb_status

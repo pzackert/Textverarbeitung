@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from src.api.main import app as api_app
-from frontend.routers import dashboard, projects, chat
+from frontend.routers import dashboard, projects, chat, criteria, wizard, admin
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +29,9 @@ def create_app() -> FastAPI:
     app.include_router(dashboard.router)
     app.include_router(projects.router)
     app.include_router(chat.router)
+    app.include_router(criteria.router)
+    app.include_router(wizard.router)
+    app.include_router(admin.router)
     
     return app
 
