@@ -1,0 +1,60 @@
+<div id="validation-results">
+    <!-- Thinking Block -->
+    <div class="thinking-block">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <strong style="color: #007AFF;">🔄 Analyse abgeschlossen</strong>
+            <span style="font-size: 0.875rem; color: #6B7280;">{{ criteria_results|length }}/{{ criteria_results|length }} Kriterien</span>
+        </div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: 100%;"></div>
+        </div>
+    </div>
+
+    <!-- Result Cards -->
+    {% for result in criteria_results %}
+    <div class="result-card">
+        <div class="result-header" onclick="this.parentElement.classList.toggle('open')">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                {% if result.status == 'pass' %}
+                <span>✅</span>
+                {% elif result.status == 'fail' %}
+                <span>❌</span>
+                {% else %}
+                <span>⚠️</span>
+                {% endif %}
+                <span>{{ result.id }}: {{ result.name }}</span>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="color: #9CA3AF;">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <div class="result-body">
+            <p><strong>{{ result.answer }}</strong></p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #4B5563;">
+                {{ result.reasoning }}
+            </p>
+            <div style="margin-top: 1rem;">
+                {% for citation in result.citations %}
+                <span class="citation-badge" 
+                      data-doc-id="{{ citation.doc_id }}"
+                      data-page="{{ citation.page }}"
+                      data-text="{{ citation.text_snippet }}"
+                      onclick="jumpToCitation('{{ citation.doc_id }}', {{ citation.page }}, '{{ citation.text_snippet }}')">
+                    [{{ citation.doc_name }}, S.{{ citation.page }}]
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    
+    <div style="text-align: center; margin-top: 2rem;">
+        <button class="text-sm text-blue-600 hover:underline" 
+                hx-get="/projects/{{ project.id }}/review" 
+                hx-target="#zone-c-content" 
+                hx-select="#insights-dashboard"
+                hx-swap="innerHTML">
+            ← Zurück zur Übersicht
+        </button>
+    </div>
+</div>

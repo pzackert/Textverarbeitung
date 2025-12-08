@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review: {{ project.name }}</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS for Review Cockpit -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/review-cockpit.css') }}">
+
+    <!-- Review Logic -->
+    <script src="{{ url_for('static', path='/js/review.js') }}"></script>
+</head>
+<body hx-boost="true">
+
+<div class="review-container">
+    <!-- ZONE A: Sidebar (Files & Meta) -->
+    <aside class="review-sidebar">
+        <div class="sidebar-header">
+            <a href="/projects" class="back-link">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Zurück zur Übersicht
+            </a>
+            
+            <!-- Project Status Card -->
+            <div class="project-status-card">
+                <div class="project-icon">
+                    {% if project.status == 'completed' %}🟢{% elif project.status == 'in_review' %}🟡{% else %}📋{% endif %}
+                </div>
+                <div class="project-info">
+                    <span class="project-title" title="{{ project.name }}">{{ project.name }}</span>
+                    <span class="project-meta">ID: {{ project.id[:8] }}...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="file-list">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Dokumente</h3>
+            
+            {% for doc in project.documents %}
+            <button class="file-item {% if loop.first %}active{% endif %}"
+                    onclick="loadDocument('{{ doc.id }}', '{{ doc.filename }}')">
+                <div class="file-icon">
+                    {% if doc.filename.endswith('.pdf') %}📄{% elif doc.filename.endswith('.docx') %}📝{% else %}📎{% endif %}
+                </div>
+                <div class="file-details">
+                    <span class="file-name">{{ doc.filename }}</span>
+                    <span class="file-meta">
+                        {{ (doc.size / 1024)|round(1) if doc.size else '?' }} KB • {{ doc.uploaded_at.strftime('%d.%m.') }}
+                    </span>
+                </div>
+                <!-- Status Badge -->
+                <div class="status-badge status-ready"></div>
+            </button>
+            {% endfor %}
+        </div>
+        
+        <!-- Upload Area (Bottom) -->
+        <div class="upload-area-wrapper">
+            <div class="upload-dropzone" onclick="document.getElementById('upload-modal').classList.remove('hidden')">
+                <span class="upload-icon">☁️</span>
+                <span class="upload-text">Dokument hinzufügen</span>
+                <span class="upload-subtext">PDF, DOCX, XLSX</span>
+            </div>
+        </div>
+        
+        <!-- Upload Modal (Hidden by default) -->
+        <div id="upload-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="bg-white p-5 rounded-lg shadow-xl w-96">
+                <h3 class="text-lg font-bold mb-4">Dokument hochladen</h3>
+                <form action="/projects/{{ project.id }}/upload" method="post" enctype="multipart/form-data">
+                    <input type="file" name="file" class="mb-4 w-full" required>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="document.getElementById('upload-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 rounded">Abbrechen</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Hochladen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ZONE B: Document Viewer -->
+    <main class="review-main">
+        {% include "components/document_viewer.html" %}
+    </main>
+
+    <!-- ZONE C: AI Assistant -->
+    <aside class="review-assistant">
+        {% include "components/ai_assistant.html" %}
+    </aside>
+</div>
+
+<script>
+    // Simple document loader stub - will be replaced by full implementation
+    function loadDocument(docId, filename) {
+        // Update active state in sidebar
+        document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        } else {
+            // Find button by docId if called programmatically
+            const btn = document.querySelector(`button[onclick*="${docId}"]`);
+            if (btn) btn.classList.add('active');
+        }
+        
+        // Load PDF in viewer
+        if (window.renderPDF) {
+            window.renderPDF(filename);
+        }
+    }
+
+    // Auto-load first document if available
+    {% if project.documents %}
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDocument('{{ project.documents[0].id }}', '{{ project.documents[0].filename }}');
+    });
+    {% endif %}
+</script>
+
+</body>
+</html>

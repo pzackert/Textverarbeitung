@@ -22,7 +22,8 @@ async def chat_page(request: Request):
         name="chat.html",
         context={
             "stats": stats,
-            "health": health
+            "health": health,
+            "current_page": "chat"
         }
     )
 

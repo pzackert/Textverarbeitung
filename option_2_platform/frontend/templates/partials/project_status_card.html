@@ -1,0 +1,20 @@
+<div class="project-status-card" id="project-status-card">
+    <div class="project-icon">
+        {% if project.status == 'completed' %}🟢{% elif project.status == 'in_review' %}🟡{% else %}📋{% endif %}
+    </div>
+    <div class="project-info flex-1">
+        <span class="project-title" title="{{ project.name }}">{{ project.name }}</span>
+        <span class="project-meta">ID: {{ project.id[:8] }}...</span>
+    </div>
+    <div class="status-select-wrapper">
+        <select class="text-xs border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                hx-post="/projects/{{ project.id }}/status"
+                hx-target="#project-status-card"
+                hx-swap="outerHTML"
+                name="status">
+            <option value="draft" {% if project.status == 'draft' %}selected{% endif %}>Entwurf</option>
+            <option value="in_review" {% if project.status == 'in_review' %}selected{% endif %}>In Prüfung</option>
+            <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Abgeschlossen</option>
+        </select>
+    </div>
+</div>

@@ -78,7 +78,11 @@ class TestFullWorkflow:
         
         # Mock project service save_document to return a path
         with patch("frontend.routers.projects.project_service.save_document") as mock_save:
-            mock_save.return_value = "data/projects/test-project/documents/test.pdf"
+            mock_doc = MagicMock()
+            mock_doc.path = "data/projects/test-project/documents/test.pdf"
+            mock_doc.id = "doc-123"
+            mock_doc.filename = "test.pdf"
+            mock_save.return_value = mock_doc
             
             # Mock API client upload_document to avoid actual HTTP call in unit test context
             # But wait, TestClient calls the app directly. 
@@ -94,8 +98,7 @@ class TestFullWorkflow:
                 response = client.post("/projects/test-project/upload", files=files)
                 
                 assert response.status_code == 200
-                assert "Success!" in response.text
-                assert "3 chunks created" in response.text
+                assert "test.pdf" in response.text
                 
                 # Verify API client was called
                 mock_api_upload.assert_called_once()

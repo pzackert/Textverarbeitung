@@ -73,12 +73,13 @@ class IngestionPipeline:
             embedding_function=self.embedder
         )
     
-    def ingest_file(self, file_path: str) -> Dict[str, Any]:
+    def ingest_file(self, file_path: str, project_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Ingest a single file through complete pipeline.
         
         Args:
             file_path: Path to document file
+            project_id: Optional project ID to associate with chunks
             
         Returns:
             Ingestion results with statistics
@@ -93,6 +94,18 @@ class IngestionPipeline:
         
         # 2. Chunk document
         chunks = self._chunk_document(documents)
+        
+        # Add extra metadata
+        for chunk in chunks:
+            if project_id:
+                chunk.metadata["project_id"] = project_id
+            
+            chunk.metadata["doc_id"] = path.stem
+            chunk.metadata["doc_name"] = path.name
+            # Ensure page_number is present (PDFParser adds it)
+            # If not present (e.g. other parsers), default to 1
+            if "page_number" not in chunk.metadata:
+                chunk.metadata["page_number"] = 1
         
         # 3. Store chunks (embeddings generated automatically)
         chunk_ids = self._store_chunks(chunks)

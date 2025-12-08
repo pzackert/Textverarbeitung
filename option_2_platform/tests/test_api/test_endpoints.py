@@ -33,9 +33,15 @@ def test_root():
 def test_health_check():
     # Setup mock
     mock_llm_chain.llm_provider.is_available.return_value = True
+    mock_llm_chain.llm_provider.base_url = "http://localhost:11434"
+    mock_llm_chain.llm_provider.get_model_info.return_value = {
+        "loaded": True,
+        "name": "llama3",
+        "size": "4.7GB"
+    }
     mock_llm_chain.retrieval_engine.vector_store.collection.count.return_value = 10
     
-    response = client.get("/api/v1/system/health")
+    response = client.get("/system/health")
     assert response.status_code == 200
     data = response.json()
     assert data["ollama_available"] is True
@@ -49,7 +55,7 @@ def test_upload_document():
     file_content = b"dummy content"
     files = {"file": ("test.pdf", file_content, "application/pdf")}
     
-    response = client.post("/api/v1/ingest/upload", files=files)
+    response = client.post("/ingest/upload", files=files)
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
@@ -64,7 +70,7 @@ def test_query_endpoint():
     }
     
     payload = {"question": "Test Question"}
-    response = client.post("/api/v1/query", json=payload)
+    response = client.post("/query", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["answer"] == "Test Answer"
@@ -72,5 +78,5 @@ def test_query_endpoint():
 
 def test_query_empty_question():
     payload = {"question": "   "}
-    response = client.post("/api/v1/query", json=payload)
+    response = client.post("/query", json=payload)
     assert response.status_code == 400

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 from fastapi.templating import Jinja2Templates
-from frontend.services.project_service import project_service
+from src.services.project_service import project_service
 from frontend.services.api_client import api_client
 
 router = APIRouter()
@@ -23,8 +23,9 @@ async def dashboard(request: Request):
         doc_count = 0
     
     # Calculate stats from projects
-    high_priority = sum(1 for p in projects if p.get("priority") == "Hoch")
-    completed_week = sum(1 for p in projects if p.get("status") == "Abgeschlossen") # Simplified
+    # Note: Project model does not have priority field yet
+    high_priority = 0 
+    completed_week = sum(1 for p in projects if p.status == "completed")
 
     stats = {
         "open_projects": len(projects),
@@ -40,6 +41,7 @@ async def dashboard(request: Request):
         name="index.html",
         context={
             "projects": projects,
-            "stats": stats
+            "stats": stats,
+            "current_page": "dashboard"
         }
     )

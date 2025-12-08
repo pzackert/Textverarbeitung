@@ -1,0 +1,60 @@
+<div id="insights-dashboard">
+    <div class="insights-header">
+        Projekt Analyse für {{ project.name }}
+    </div>
+
+    <!-- Action Cards -->
+    <div class="action-card" 
+         hx-post="/projects/{{ project.id }}/validate" 
+         hx-target="#zone-c-content" 
+         hx-swap="innerHTML"
+         hx-indicator="#validation-loading">
+        <div class="action-icon">🎯</div>
+        <div class="action-text">
+            <h4>Alle Kriterien prüfen</h4>
+            <p>Vollständige Validierung gegen IFB-Kriterienkatalog</p>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="validation-loading" class="htmx-indicator p-4 text-center text-gray-500">
+        <div class="spinner mb-2"></div>
+        Analysiere Dokumente und erstelle Markierungen...
+    </div>
+
+    <div class="action-card" onclick="alert('Feature kommt bald!')">
+        <div class="action-icon">💰</div>
+        <div class="action-text">
+            <h4>Finanzplan analysieren</h4>
+            <p>Detaillierte Prüfung der Kostenaufstellung</p>
+        </div>
+    </div>
+
+    <div class="action-card" onclick="alert('Feature kommt bald!')">
+        <div class="action-icon">🏢</div>
+        <div class="action-text">
+            <h4>KMU-Status validieren</h4>
+            <p>Prüfung der KMU-Voraussetzungen</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <span>Ort: Hamburg</span>
+            <span>✅</span>
+        </div>
+        <div class="summary-card">
+            <span>Volumen: 150k €</span>
+            <span>💰</span>
+        </div>
+        <div class="summary-card">
+            <span>Antragsteller: {{ project.name.split(' ')[0] }} GmbH</span>
+            <span>🏢</span>
+        </div>
+        <div class="summary-card">
+            <span>Status: In Prüfung</span>
+            <span>🟡</span>
+        </div>
+    </div>
+</div>

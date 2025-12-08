@@ -1,24 +1,30 @@
+#!/usr/bin/env python
 import uvicorn
 import os
 import sys
 from pathlib import Path
 
 # Add project root to python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scripts.init_system import main as init_system
+from init_system import init_llm_service
 
 if __name__ == "__main__":
-    # Run system checks
-    init_system()
+    print("🚀 IFB PROFI System-Start\n")
     
-    print("🚀 Starting IFB PROFI Platform...")
+    # LLM initialisieren
+    if not init_llm_service():
+        print("\n⚠️  LLM-Service nicht verfügbar")
+        # response = input("Trotzdem fortfahren? (j/n): ")
+        # if response.lower() != 'j':
+        #    return
+        print("Fahre fort ohne LLM...")
+    
+    print("\n🌐 Starte Webserver...\n")
     uvicorn.run(
-        "src.main:create_app",
-        host="127.0.0.1",
+        "src.main:app",
+        host="0.0.0.0",
         port=8001,
-        factory=True,
         reload=True,
-        reload_dirs=["src", "frontend"],
         log_level="info"
     )

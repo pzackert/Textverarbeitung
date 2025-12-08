@@ -1,0 +1,48 @@
+<div class="pdf-toolbar">
+    <div class="toolbar-left">
+        <span class="text-sm font-medium text-gray-600" id="current-doc-name">{{ doc.filename }}</span>
+    </div>
+    <div class="toolbar-center">
+        <button class="p-1 hover:bg-gray-100 rounded" onclick="changePage(-1)">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+        <span class="text-sm text-gray-600 mx-2">
+            Seite <span id="page-num">1</span> von <span id="page-count">--</span>
+        </span>
+        <button class="p-1 hover:bg-gray-100 rounded" onclick="changePage(1)">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        </button>
+    </div>
+    <div class="toolbar-right">
+        <button class="p-1 hover:bg-gray-100 rounded" onclick="zoomOut()">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+            </svg>
+        </button>
+        <span class="text-sm text-gray-600 mx-2" id="zoom-level">100%</span>
+        <button class="p-1 hover:bg-gray-100 rounded" onclick="zoomIn()">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<div class="pdf-container" id="pdf-container">
+    <div class="pdf-page">
+        <canvas id="pdf-canvas"></canvas>
+        <div id="text-layer" class="text-layer"></div>
+    </div>
+</div>
+
+<script>
+    // Initialize PDF viewer for this document
+    if (window.renderPDF) {
+        window.renderPDF('{{ doc.filename }}');
+        window.currentDocId = '{{ doc.id }}';
+    }
+</script>

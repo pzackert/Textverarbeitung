@@ -31,7 +31,8 @@ class EmbeddingGenerator:
         try:
             if model_name not in self._model_cache:
                 logger.info(f"Loading embedding model: {model_name}")
-                self._model_cache[model_name] = SentenceTransformer(model_name)
+                # Force CPU to avoid MPS issues on macOS
+                self._model_cache[model_name] = SentenceTransformer(model_name, device="cpu")
                 logger.info("Model loaded successfully")
             self.model = self._model_cache[model_name]
         except Exception as e:

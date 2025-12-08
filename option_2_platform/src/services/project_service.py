@@ -28,17 +28,41 @@ class ProjectService:
             data = {pid: p.model_dump(mode='json') for pid, p in projects.items()}
             json.dump(data, f, indent=2, ensure_ascii=False)
     
-    def create_project(self, name: str, description: Optional[str] = None) -> Project:
+    def create_project(self, name: str, description: Optional[str] = None, applicant: Optional[str] = None, funding_amount: Optional[float] = None) -> Project:
         """Create new project and persist."""
         projects = self._load_projects()
         project = Project(
             name=name,
-            description=description
+            description=description,
+            applicant=applicant,
+            funding_amount=funding_amount
         )
         projects[project.id] = project
         self._save_projects(projects)
         return project
     
+    def update_project_status(self, project_id: str, status: str) -> Optional[Project]:
+        """Update project status."""
+        projects = self._load_projects()
+        project = projects.get(project_id)
+        if not project:
+            return None
+            
+        project.status = status
+        project.updated_at = datetime.now()
+        projects[project_id] = project
+        self._save_projects(projects)
+        return project
+
+    def delete_project(self, project_id: str) -> bool:
+        """Delete a project."""
+        projects = self._load_projects()
+        if project_id in projects:
+            del projects[project_id]
+            self._save_projects(projects)
+            return True
+        return False
+
     def list_projects(self) -> List[Project]:
         """List all projects."""
         projects = self._load_projects()
@@ -56,20 +80,32 @@ class ProjectService:
             return None
             
         # Save file physically
-        project_dir = self.storage_path.parent / project_id / "documents"
+        # User requested path: data/input/<project_id>
+        project_dir = Path("data/input") / project_id
         project_dir.mkdir(parents=True, exist_ok=True)
         file_path = project_dir / filename
         
         with open(file_path, "wb") as f:
             f.write(content)
             
-        doc = Document(filename=filename, path=str(file_path))
+        doc = Document(
+            filename=filename, 
+            path=str(file_path),
+            size=len(content)
+        )
         project.documents.append(doc)
+        project.updated_at = datetime.now()
         
         projects[project_id] = project
         self._save_projects(projects)
         
         return doc
+
+    def update_project(self, project: Project) -> None:
+        """Update an existing project."""
+        projects = self._load_projects()
+        projects[project.id] = project
+        self._save_projects(projects)
 
 # Singleton instance
 project_service = ProjectService()

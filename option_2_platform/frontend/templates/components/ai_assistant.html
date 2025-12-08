@@ -1,0 +1,33 @@
+<div class="review-assistant">
+    <!-- Zone C Content: Insights or Validation -->
+    <div id="zone-c-content" class="assistant-content">
+        {% include "components/insights_dashboard.html" %}
+    </div>
+
+    <!-- Chat Messages Area -->
+    <div id="chat-messages" class="chat-messages-area" style="overflow-y: auto; max-height: 300px; padding: 1rem; border-top: 1px solid #E5E5E5; display: flex; flex-direction: column; gap: 0.5rem;">
+        <!-- Initial Welcome Message -->
+        <div class="message message-assistant">
+            <p>Hallo! Ich bin dein KI-Assistent. Wie kann ich helfen?</p>
+        </div>
+    </div>
+
+    <!-- Chat Input (Fixed Bottom) -->
+    <div class="chat-input-container">
+        <form hx-post="/projects/{{ project.id }}/chat" 
+              hx-target="#chat-messages" 
+              hx-swap="beforeend"
+              hx-on::after-request="this.reset(); var chat = document.getElementById('chat-messages'); chat.scrollTop = chat.scrollHeight;">
+            
+            <div class="chat-input-wrapper">
+                <input type="text" name="message" class="chat-input" placeholder="Frage zum Antrag stellen..." autocomplete="off">
+                <button type="submit" class="chat-submit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

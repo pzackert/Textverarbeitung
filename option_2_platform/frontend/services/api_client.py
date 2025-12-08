@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8001/api/v1")
 
 class APIClient:
     def __init__(self, base_url: str = API_BASE_URL):

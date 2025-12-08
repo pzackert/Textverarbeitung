@@ -1,0 +1,13 @@
+<div id="validation-status"
+     hx-get="/projects/{{ project_id }}/validation-status"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     class="p-4 bg-blue-50 rounded-lg border border-blue-100">
+  
+  <div class="flex flex-col items-center justify-center text-center">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3"></div>
+    <h4 class="font-medium text-blue-900">🔍 Analysiere Dokumente...</h4>
+    <p class="text-sm text-blue-700 mt-1">Dies kann 10-30 Sekunden dauern.</p>
+  </div>
+  
+</div>

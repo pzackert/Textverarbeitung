@@ -1,3 +1,9 @@
+"""
+DEV ONLY STANDALONE ENTRY POINT
+This file is for developing the frontend in isolation.
+For the full application, use scripts/start_app.py
+"""
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates

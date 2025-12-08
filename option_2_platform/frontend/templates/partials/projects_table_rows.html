@@ -1,0 +1,35 @@
+{% for project in projects %}
+<tr class="project-row hover:bg-gray-50 cursor-pointer transition-colors duration-150" 
+    onclick="window.location='/projects/{{ project.id }}/review'">
+  <td class="px-6 py-4 whitespace-nowrap"><span class="text-xs text-gray-500 font-mono">{{ project.id[:8] }}...</span></td>
+  <td class="px-6 py-4 whitespace-nowrap project-name">
+    <strong class="text-gray-900">{{ project.name }}</strong>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ project.applicant or '-' }}</td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ "{:,.2f}".format(project.funding_amount) if project.funding_amount else '-' }} €</td>
+  <td class="px-6 py-4 whitespace-nowrap">
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+      {% if project.status == 'completed' %}bg-green-100 text-green-800
+      {% elif project.status == 'in_review' %}bg-yellow-100 text-yellow-800
+      {% else %}bg-gray-100 text-gray-800{% endif %}">
+      {{ project.status_display }}
+    </span>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+    <span class="doc-count">{{ project.doc_count }} Dokumente</span>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ project.last_updated }}</td>
+  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation()">
+    <div class="flex justify-end gap-2">
+        <a href="/projects/{{ project.id }}/review" class="text-primary-600 hover:text-primary-900">Öffnen</a>
+        <button class="text-red-600 hover:text-red-900"
+                hx-delete="/projects/{{ project.id }}"
+                hx-confirm="Antrag wirklich löschen?"
+                hx-target="closest tr"
+                hx-swap="outerHTML">
+          Löschen
+        </button>
+    </div>
+  </td>
+</tr>
+{% endfor %}

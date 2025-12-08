@@ -29,9 +29,9 @@ app.add_middleware(
 )
 
 # Routers
-app.include_router(ingest.router, prefix="/api/v1")
-app.include_router(query.router, prefix="/api/v1")
-app.include_router(system.router, prefix="/api/v1")
+app.include_router(ingest.router)
+app.include_router(query.router)
+app.include_router(system.router)
 
 @app.get("/")
 async def root():
