@@ -25,6 +25,7 @@ class QueryRequest(BaseModel):
     question: str
     template_type: str = "standard"
     top_k: int = 5
+    system_prompt: Optional[str] = None
 
 class QueryResponse(BaseModel):
     answer: str

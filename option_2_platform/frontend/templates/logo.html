@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}IFB Logo Showcase{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/logo_animations.css">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+        <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">IFB Hamburg Logo Animation Concepts</h1>
+        <p class="mt-4 text-xl text-gray-500">Transforming the Euro Symbol (€) into the IFB Identity.</p>
+    </div>
+
+    <!-- Concept 1 -->
+    <div class="bg-white overflow-hidden shadow rounded-lg mb-12">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Konzept 1: "Der fundamentale Strich"</h2>
+            <p class="text-gray-500 mb-6">Das Euro-Zeichen transformiert sich: Die Querstriche rotieren und bilden das
+                Fundament (den Trennstrich).</p>
+
+            <div class="logo-container concept-1">
+                <svg width="400" height="150" viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Center Guide -->
+                    <defs>
+                        <mask id="mask-left">
+                            <rect x="0" y="0" width="195" height="150" fill="white" />
+                        </mask>
+                        <mask id="mask-right">
+                            <rect x="205" y="0" width="200" height="150" fill="white" />
+                        </mask>
+                    </defs>
+
+                    <!-- Euro Parts -->
+                    <g transform="translate(200, 75)">
+                        <!-- Arc (C shape) -->
+                        <path d="M 20 -30 A 35 35 0 1 0 20 30" class="c1-euro-arc" fill="none" />
+
+                        <!-- Bars (Horizontal) -->
+                        <g class="c1-euro-bar">
+                            <line x1="-20" y1="-5" x2="30" y2="-5" />
+                            <line x1="-20" y1="10" x2="30" y2="10" />
+                        </g>
+                    </g>
+
+                    <!-- Text Reveal -->
+                    <g mask="url(#mask-left)">
+                        <text x="185" y="90" text-anchor="end" class="c1-text-ifb">IFB</text>
+                    </g>
+                    <g mask="url(#mask-right)">
+                        <text x="215" y="90" text-anchor="start" class="c1-text-hamburg">HAMBURG</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concept 2 -->
+    <div class="bg-white overflow-hidden shadow rounded-lg mb-12">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Konzept 2: "Der Geldfluss"</h2>
+            <p class="text-gray-500 mb-6">Ein Punkt zeichnet den Weg des Geldes, formt kurz das Euro-Zeichen und
+                verfestigt sich zum Logo.</p>
+
+            <div class="logo-container concept-2">
+                <svg width="400" height="150" viewBox="0 0 400 150">
+                    <g transform="translate(200, 75)">
+                        <!-- Dynamic Path Drawing -->
+                        <path d="M -150 0 L -50 0 Q 0 0 0 -30 M 0 -30 A 30 30 0 1 0 0 30" class="c2-path" />
+                        <!-- The Dot -->
+                        <circle cx="0" cy="0" class="c2-dot" />
+                        <!-- Final Line -->
+                        <line x1="0" y1="-40" x2="0" y2="40" class="c2-line-final" />
+                    </g>
+
+                    <g class="c2-text">
+                        <text x="180" y="90" text-anchor="end" font-family="Inter" font-weight="bold" font-size="48"
+                            fill="#003063">IFB</text>
+                        <text x="220" y="90" text-anchor="start" font-family="Inter" font-weight="300" font-size="48"
+                            fill="#E30613">HAMBURG</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concept 3 -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Konzept 3: "Flip the Coin"</h2>
+            <p class="text-gray-500 mb-6">Eine Münze dreht sich, wird zur Kante (Strich) und enthüllt den Text mit einem
+                Glanz-Effekt.</p>
+
+            <div class="logo-container concept-3 relative">
+                <!-- Coin -->
+                <div class="c3-coin">€</div>
+                <!-- Line -->
+                <div class="c3-line"></div>
+                <!-- Text -->
+                <div class="c3-text-ifb">IFB</div>
+                <div class="c3-text-hamburg">HAMBURG</div>
+                <!-- Shine -->
+                <div class="c3-shine"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

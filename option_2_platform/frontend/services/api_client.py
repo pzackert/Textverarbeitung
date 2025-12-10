@@ -77,12 +77,14 @@ class APIClient:
             files = {"file": (filename, f, content_type)}
             return await self._post("/ingest/upload", files=files)
 
-    async def query_rag(self, question: str, template_type: str = "standard", top_k: int = 5) -> Dict[str, Any]:
+    async def query_rag(self, question: str, template_type: str = "standard", top_k: int = 5, system_prompt: Optional[str] = None) -> Dict[str, Any]:
         payload = {
             "question": question,
             "template_type": template_type,
             "top_k": top_k
         }
+        if system_prompt:
+            payload["system_prompt"] = system_prompt
         return await self._post("/query", json=payload)
 
 # Singleton instance

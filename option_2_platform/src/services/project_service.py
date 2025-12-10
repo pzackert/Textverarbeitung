@@ -1,5 +1,6 @@
 import json
 import uuid
+import os
 from pathlib import Path
 from typing import List, Optional, Dict
 from datetime import datetime
@@ -69,9 +70,44 @@ class ProjectService:
         # Sort by created_at desc
         return sorted(projects.values(), key=lambda p: p.created_at, reverse=True)
 
+    def _validate_documents(self, project: Project) -> Project:
+        """Validate existence of documents and update sizes."""
+        valid_docs = []
+        changed = False
+        
+        for doc in project.documents:
+            # Check existence
+            if os.path.exists(doc.path):
+                # Update size if missing or zero
+                try:
+                    actual_size = os.path.getsize(doc.path)
+                    if doc.size != actual_size:
+                        doc.size = actual_size
+                        changed = True
+                    valid_docs.append(doc)
+                except OSError:
+                    changed = True # Skip if error accessing
+            else:
+                # Check legacy/alternative paths if not found
+                # Or just mark as changed to remove it
+                changed = True
+                
+        if changed:
+            project.documents = valid_docs
+            project.doc_count = len(valid_docs)
+            # We don't save immediately to avoid IO spam, but we return the cleaned project
+            # Optionally we could self.update_project(project) here if we want persistence of the cleanup
+            # Let's save it to keep DB clean
+            self.update_project(project)
+            
+        return project
+
     def get_project(self, project_id: str) -> Optional[Project]:
         projects = self._load_projects()
-        return projects.get(project_id)
+        project = projects.get(project_id)
+        if project:
+            return self._validate_documents(project)
+        return None
 
     def save_document(self, project_id: str, filename: str, content: bytes) -> Optional[Document]:
         projects = self._load_projects()
@@ -94,6 +130,7 @@ class ProjectService:
             size=len(content)
         )
         project.documents.append(doc)
+        project.doc_count = len(project.documents) # Update count
         project.updated_at = datetime.now()
         
         projects[project_id] = project

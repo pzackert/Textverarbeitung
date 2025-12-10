@@ -1,12 +1,14 @@
 {% for project in projects %}
-<tr class="project-row hover:bg-gray-50 cursor-pointer transition-colors duration-150" 
-    onclick="window.location='/projects/{{ project.id }}/review'">
-  <td class="px-6 py-4 whitespace-nowrap"><span class="text-xs text-gray-500 font-mono">{{ project.id[:8] }}...</span></td>
+<tr class="project-row hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+  onclick="window.location='/projects/{{ project.id }}/review'">
+  <td class="px-6 py-4 whitespace-nowrap"><span class="text-xs text-gray-500 font-mono">{{ project.id[:8] }}...</span>
+  </td>
   <td class="px-6 py-4 whitespace-nowrap project-name">
     <strong class="text-gray-900">{{ project.name }}</strong>
   </td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ project.applicant or '-' }}</td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ "{:,.2f}".format(project.funding_amount) if project.funding_amount else '-' }} €</td>
+  <td class="px-6 py-4 whitespace-nowrap hidden lg:table-cell text-sm text-gray-500">{{ project.applicant or '-' }}</td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ "{:,.2f}".format(project.funding_amount) if
+    project.funding_amount else '-' }} €</td>
   <td class="px-6 py-4 whitespace-nowrap">
     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
       {% if project.status == 'completed' %}bg-green-100 text-green-800
@@ -15,20 +17,26 @@
       {{ project.status_display }}
     </span>
   </td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
     <span class="doc-count">{{ project.doc_count }} Dokumente</span>
   </td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ project.last_updated }}</td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden xl:table-cell">{{ project.last_updated }}</td>
   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation()">
-    <div class="flex justify-end gap-2">
-        <a href="/projects/{{ project.id }}/review" class="text-primary-600 hover:text-primary-900">Öffnen</a>
-        <button class="text-red-600 hover:text-red-900"
-                hx-delete="/projects/{{ project.id }}"
-                hx-confirm="Antrag wirklich löschen?"
-                hx-target="closest tr"
-                hx-swap="outerHTML">
-          Löschen
-        </button>
+    <div class="flex justify-end gap-2 text-gray-400">
+      <a href="/projects/{{ project.id }}/review" hx-boost="false" class="p-1 hover:text-primary-600 transition-colors"
+        title="Öffnen">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+      <button class="p-1 hover:text-red-600 transition-colors" hx-delete="/projects/{{ project.id }}"
+        hx-confirm="Antrag wirklich löschen?" hx-target="closest tr" hx-swap="outerHTML" title="Löschen">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
     </div>
   </td>
 </tr>

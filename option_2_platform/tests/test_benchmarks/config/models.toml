@@ -1,0 +1,28 @@
+[run]
+repetitions = 3
+warmup = true
+
+[hyperparameters]
+temperature = [0.0, 0.7, 1.0]
+context_length = [2048, 4096, 8192]
+
+[[models]]
+name = "qwen2.5:0.5b"
+backend = "ollama"
+enabled = true
+
+[[models]]
+name = "qwen2.5:7b"
+backend = "ollama"
+enabled = true
+
+[[models]]
+name = "mistral:7b"
+backend = "ollama"
+enabled = false
+
+[[models]]
+name = "ministral-3:3b"
+backend = "ollama"
+enabled = true
+

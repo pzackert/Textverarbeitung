@@ -1,0 +1,178 @@
+{
+  "run_metadata": {
+    "timestamp": "2025-12-08T11:20:58.274622Z",
+    "system": {
+      "os": "Darwin",
+      "platform": "macOS-26.1-arm64-arm-64bit",
+      "cpu_count": 8,
+      "cpu_freq": "3228 MHz",
+      "total_ram_gb": 16.0
+    },
+    "config": {
+      "repetitions": 3,
+      "warmup": true
+    }
+  },
+  "results": [
+    {
+      "model": "qwen2.5:0.5b",
+      "test": "01_model_loading",
+      "passed": true,
+      "cold_start_time_s": 0,
+      "warmup_time_s": 12.47,
+      "ram_used_mb": 20.1
+    },
+    {
+      "model": "qwen2.5:0.5b",
+      "test": "02_hello_world",
+      "passed": true,
+      "attempts": [
+        {
+          "response_time_s": 0.47,
+          "tokens_per_sec": 21.17,
+          "answer": "Hello! How can I assist you today?"
+        },
+        {
+          "response_time_s": 0.27,
+          "tokens_per_sec": 37.43,
+          "answer": "Hello! How can I assist you today?"
+        },
+        {
+          "response_time_s": 0.19,
+          "tokens_per_sec": 54.05,
+          "answer": "Hello! How can I assist you today?"
+        }
+      ],
+      "avg_response_time_s": 0.31,
+      "avg_tokens_per_sec": 37.6
+    },
+    {
+      "model": "qwen2.5:0.5b",
+      "test": "03_math",
+      "passed": false,
+      "attempts": [
+        {
+          "response_time_s": 0.54,
+          "answer": "To solve the expression \\(4 + 8 \\times 7\\), we nee",
+          "correct": false
+        },
+        {
+          "response_time_s": 0.75,
+          "answer": "To solve the expression \\(4 + 8 \\times 7\\), we nee",
+          "correct": false
+        },
+        {
+          "response_time_s": 0.81,
+          "answer": "To solve the expression \\(4 + 8 \\times 7\\), we nee",
+          "correct": false
+        }
+      ],
+      "avg_response_time_s": 0.7,
+      "accuracy": 0.0
+    },
+    {
+      "model": "qwen2.5:0.5b",
+      "test": "04_logic",
+      "passed": true,
+      "attempts": [
+        {
+          "response_time_s": 0.93,
+          "answer": "To determine the cost of one apple, we can follow these steps:\n\n1. Identify the total cost for three",
+          "correct": true
+        },
+        {
+          "response_time_s": 0.84,
+          "answer": "To determine the cost of one apple, we can follow these steps:\n\n1. Identify the total cost for three",
+          "correct": true
+        },
+        {
+          "response_time_s": 0.92,
+          "answer": "To determine the cost of one apple, we can follow these steps:\n\n1. Identify the total cost for three",
+          "correct": true
+        }
+      ],
+      "avg_response_time_s": 0.9,
+      "accuracy": 1.0
+    },
+    {
+      "model": "qwen2.5:7b",
+      "test": "01_model_loading",
+      "passed": true,
+      "cold_start_time_s": 0,
+      "warmup_time_s": 12.74,
+      "ram_used_mb": 19.0
+    },
+    {
+      "model": "qwen2.5:7b",
+      "test": "02_hello_world",
+      "passed": true,
+      "attempts": [
+        {
+          "response_time_s": 1.42,
+          "tokens_per_sec": 11.28,
+          "answer": "Hello there! Nice to meet you. How can I assist yo"
+        },
+        {
+          "response_time_s": 0.62,
+          "tokens_per_sec": 17.62,
+          "answer": "Hello there! How can I assist you today?"
+        },
+        {
+          "response_time_s": 0.67,
+          "tokens_per_sec": 16.47,
+          "answer": "Hello there! How can I assist you today?"
+        }
+      ],
+      "avg_response_time_s": 0.9,
+      "avg_tokens_per_sec": 15.1
+    },
+    {
+      "model": "qwen2.5:7b",
+      "test": "03_math",
+      "passed": true,
+      "attempts": [
+        {
+          "response_time_s": 0.43,
+          "answer": "60",
+          "correct": true
+        },
+        {
+          "response_time_s": 0.27,
+          "answer": "60",
+          "correct": true
+        },
+        {
+          "response_time_s": 0.27,
+          "answer": "60",
+          "correct": true
+        }
+      ],
+      "avg_response_time_s": 0.32,
+      "accuracy": 1.0
+    },
+    {
+      "model": "qwen2.5:7b",
+      "test": "04_logic",
+      "passed": true,
+      "attempts": [
+        {
+          "response_time_s": 3.96,
+          "answer": "To find the cost of one apple when three apples cost 6 euros, you can divide the total cost by the n",
+          "correct": true
+        },
+        {
+          "response_time_s": 3.74,
+          "answer": "To find the cost of one apple when three apples cost 6 euros, you can divide the total cost by the n",
+          "correct": true
+        },
+        {
+          "response_time_s": 3.73,
+          "answer": "To find the cost of one apple when three apples cost 6 euros, you can divide the total cost by the n",
+          "correct": true
+        }
+      ],
+      "avg_response_time_s": 3.81,
+      "accuracy": 1.0
+    }
+  ]
+}

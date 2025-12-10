@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Einstellungen - IFB Prüfung{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Einstellungen</h1>
+        <p class="mt-2 text-sm text-gray-600">Konfigurieren Sie das Verhalten des KI-Assistenten.</p>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <form action="/settings" method="POST">
+            <div class="px-4 py-5 sm:p-6 space-y-6">
+
+                <!-- Greeting Message -->
+                <div>
+                    <label for="greeting_message"
+                        class="block text-sm font-medium text-gray-700">Begrüßungsformel</label>
+                    <div class="mt-1">
+                        <input type="text" name="greeting_message" id="greeting_message"
+                            value="{{ settings.greeting_message }}" required
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-2 px-3"
+                            placeholder="Hallo! Wie kann ich helfen?">
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">
+                        Diese Nachricht wird angezeigt, wenn ein Benutzer den Chat zum ersten Mal öffnet.
+                    </p>
+                </div>
+
+                <!-- System Prompt -->
+                <div>
+                    <label for="system_prompt" class="block text-sm font-medium text-gray-700">System-Prompt</label>
+                    <div class="mt-1">
+                        <textarea id="system_prompt" name="system_prompt" rows="5" required
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-2 px-3">{{ settings.system_prompt }}</textarea>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">
+                        Definiert die Rolle und das Verhalten des Assistenten.
+                    </p>
+                </div>
+
+            </div>
+            <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                <button type="submit"
+                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

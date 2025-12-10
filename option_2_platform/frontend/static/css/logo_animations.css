@@ -1,0 +1,239 @@
+/* IFB Logo Animation Styles */
+:root {
+    --ifb-blue: #003063;
+    --hamburg-red: #E30613;
+}
+
+/* Container Styles */
+.logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    background-color: #f3f4f6; /* Gray-100 */
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+/* Concept 1: The Fundamental Stroke */
+.concept-1 svg {
+    overflow: visible;
+}
+
+.c1-euro-arc {
+    fill: none;
+    stroke: var(--ifb-blue);
+    stroke-width: 12;
+    stroke-linecap: round;
+    opacity: 1;
+    animation: c1-fade-arc 2.5s ease-in-out infinite;
+}
+
+.c1-euro-bar {
+    fill: none;
+    stroke: var(--ifb-blue);
+    stroke-width: 12;
+    stroke-linecap: square;
+    transform-origin: center;
+    animation: c1-transform-bars 2.5s ease-in-out infinite;
+}
+
+/* Masking Containers for Text */
+.c1-text-mask {
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.c1-text-ifb {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 48px;
+    fill: var(--ifb-blue);
+    transform: translateX(100%);
+    animation: c1-slide-ifb 2.5s ease-in-out infinite;
+}
+
+.c1-text-hamburg {
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    font-size: 48px;
+    fill: var(--hamburg-red);
+    transform: translateX(-100%);
+    animation: c1-slide-hamburg 2.5s ease-in-out infinite;
+}
+
+@keyframes c1-fade-arc {
+    0%, 30% { opacity: 1; transform: scale(1); }
+    50%, 100% { opacity: 0; transform: scale(0.8); }
+}
+
+@keyframes c1-transform-bars {
+    0%, 20% { transform: rotate(0deg) translateX(0); stroke-width: 12; }
+    50% { transform: rotate(90deg) translateX(0); stroke-width: 12; stroke: var(--ifb-blue); }
+    60%, 100% { transform: rotate(90deg) scaleY(1.5); stroke-width: 12; } /* Becomes the vertical line */
+}
+
+@keyframes c1-slide-ifb {
+    0%, 50% { transform: translateX(50px); opacity: 0; }
+    70%, 100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes c1-slide-hamburg {
+    0%, 50% { transform: translateX(-50px); opacity: 0; }
+    70%, 100% { transform: translateX(10px); opacity: 1; } /* 10px spacing */
+}
+
+
+/* Concept 2: Money Flow (Drawing) */
+.c2-path {
+    fill: none;
+    stroke: var(--ifb-blue);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    animation: c2-draw 3s ease-in-out infinite;
+}
+
+.c2-dot {
+    fill: var(--hamburg-red);
+    r: 6;
+    animation: c2-dot-move 3s ease-in-out infinite;
+}
+
+.c2-line-final {
+    fill: none;
+    stroke: var(--ifb-blue);
+    stroke-width: 10;
+    transform-origin: center;
+    opacity: 0;
+    animation: c2-morph-line 3s ease-in-out infinite;
+}
+
+.c2-text {
+    opacity: 0;
+    animation: c2-text-appear 3s ease-in-out infinite;
+}
+
+@keyframes c2-draw {
+    0% { stroke-dashoffset: 300; opacity: 1; }
+    40% { stroke-dashoffset: 0; opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 0; }
+}
+
+@keyframes c2-dot-move {
+    0% { transform: translate(-100px, 0); opacity: 1; }
+    40% { transform: translate(0, 0); opacity: 1; }
+    45% { transform: translate(0, 0) scale(2); opacity: 0; } /* Explode/morph */
+    100% { opacity: 0; }
+}
+
+@keyframes c2-morph-line {
+    0%, 40% { opacity: 0; transform: scaleY(0.1); }
+    50% { opacity: 1; transform: scaleY(1); }
+    100% { opacity: 1; transform: scaleY(1); }
+}
+
+@keyframes c2-text-appear {
+    0%, 50% { opacity: 0; transform: translateY(-20px); }
+    60%, 100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* Concept 3: Flip the Coin */
+.concept-3 {
+    perspective: 1000px;
+}
+
+.c3-coin {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, #ffd700 0%, #daa520 100%);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    font-weight: bold;
+    color: var(--ifb-blue);
+    position: absolute;
+    transform-style: preserve-3d;
+    animation: c3-flip 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.c3-line {
+    width: 10px;
+    height: 80px;
+    background-color: var(--ifb-blue);
+    position: absolute;
+    opacity: 0;
+    animation: c3-line-appear 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.c3-text-ifb, .c3-text-hamburg {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    position: absolute;
+    opacity: 0;
+}
+
+.c3-text-ifb {
+    color: var(--ifb-blue);
+    right: 55%;
+    animation: c3-slide-left 3s ease-out infinite;
+}
+
+.c3-text-hamburg {
+    color: var(--hamburg-red);
+    left: 55%;
+    font-weight: 300;
+    animation: c3-slide-right 3s ease-out infinite;
+}
+
+/* Shine effect */
+.c3-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+    transform: skewX(-25deg);
+    animation: c3-shine-move 3s infinite;
+    z-index: 10;
+}
+
+@keyframes c3-flip {
+    0% { transform: rotateY(0); opacity: 1; }
+    40% { transform: rotateY(720deg) scaleX(0.1); opacity: 1; } /* Spinnning fast and thinning */
+    45% { transform: rotateY(720deg) scaleX(0); opacity: 0; } /* Disappear into line */
+    100% { opacity: 0; }
+}
+
+@keyframes c3-line-appear {
+    0%, 40% { opacity: 0; transform: scaleY(0.5); }
+    45% { opacity: 1; transform: scaleY(1); }
+    100% { opacity: 1; transform: scaleY(1); }
+}
+
+@keyframes c3-slide-left {
+    0%, 45% { opacity: 0; transform: translateX(20px); }
+    55%, 100% { opacity: 1; transform: translateX(-20px); }
+}
+
+@keyframes c3-slide-right {
+    0%, 45% { opacity: 0; transform: translateX(-20px); }
+    55%, 100% { opacity: 1; transform: translateX(20px); }
+}
+
+@keyframes c3-shine-move {
+    0%, 60% { left: -100%; }
+    80%, 100% { left: 200%; }
+}

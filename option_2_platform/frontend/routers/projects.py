@@ -5,9 +5,13 @@ from typing import Optional
 from pathlib import Path
 import logging
 from src.services.project_service import project_service
+from src.services.chat_service import chat_service
+from src.services.settings_service import settings_service
 from src.services.validation_service import ValidationService
+from src.core.models import ChatMessage, Citation
 from frontend.services.api_client import api_client
 import os
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -104,10 +108,22 @@ async def project_review(project_id: str, request: Request):
     # Prepare project display fields
     project.status_display = get_status_display(project.status)
     
+    # Load Chat History
+    chat_session = chat_service.get_chat_session(project_id)
+    
+    # Load Settings
+    settings = settings_service.get_settings()
+    
     return templates.TemplateResponse(
         request=request,
         name="project_review.html",
-        context={"project": project, "current_page": "projects"}
+        context={
+            "project": project, 
+            "current_page": "projects",
+            "chat_history": chat_session.messages,
+            "greeting_message": settings.greeting_message,
+            "model_name": "Qwen 2.5 (7B)" # Issue 8: Model Display
+        }
     )
 
 @router.post("/{project_id}/validate")
@@ -287,11 +303,64 @@ async def analyze_project(project_id: str, request: Request):
         }
     ]
 
-    return templates.TemplateResponse(
-        request=request,
-        name="components/validation_results.html",
-        context={"project": project, "criteria_results": criteria_results}
+    # Create Chat Messages for Analysis Progress (Issue 6B & 7)
+    messages_html = ""
+    new_messages = []
+
+    # 1. Start Message
+    start_msg = ChatMessage(
+        role="assistant", 
+        content="<strong>Starte Analyse...</strong><br>Prüfe Kriterien für diesen Antrag.",
+        metadata={"time_formatted": "0.1s", "stop_reason": "none", "tokens_per_sec": "-", "total_tokens": "-"}
     )
+    new_messages.append(start_msg)
+
+    # 2. Iterate simulated results and create messages
+    for criterion in criteria_results:
+        status_icon = "✅" if criterion["status"] == "pass" else "⚠️" if criterion["status"] == "warning" else "❌"
+        content = (
+            f"<strong>{status_icon} {criterion['id']} - {criterion['name']}</strong><br>"
+            f"{criterion['answer']}<br>"
+            f"<span class='text-xs text-gray-500'>{criterion['reasoning']}</span>"
+        )
+        
+        # Mock various metadata for realism (Issue 7)
+        import random
+        tok_sec = round(random.uniform(20.0, 35.0), 2)
+        total_tok = random.randint(50, 150)
+        time_first = round(random.uniform(0.5, 1.5), 2)
+        
+        msg = ChatMessage(
+            role="assistant",
+            content=content,
+            metadata={
+                "tokens_per_sec": tok_sec,
+                "total_tokens": total_tok,
+                "time_to_first_token": f"{time_first}s",
+                "stop_reason": "stop"
+            },
+            citations=[Citation(**c) for c in criterion["citations"]] if criterion.get("citations") else None
+        )
+        new_messages.append(msg)
+
+    # 3. Completion Message
+    summary_msg = ChatMessage(
+        role="assistant",
+        content="<strong>Analyse abgeschlossen.</strong> Alle Kriterien wurden geprüft.",
+        metadata={"stop_reason": "finished", "total_tokens": 15, "tokens_per_sec": 45.0, "time_to_first_token": "0.05s"}
+    )
+    new_messages.append(summary_msg)
+
+    # Save to Chat History
+    chat_session = chat_service.get_chat_session(project_id)
+    chat_session.messages.extend(new_messages)
+    chat_service.save_chat_session(chat_session)
+
+    # Render all messages
+    for msg in new_messages:
+        messages_html += templates.get_template("partials/chat_message.html").render(msg=msg)
+
+    return HTMLResponse(content=messages_html)
 
 @router.get("/{project_id}/view/{doc_id}", response_class=HTMLResponse)
 async def view_document(project_id: str, doc_id: str, request: Request):
@@ -333,13 +402,17 @@ async def chat_project(project_id: str, request: Request, message: str = Form(..
     # In a real app, we would call the LLM here.
     # For now, we return a dummy response.
     
-    # Render User Message
+    # 1. User Message
+    user_msg = ChatMessage(role="user", content=message)
+    chat_service.append_message(project_id, user_msg)
+    
+    # Render User Message HTML to append immediately (optional, or we append both)
+    # We will append both for simplicity in one swap
     user_msg_html = templates.get_template("partials/chat_message.html").render(
-        role="user", message=message
+        msg=user_msg
     )
     
-    # Render Assistant Message
-    # Simple logic for demo purposes
+    # 2. Assistant Logic (Mock LLM)
     if "finanz" in message.lower():
         response_text = "Der Finanzplan sieht solide aus. Die Personalkosten liegen im üblichen Rahmen (65% des Budgets)."
     elif "kmu" in message.lower():
@@ -347,8 +420,22 @@ async def chat_project(project_id: str, request: Request, message: str = Form(..
     else:
         response_text = f"Das ist eine interessante Frage zu '{message}'. Ich analysiere die Dokumente..."
 
+    # 3. Assistant Message
+    import random
+    assistant_msg = ChatMessage(
+        role="assistant", 
+        content=response_text,
+        metadata={ # Mock Metadata (Issue 7)
+            "tokens_per_sec": round(random.uniform(22.0, 28.0), 2),
+            "total_tokens": len(response_text.split()) * 2, # rough estimate
+            "time_to_first_token": f"{round(random.uniform(0.2, 0.8), 2)}s",
+            "stop_reason": "stop"
+        }
+    )
+    chat_service.append_message(project_id, assistant_msg)
+
     assistant_msg_html = templates.get_template("partials/chat_message.html").render(
-        role="assistant", message=response_text
+        msg=assistant_msg
     )
     
     return HTMLResponse(content=user_msg_html + assistant_msg_html)

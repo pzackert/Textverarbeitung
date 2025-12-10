@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antrags-Übersicht | MasterProjekt</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/overview.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">MasterProjekt</a>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4">
+        
+        <!-- Zone A: Header & Stats -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="h3 mb-3">Antrags-Übersicht</h1>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">Aktive Anträge</h6>
+                                <h2 class="display-6">{{ projects|length }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">Genehmigt (YTD)</h6>
+                                <h2 class="display-6">0</h2> <!-- Placeholder -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">In Prüfung</h6>
+                                <h2 class="display-6">0</h2> <!-- Placeholder -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone B: Filters & Actions -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Suche</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" 
+                                   name="search" 
+                                   placeholder="Antragsteller, Titel..."
+                                   hx-get="/projects" 
+                                   hx-trigger="keyup changed delay:500ms" 
+                                   hx-target=".projects-table tbody"
+                                   hx-include="[name='status_filter']">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status Filter</label>
+                        <select class="form-select" name="status_filter"
+                                hx-get="/projects" 
+                                hx-trigger="change" 
+                                hx-target=".projects-table tbody"
+                                hx-include="[name='search']">
+                            <option value="all">Alle Status</option>
+                            <option value="draft">Entwurf</option>
+                            <option value="in_review">In Prüfung</option>
+                            <option value="completed">Abgeschlossen</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5 text-end">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+                            <i class="bi bi-plus-lg"></i> Neuer Antrag
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone C: Data Table -->
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 projects-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Projekt / Antragsteller</th>
+                                <th>Status</th>
+                                <th>Dokumente</th>
+                                <th>Fördersumme</th>
+                                <th>Letzte Änderung</th>
+                                <th class="text-end">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% include 'partials/projects_table_rows.html' %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div class="modal fade" id="createProjectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="/projects" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Neuen Antrag anlegen</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Projekttitel *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Antragsteller</label>
+                            <input type="text" class="form-control" name="applicant">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fördersumme (€)</label>
+                            <input type="number" step="0.01" class="form-control" name="funding_amount">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Beschreibung</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                        <button type="submit" class="btn btn-primary">Anlegen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
