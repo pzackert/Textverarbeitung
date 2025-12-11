@@ -3,8 +3,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from src.services.settings_service import settings_service
 
+from pathlib import Path
+
 router = APIRouter(prefix="/settings", tags=["settings"])
-templates = Jinja2Templates(directory="frontend/templates")
+# Fix template path
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 @router.get("", response_class=HTMLResponse)
 async def settings_page(request: Request):

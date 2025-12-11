@@ -15,6 +15,7 @@ class MetricsData:
     """Metrics collected during LLM query."""
     response_time_s: float
     tokens_per_sec: Optional[float] = None
+    tokens_generated: Optional[int] = None
     ram_used_mb: Optional[float] = None
     cpu_percent: Optional[float] = None
 
@@ -124,6 +125,7 @@ class LLMClient:
         prompt: str,
         temperature: float = 0.7,
         max_tokens: int = 1024,
+        context_length: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Query the LLM and collect metrics.
@@ -132,6 +134,7 @@ class LLMClient:
             prompt: Prompt to send to the model
             temperature: Temperature parameter
             max_tokens: Maximum tokens to generate
+            context_length: Optional context window length (passes num_ctx to Ollama)
 
         Returns:
             Dict with keys: response, metrics (MetricsData)
@@ -155,6 +158,9 @@ class LLMClient:
                 },
             }
 
+            if context_length:
+                payload["options"]["num_ctx"] = context_length
+
             response = requests.post(url, json=payload, timeout=120)
             elapsed = time.time() - start_time
 
@@ -172,6 +178,7 @@ class LLMClient:
                 metrics = MetricsData(
                     response_time_s=round(elapsed, 2),
                     tokens_per_sec=tokens_per_sec if eval_count > 0 else None,
+                    tokens_generated=eval_count if eval_count > 0 else None,
                     ram_used_mb=round(self._get_memory_usage(), 1),
                     cpu_percent=self._get_cpu_percent(),
                 )
@@ -179,6 +186,7 @@ class LLMClient:
                 result["response"] = response_text
                 result["metrics"] = metrics
                 result["success"] = True
+                result["tokens_generated"] = eval_count
                 self._last_metrics = metrics
 
                 logger.debug(

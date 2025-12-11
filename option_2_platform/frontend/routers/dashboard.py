@@ -3,8 +3,11 @@ from fastapi.templating import Jinja2Templates
 from src.services.project_service import project_service
 from frontend.services.api_client import api_client
 
+from pathlib import Path
 router = APIRouter()
-templates = Jinja2Templates(directory="frontend/templates")
+# Fix template path to be absolute relative to this file
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 @router.get("/")
 async def dashboard(request: Request):

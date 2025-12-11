@@ -72,8 +72,13 @@ class RetrievalEngine:
         context_parts = []
         
         for i, result in enumerate(results, 1):
-            source = result['metadata'].get('source_file', 'Unknown')
-            content = result['content']
+            metadata = result.get('metadata', {})
+            source = (
+                metadata.get('doc_name')
+                or metadata.get('source')
+                or metadata.get('source_file', 'Unknown')
+            )
+            content = result.get('content', '')
             score = result.get('score', 0.0)
             
             context_part = f"""

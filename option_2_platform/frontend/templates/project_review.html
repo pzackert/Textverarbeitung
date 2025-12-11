@@ -58,119 +58,121 @@
     <script src="{{ url_for('static', path='/js/review.js') }}"></script>
 </head>
 
-<body hx-boost="true">
+<body class="bg-gray-100 font-sans overflow-hidden">
 
-    <body hx-boost="true">
+    <div class="review-container">
+        <!-- ZONE A: Sidebar Placeholder (Fixed Width in Grid) -->
+        <div class="sidebar-placeholder" style="width: 60px;"></div>
 
-        <div class="review-container">
-            <!-- ZONE A: Ghost Placeholder (Keeps Grid Intact) -->
-            <div class="sidebar-placeholder"></div>
-
-            <!-- ZONE A: Actual Floating Sidebar -->
-            <aside class="review-sidebar group">
-                <div class="sidebar-content">
-                    <!-- Header -->
-                    <div class="sidebar-header">
-                        <a href="/projects" class="back-link" title="Zurück zur Übersicht">
-                            <div class="icon-box">
-                                <svg class="w-5 h-5 text-gray-500 group-hover:text-primary-600 transition-colors"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M10 19l-7-7 7-7m8 14l-7-7 7-7"></path>
-                                </svg>
-                            </div>
-                            <span class="link-text">Zurück</span>
-                        </a>
-
-                        <!-- Project Status (Icon only in collapsed, full in hover) -->
-                        <div class="project-status-card">
-                            <div class="project-icon">
-                                {% if project.status == 'completed' %}🟢{% elif project.status == 'in_review' %}🟡{%
-                                else %}📋{% endif %}
-                            </div>
-                            <div class="project-info">
-                                <span class="project-title">{{ project.name }}</span>
-                                <span class="project-meta">ID: {{ project.id[:8] }}...</span>
-                            </div>
+        <!-- ZONE A: Actual Sidebar (Overlay) -->
+        <aside class="review-sidebar group">
+            <div class="sidebar-content">
+                <!-- Header -->
+                <div class="sidebar-header">
+                    <a href="/projects" class="back-link" title="Zurück zur Übersicht">
+                        <div class="icon-box">
+                            <svg class="w-5 h-5 text-gray-500 group-hover:text-primary-600 transition-colors"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                            </svg>
                         </div>
-                    </div>
+                        <span
+                            class="link-text group-hover:opacity-100 group-hover:visible opacity-0 invisible transition-all duration-300 delay-75">Zurück</span>
+                    </a>
 
-                    <!-- File List -->
-                    <div class="file-list">
-                        <div class="px-2 mb-2 group-hover:block hidden">
-                            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Dokumente</h3>
+                    <!-- Project Status -->
+                    <div class="project-status-card group-hover:border-gray-200 border-transparent transition-colors">
+                        <div class="project-icon">
+                            {% if project.status == 'completed' %}🟢{% elif project.status == 'in_review' %}🟡{% else
+                            %}📋{% endif %}
                         </div>
-
-                        {% for doc in project.documents %}
-                        <button class="file-item {% if loop.first %}active{% endif %}"
-                            onclick="loadDocument('{{ doc.id }}', '{{ doc.filename }}')">
-                            <div class="file-icon-wrapper">
-                                <div class="file-icon">
-                                    {% if doc.filename.lower().endswith('.pdf') %}📕{% elif
-                                    doc.filename.lower().endswith('.docx') %}📄{% elif
-                                    doc.filename.lower().endswith('.xlsx') %}📊{% else %}📎{% endif %}
-                                </div>
-                            </div>
-                            <div class="file-details">
-                                <span class="file-name">{{ doc.filename }}</span>
-                                <span class="file-meta">{{ (doc.size / 1024)|round(0)|int }} KB</span>
-                            </div>
-                        </button>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Upload Area (Bottom) -->
-                    <div class="upload-area-wrapper">
-                        <div class="upload-dropzone"
-                            onclick="document.getElementById('upload-modal').classList.remove('hidden')">
-                            <span class="upload-icon">☁️</span>
-                            <span class="upload-text">Upload</span>
+                        <div
+                            class="project-info group-hover:opacity-100 group-hover:visible opacity-0 invisible transition-all duration-300 delay-75">
+                            <span class="project-title">{{ project.name }}</span>
+                            <span class="project-meta">ID: {{ project.id[:8] }}...</span>
                         </div>
                     </div>
                 </div>
-            </aside>
 
-            <!-- ZONE B: Document Viewer -->
-            <main class="review-main">
-                {% include "components/document_viewer.html" %}
-            </main>
+                <!-- File List -->
+                <div class="file-list">
+                    <div
+                        class="px-2 mb-2 block group-hover:opacity-100 group-hover:visible opacity-0 invisible transition-all duration-300 delay-75">
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Dokumente</h3>
+                    </div>
 
-            <!-- ZONE C: AI Assistant -->
-            <aside class="review-assistant">
-                {% include "components/ai_assistant.html" %}
-            </aside>
-        </div>
+                    {% for doc in project.documents %}
+                    <button class="file-item {% if loop.first %}active{% endif %}"
+                        onclick="loadDocument('{{ doc.id }}', '{{ doc.filename }}')">
+                        <div class="file-icon-wrapper">
+                            <div class="file-icon">
+                                {% if doc.filename.lower().endswith('.pdf') %}📕{% elif
+                                doc.filename.lower().endswith('.docx') %}📄{% elif
+                                doc.filename.lower().endswith('.xlsx') %}📊{% else %}📎{% endif %}
+                            </div>
+                        </div>
+                        <div
+                            class="file-details group-hover:opacity-100 group-hover:visible opacity-0 invisible transition-all duration-300 delay-75">
+                            <span class="file-name">{{ doc.filename }}</span>
+                            <span class="file-meta">{{ (doc.size / 1024)|round(0)|int }} KB</span>
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
 
-        <script>
-            // Available documents for checking existence of annotated versions
-            window.projectFiles = {{ project.documents | map(attribute = 'filename') | list | tojson }};
+                <!-- Upload Area (Bottom) -->
+                <div class="upload-area-wrapper">
+                    <div class="upload-dropzone group-hover:px-4 px-0 transition-all"
+                        onclick="document.getElementById('upload-modal').classList.remove('hidden')">
+                        <span class="upload-icon">☁️</span>
+                        <span
+                            class="upload-text group-hover:opacity-100 group-hover:visible opacity-0 invisible transition-all duration-300 delay-75 inline-block">Upload</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
 
-            // Simple document loader stub - will be replaced by full implementation
-            function loadDocument(docId, filename) {
-                // Update active state in sidebar
-                document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
-                if (event && event.currentTarget) {
-                    event.currentTarget.classList.add('active');
-                } else {
-                    // Find button by docId if called programmatically
-                    const btn = document.querySelector(`button[onclick*="${docId}"]`);
-                    if (btn) btn.classList.add('active');
-                }
+        <!-- ZONE B: Document Viewer -->
+        <main class="review-main">
+            {% include "components/document_viewer.html" %}
+        </main>
 
-                // Load PDF in viewer
-                if (window.renderDocument) {
-                    window.renderDocument(filename);
-                }
+        <!-- ZONE C: AI Assistant -->
+        <aside class="review-assistant">
+            {% include "components/ai_assistant.html" %}
+        </aside>
+    </div>
+
+    <script>
+        // Available documents for checking existence of annotated versions
+        window.projectFiles = {{ project.documents | map(attribute = 'filename') | list | tojson }};
+
+        // Simple document loader stub - will be replaced by full implementation
+        function loadDocument(docId, filename) {
+            // Update active state in sidebar
+            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            } else {
+                // Find button by docId if called programmatically
+                const btn = document.querySelector(`button[onclick*="${docId}"]`);
+                if (btn) btn.classList.add('active');
             }
 
-            // Auto-load first document if available
-            {% if project.documents %}
-            document.addEventListener('DOMContentLoaded', () => {
-                loadDocument('{{ project.documents[0].id }}', '{{ project.documents[0].filename }}');
-            });
-            {% endif %}
-        </script>
+            // Load PDF in viewer
+            if (window.renderDocument) {
+                window.renderDocument(filename);
+            }
+        }
 
-    </body>
+        // Auto-load first document if available
+        {% if project.documents %}
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDocument('{{ project.documents[0].id }}', '{{ project.documents[0].filename }}');
+        });
+        {% endif %}
+    </script>
+</body>
 
 </html>

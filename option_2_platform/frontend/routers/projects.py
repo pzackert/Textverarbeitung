@@ -7,7 +7,19 @@ import logging
 from src.services.project_service import project_service
 from src.services.chat_service import chat_service
 from src.services.settings_service import settings_service
-from src.services.validation_service import ValidationService
+from src.services.settings_service import settings_service
+
+# Try import ValidationService, mock if fails (e.g. no torch installed or crashing)
+try:
+    from src.services.validation_service import ValidationService
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning("Could not import ValidationService (ML dependencies missing?). Using Mock.")
+    
+    class ValidationService:
+        async def validate_project(self, project):
+            raise NotImplementedError("Validation requires full backend dependencies (torch/transformers).")
 from src.core.models import ChatMessage, Citation
 from frontend.services.api_client import api_client
 import os
@@ -16,7 +28,7 @@ import uuid
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
-templates = Jinja2Templates(directory="frontend/templates")
+templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 def get_status_display(status: str) -> str:
     mapping = {

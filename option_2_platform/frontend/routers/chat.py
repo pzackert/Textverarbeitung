@@ -6,9 +6,12 @@ from src.services.chat_service import chat_service
 from src.services.settings_service import settings_service
 from src.core.models import ChatMessage
 import markdown
+from pathlib import Path
 
 router = APIRouter(prefix="/chat", tags=["chat"])
-templates = Jinja2Templates(directory="frontend/templates")
+# Fix template path
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 @router.get("", response_class=HTMLResponse)
 async def chat_page(request: Request):

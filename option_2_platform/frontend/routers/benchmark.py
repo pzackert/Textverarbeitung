@@ -8,15 +8,14 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/benchmark", tags=["benchmark"])
-templates = Jinja2Templates(directory="frontend/templates")
+# Robust relative path for templates
+BASE_FRONTEND = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 # Path to benchmark results
-# Assuming the tests directory is relative to the project root
-# We need to find the project root reliably.
-# Based on current file location: option_2_platform/frontend/routers/benchmark.py
-# Root is ../../
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-RESULTS_DIR = BASE_DIR / "tests" / "test_benchmarks" / "results"
+# Root is ../../../ from this file
+BASE_PROJECT = Path(__file__).resolve().parent.parent.parent
+RESULTS_DIR = BASE_PROJECT / "tests" / "test_benchmarks" / "results"
 
 @router.get("/")
 async def benchmark_page(request: Request):

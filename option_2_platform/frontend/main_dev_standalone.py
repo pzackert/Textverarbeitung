@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
-from frontend.routers import dashboard, projects
+from frontend.routers import dashboard, projects, chat, benchmark, logo, settings
 
 # Define base paths
 BASE_DIR = Path(__file__).resolve().parent
@@ -25,6 +25,10 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 # Include Routers
 app.include_router(dashboard.router)
 app.include_router(projects.router)
+app.include_router(chat.router)
+app.include_router(benchmark.router)
+app.include_router(logo.router)
+app.include_router(settings.router)
 
 @app.get("/health")
 async def health_check():
@@ -32,4 +36,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("frontend.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("frontend.main_dev_standalone:app", host="0.0.0.0", port=8001, reload=True)

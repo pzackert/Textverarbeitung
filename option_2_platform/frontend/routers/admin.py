@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-templates = Jinja2Templates(directory="frontend/templates")
+templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 @router.post("/load-samples", response_class=HTMLResponse)
 async def load_samples(request: Request):
