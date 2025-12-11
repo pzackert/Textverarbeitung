@@ -1,0 +1,178 @@
+{
+  "run_metadata": {
+    "timestamp": "2025-12-08T10:19:02.879539Z",
+    "system": {
+      "os": "Darwin",
+      "platform": "macOS-26.1-arm64-arm-64bit",
+      "cpu_count": 8,
+      "cpu_freq": "3228 MHz",
+      "total_ram_gb": 16.0
+    },
+    "config": {
+      "repetitions": 3,
+      "warmup": true
+    }
+  },
+  "results": [
+    {
+      "model": "qwen2.5:0.5b",
+      "test": "01_model_loading",
+      "passed": true,
+      "cold_start_time_s": 0,
+      "warmup_time_s": 1.92,
+      "ram_used_mb": 27.8
+    },
+    {
+      "model": "qwen2.5:0.5b",
+      "test": "02_hello_world",
+      "passed": true,
+      "attempts": [
+        {
+          "response_time_s": 0.38,
+          "tokens_per_sec": 45.25,
+          "answer": "Hello! It's good to meet you, how can I assist you"
+        },
+        {
+          "response_time_s": 0.18,
+          "tokens_per_sec": 54.66,
+          "answer": "Hello! How can I assist you today?"
+        },
+        {
+          "response_time_s": 0.17,
+          "tokens_per_sec": 60.43,
+          "answer": "Hello! How can I assist you today?"
+        }
+      ],
+      "avg_response_time_s": 0.24,
+      "avg_tokens_per_sec": 53.4
+    },
+    {
+      "model": "qwen2.5:0.5b",
+      "test": "03_math",
+      "passed": false,
+      "attempts": [
+        {
+          "response_time_s": 0.15,
+          "answer": "112",
+          "correct": false
+        },
+        {
+          "response_time_s": 0.12,
+          "answer": "112",
+          "correct": false
+        },
+        {
+          "response_time_s": 0.12,
+          "answer": "112",
+          "correct": false
+        }
+      ],
+      "avg_response_time_s": 0.13,
+      "accuracy": 0.0
+    },
+    {
+      "model": "qwen2.5:0.5b",
+      "test": "04_logic",
+      "passed": false,
+      "attempts": [
+        {
+          "response_time_s": 0.93,
+          "answer": "To determine the cost of one apple, we start with the information that three apples cost 6 euros. We",
+          "correct": false
+        },
+        {
+          "response_time_s": 0.93,
+          "answer": "To determine the cost of one apple, we start with the information that three apples cost 6 euros. We",
+          "correct": false
+        },
+        {
+          "response_time_s": 0.94,
+          "answer": "To determine the cost of one apple, we start with the information that three apples cost 6 euros. We",
+          "correct": false
+        }
+      ],
+      "avg_response_time_s": 0.93,
+      "accuracy": 0.0
+    },
+    {
+      "model": "qwen2.5:7b",
+      "test": "01_model_loading",
+      "passed": true,
+      "cold_start_time_s": 0,
+      "warmup_time_s": 7.42,
+      "ram_used_mb": 18.9
+    },
+    {
+      "model": "qwen2.5:7b",
+      "test": "02_hello_world",
+      "passed": true,
+      "attempts": [
+        {
+          "response_time_s": 0.85,
+          "tokens_per_sec": 12.9,
+          "answer": "Hello there! How can I assist you today?"
+        },
+        {
+          "response_time_s": 0.57,
+          "tokens_per_sec": 19.31,
+          "answer": "Hello there! How can I assist you today?"
+        },
+        {
+          "response_time_s": 0.54,
+          "tokens_per_sec": 20.35,
+          "answer": "Hello there! How can I assist you today?"
+        }
+      ],
+      "avg_response_time_s": 0.65,
+      "avg_tokens_per_sec": 17.5
+    },
+    {
+      "model": "qwen2.5:7b",
+      "test": "03_math",
+      "passed": false,
+      "attempts": [
+        {
+          "response_time_s": 0.35,
+          "answer": "56",
+          "correct": false
+        },
+        {
+          "response_time_s": 0.22,
+          "answer": "56",
+          "correct": false
+        },
+        {
+          "response_time_s": 0.22,
+          "answer": "56",
+          "correct": false
+        }
+      ],
+      "avg_response_time_s": 0.26,
+      "accuracy": 0.0
+    },
+    {
+      "model": "qwen2.5:7b",
+      "test": "04_logic",
+      "passed": true,
+      "attempts": [
+        {
+          "response_time_s": 3.77,
+          "answer": "To find the cost of one apple when three apples cost 6 euros, you can divide the total cost by the n",
+          "correct": true
+        },
+        {
+          "response_time_s": 3.66,
+          "answer": "To find the cost of one apple when three apples cost 6 euros, you can divide the total cost by the n",
+          "correct": true
+        },
+        {
+          "response_time_s": 3.59,
+          "answer": "To find the cost of one apple when three apples cost 6 euros, you can divide the total cost by the n",
+          "correct": true
+        }
+      ],
+      "avg_response_time_s": 3.67,
+      "accuracy": 1.0
+    }
+  ]
+}

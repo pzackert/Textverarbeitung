@@ -29,18 +29,25 @@ Dieses Repository dokumentiert die Entwicklung und Evolution eines RAG-basierten
 ## Dokumentation
 Die gesamte Projektdokumentation ist zentral im Ordner `docs/` konsolidiert.
 
-- **[00_ARBEITSWEISE_GUIDE.md](docs/00_ARBEITSWEISE_GUIDE.md)** - Methodik & Best Practices
-- **[INSTALLATION_MAC.md](docs/INSTALLATION_MAC.md)** - Installationsanleitung macOS
-- **[INSTALLATION_WINDOWS.md](docs/INSTALLATION_WINDOWS.md)** - Installationsanleitung Windows
-- **[10_PARSER_FINDINGS.md](docs/10_PARSER_FINDINGS.md)** - Erkenntnisse aus Phase 2 (Parser)
-- **[11_PARSER_USAGE.md](docs/11_PARSER_USAGE.md)** - Nutzung der Parser
-- **[12_TESTING_GUIDE.md](docs/12_TESTING_GUIDE.md)** - Testing Guide
+- **[ARBEITSWEISE.md](docs/ARBEITSWEISE.md)** - Methodik & Best Practices (PFLICHTLEKTÜRE)
+- **[INSTALLATION.md](docs/INSTALLATION.md)** - Setup & Installation (UV)
+- **[USER_GUIDE.md](docs/USER_GUIDE.md)** - Benutzerhandbuch
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Deployment Guide
 
 Spezifische Anleitungen finden sich in den READMEs der jeweiligen Unterordner.
 
-## Quick Start
-Um mit der aktuellen Entwicklungsversion (Option 2) zu starten:
+## Quick Start (Option 2)
+
+Wir nutzen **UV** für das Package Management.
+
 ```bash
+# 1. UV installieren
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Setup
 cd option_2_platform
-# Siehe dortiges README.md
+uv sync
+
+# 3. Starten
+uv run scripts/start_app.py
 ```

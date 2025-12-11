@@ -7,7 +7,7 @@ import uuid
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 
 def create_projekt(
@@ -91,3 +91,38 @@ def update_projekt_metadata(projekt_id: str, updates: Dict[str, Any]) -> None:
     projekt_path = Path(f"data/projects/{projekt_id}")
     with open(projekt_path / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+
+def list_projects() -> List[Dict[str, Any]]:
+    """Listet alle Projekte auf."""
+    projects_dir = Path("data/projects")
+    if not projects_dir.exists():
+        return []
+        
+    projects = []
+    for p_dir in projects_dir.iterdir():
+        if p_dir.is_dir() and (p_dir / "metadata.json").exists():
+            try:
+                with open(p_dir / "metadata.json", "r", encoding="utf-8") as f:
+                    projects.append(json.load(f))
+            except Exception:
+                continue
+                
+    # Sort by updated_at desc
+    projects.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+    return projects
+
+
+def delete_projekt(projekt_id: str) -> bool:
+    """Löscht ein Projekt und alle zugehörigen Daten."""
+    import shutil
+    
+    projekt_path = Path(f"data/projects/{projekt_id}")
+    if not projekt_path.exists():
+        return False
+        
+    try:
+        shutil.rmtree(projekt_path)
+        return True
+    except Exception:
+        return False

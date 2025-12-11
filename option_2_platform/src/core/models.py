@@ -15,6 +15,30 @@ class Document(BaseModel):
     size: Optional[int] = 0
     uploaded_at: datetime = Field(default_factory=datetime.now)
 
+class Citation(BaseModel):
+    document_id: str
+    filename: str
+    page: Optional[int] = None
+    text_preview: Optional[str] = None
+
+class ChatMessage(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    role: str # "user" or "assistant"
+    content: str
+    timestamp: datetime = Field(default_factory=datetime.now)
+    citations: Optional[List[Citation]] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+class Settings(BaseModel):
+    greeting_message: str = "Hallo! Ich bin dein KI-Assistent. Wie kann ich helfen?"
+    system_prompt: str = "Du bist ein hilfreicher Assistent für die Prüfung von Förderanträgen."
+
+class ChatSession(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: Optional[str] = None # None for global chat
+    messages: List[ChatMessage] = Field(default_factory=list)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
 class Project(BaseModel):
     id: str = Field(default_factory=generate_short_id)
     name: str

@@ -26,6 +26,8 @@ class VectorStore:
     - Batch operations
     """
     
+    MAX_BATCH_SIZE = 5000
+
     def __init__(
         self,
         collection_name: str = "ifb_documents",
@@ -88,12 +90,20 @@ class VectorStore:
             
         if not self.embedding_function:
             raise RAGException("Embedding function required to add chunks")
-            
+        if len(chunks) > self.MAX_BATCH_SIZE:
+            ids: List[str] = []
+            for start in range(0, len(chunks), self.MAX_BATCH_SIZE):
+                batch = chunks[start: start + self.MAX_BATCH_SIZE]
+                ids.extend(self._add_chunk_batch(batch))
+            return ids
+
+        return self._add_chunk_batch(chunks)
+
+    def _add_chunk_batch(self, chunks: List[Chunk]) -> List[str]:
+        """Add a single chunk batch after splitting to respect Chroma limits."""
         try:
-            # Prepare data for ChromaDB
             documents = [chunk.content for chunk in chunks]
             
-            # Sanitize metadata (convert lists to strings)
             metadatas = []
             for chunk in chunks:
                 meta = chunk.metadata.copy()
@@ -101,8 +111,7 @@ class VectorStore:
                     if isinstance(v, (list, dict)):
                         meta[k] = str(v)
                 metadatas.append(meta)
-            
-            # Generate IDs: source_file_chunk_id or UUID if source missing
+
             ids = []
             for chunk in chunks:
                 source = chunk.metadata.get("source", "unknown")
@@ -110,55 +119,49 @@ class VectorStore:
                 page_num = chunk.metadata.get("page_number", "")
                 row_num = chunk.metadata.get("row_number", "")
                 sheet_name = chunk.metadata.get("sheet_name", "")
-                
-                # Create unique ID using project ID if available, else parent folder
+
                 path_obj = Path(source)
-                
+
                 prefix = ""
                 parts = path_obj.parts
                 if "projects" in parts:
                     try:
                         idx = parts.index("projects")
                         if idx + 1 < len(parts):
-                            prefix = parts[idx+1] # Project ID
-                    except:
+                            prefix = parts[idx+1]
+                    except ValueError:
                         pass
-                
+
                 if not prefix and path_obj.parent.name and path_obj.parent.name != ".":
                     prefix = path_obj.parent.name
-                
+
                 safe_source = f"{prefix}_{path_obj.name}" if prefix else path_obj.name
-                
-                # Construct ID with available metadata
+
                 id_parts = [safe_source]
                 if page_num:
                     id_parts.append(f"p{page_num}")
                 if sheet_name:
-                    # Sanitize sheet name
                     safe_sheet = "".join(c for c in sheet_name if c.isalnum() or c in "_-")
                     id_parts.append(f"s{safe_sheet}")
                 if row_num:
                     id_parts.append(f"r{row_num}")
                 id_parts.append(str(chunk_id))
-                
+
                 ids.append("_".join(id_parts))
-            
-            # Generate embeddings
+
             embeddings = self.embedding_function.embed_batch(documents)
-            
-            # Add to collection
+
             self.collection.add(
                 documents=documents,
                 embeddings=embeddings,
                 metadatas=metadatas,
                 ids=ids
             )
-            
+
             logger.info(f"Added {len(chunks)} chunks to vector store")
             return ids
-            
         except Exception as e:
-            logger.error(f"Failed to add chunks to vector store: {e}")
+            logger.error(f"Failed to add chunk batch to vector store: {e}")
             raise RAGException(f"Failed to add chunks to vector store: {e}")
 
     def add_chunk(self, chunk: Chunk) -> str:

@@ -1,0 +1,18 @@
+<div class="list-group-item list-group-item-action doc-item {% if active_doc and doc.id == active_doc.id %}active{% endif %} p-3">
+    <div class="d-flex w-100 justify-content-between align-items-center">
+        <h6 class="mb-1 text-truncate" title="{{ doc.name }}">{{ doc.name }}</h6>
+        <small class="text-muted">{{ doc.type|upper }}</small>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-2">
+        <small class="text-muted">
+            {% if doc.status == 'ready' %}
+                <i class="bi bi-check-circle-fill text-success"></i> Bereit
+            {% elif doc.status == 'processing' %}
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            {% else %}
+                <i class="bi bi-hourglass text-secondary"></i> Warten
+            {% endif %}
+        </small>
+        <span class="badge bg-light text-dark border">{{ doc.pages }} S.</span>
+    </div>
+</div>

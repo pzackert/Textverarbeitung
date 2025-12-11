@@ -1,0 +1,28 @@
+.card {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.table > :not(caption) > * > * {
+    padding: 1rem 0.75rem;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.btn-group .btn {
+    border-radius: 0.25rem;
+    margin-left: 0.25rem;
+}
+
+/* Hover effect for table rows */
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.02);
+}
+
+/* Stats cards */
+.display-6 {
+    font-weight: 600;
+    font-size: 2.5rem;
+}

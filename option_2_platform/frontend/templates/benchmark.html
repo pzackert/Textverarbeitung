@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}Benchmark Results - IFB PROFI{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="benchmarkDashboard()" x-init="init()">
+
+    <!-- Header & Controls -->
+    <div
+        class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Benchmark Analysis</h1>
+            <p class="text-gray-500 text-sm mt-1">Compare LLM performance across different test scenarios.</p>
+            <p class="text-xs text-gray-400 mt-1" x-show="files.length > 0" x-text="files.length + ' runs available'">
+            </p>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <!-- File Selector Group -->
+            <div class="flex items-center gap-3">
+                <label for="benchmark-select" class="text-sm font-medium text-gray-700 whitespace-nowrap">Select
+                    Run:</label>
+                <select id="benchmark-select"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-64 p-2.5"
+                    x-model="selectedFile" @change="loadBenchmarkData()">
+                    <option value="" disabled>Choose a run...</option>
+                    <template x-for="(file, index) in files" :key="index">
+                        <option :value="file" x-text="file"></option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- Run Button -->
+            <button
+                class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none flex items-center gap-2 whitespace-nowrap shadow-sm transition-colors"
+                :disabled="isRunning" :class="{'opacity-50 cursor-not-allowed': isRunning}" @click="runBenchmark()">
+                <span x-show="!isRunning">▶ Run Benchmark</span>
+                <span x-show="isRunning" class="flex items-center gap-2">
+                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    Running...
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <!-- System Metadata -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" x-show="data">
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">System</h3>
+            <div class="space-y-2">
+                <div class="flex justify-between border-b border-gray-50 pb-1 last:border-0">
+                    <span class="text-gray-500 text-sm">OS</span>
+                    <span class="font-medium text-gray-900 text-sm" x-text="data?.run_metadata?.system?.os"></span>
+                </div>
+                <div class="flex justify-between border-b border-gray-50 pb-1 last:border-0">
+                    <span class="text-gray-500 text-sm">CPU</span>
+                    <span class="font-medium text-gray-900 text-sm"
+                        x-text="data?.run_metadata?.system?.cpu_count + ' cores'"></span>
+                </div>
+                <div class="flex justify-between border-b border-gray-50 pb-1 last:border-0">
+                    <span class="text-gray-500 text-sm">RAM</span>
+                    <span class="font-medium text-gray-900 text-sm"
+                        x-text="data?.run_metadata?.system?.total_ram_gb + ' GB'"></span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Config</h3>
+            <div class="space-y-2">
+                <div class="flex justify-between border-b border-gray-50 pb-1 last:border-0">
+                    <span class="text-gray-500 text-sm">Repetitions</span>
+                    <span class="font-medium text-gray-900 text-sm"
+                        x-text="data?.run_metadata?.config?.repetitions"></span>
+                </div>
+                <div class="flex justify-between border-b border-gray-50 pb-1 last:border-0">
+                    <span class="text-gray-500 text-sm">Warmup</span>
+                    <span class="font-medium text-gray-900 text-sm"
+                        x-text="data?.run_metadata?.config?.warmup ? 'Enabled' : 'Disabled'"></span>
+                </div>
+                <div class="flex justify-between border-b border-gray-50 pb-1 last:border-0">
+                    <span class="text-gray-500 text-sm">Time</span>
+                    <span class="font-medium text-gray-900 text-sm"
+                        x-text="formatDate(data?.run_metadata?.timestamp)"></span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex flex-col justify-center items-center">
+            <div class="text-center">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Models Tested</p>
+                <p class="text-4xl font-bold text-primary-600" x-text="uniqueModels.length"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" x-show="data">
+        <!-- Response Time Chart -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Avg Response Time (seconds)</h3>
+            <div class="relative h-80 w-full">
+                <canvas id="responseTimeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Throughput Chart -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Throughput (Tokens/sec)</h3>
+            <div class="relative h-80 w-full">
+                <canvas id="throughputChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Results Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden" x-show="data">
+        <div class="p-6 border-b border-gray-100 bg-gray-50/50">
+            <h3 class="text-lg font-semibold text-gray-800">Detailed Results</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-100">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 cursor-pointer hover:bg-gray-100 group"
+                            @click="sortBy('model')">
+                            <div class="flex items-center">
+                                Model
+                                <span class="ml-1 text-gray-400 group-hover:text-gray-600" x-show="sortCol === 'model'">
+                                    <span x-show="sortAsc">▲</span><span x-show="!sortAsc">▼</span>
+                                </span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer hover:bg-gray-100 group"
+                            @click="sortBy('test')">
+                            <div class="flex items-center">
+                                Test Case
+                                <span class="ml-1 text-gray-400 group-hover:text-gray-600" x-show="sortCol === 'test'">
+                                    <span x-show="sortAsc">▲</span><span x-show="!sortAsc">▼</span>
+                                </span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer hover:bg-gray-100 group"
+                            @click="sortBy('passed')">
+                            <div class="flex items-center">
+                                Status
+                                <span class="ml-1 text-gray-400 group-hover:text-gray-600"
+                                    x-show="sortCol === 'passed'">
+                                    <span x-show="sortAsc">▲</span><span x-show="!sortAsc">▼</span>
+                                </span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer hover:bg-gray-100 group text-right"
+                            @click="sortBy('avg_response_time_s')">
+                            <div class="flex items-center justify-end">
+                                Time (s)
+                                <span class="ml-1 text-gray-400 group-hover:text-gray-600"
+                                    x-show="sortCol === 'avg_response_time_s'">
+                                    <span x-show="sortAsc">▲</span><span x-show="!sortAsc">▼</span>
+                                </span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer hover:bg-gray-100 group text-right"
+                            @click="sortBy('avg_tokens_per_sec')">
+                            <div class="flex items-center justify-end">
+                                Tokens/s
+                                <span class="ml-1 text-gray-400 group-hover:text-gray-600"
+                                    x-show="sortCol === 'avg_tokens_per_sec'">
+                                    <span x-show="sortAsc">▲</span><span x-show="!sortAsc">▼</span>
+                                </span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer hover:bg-gray-100 group text-center"
+                            @click="sortBy('accuracy')">
+                            <div class="flex items-center justify-center">
+                                Accuracy
+                                <span class="ml-1 text-gray-400 group-hover:text-gray-600"
+                                    x-show="sortCol === 'accuracy'">
+                                    <span x-show="sortAsc">▲</span><span x-show="!sortAsc">▼</span>
+                                </span>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <template x-for="result in sortedResults" :key="result.model + result.test">
+                        <tr class="bg-white hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" x-text="result.model">
+                            </td>
+                            <td class="px-6 py-4">
+                                <span x-text="result.test"
+                                    class="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-gray-600"></span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2.5 py-1 text-xs font-semibold rounded-full border"
+                                    :class="result.passed ? 'text-green-700 bg-green-50 border-green-200' : 'text-red-700 bg-red-50 border-red-200'"
+                                    x-text="result.passed ? 'PASS' : 'FAIL'">
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right font-mono"
+                                x-text="result.avg_response_time_s?.toFixed(3) || '-'"></td>
+                            <td class="px-6 py-4 text-right font-mono"
+                                x-text="result.avg_tokens_per_sec?.toFixed(1) || '-'"></td>
+                            <td class="px-6 py-4 text-center">
+                                <span x-show="result.accuracy !== undefined"
+                                    class="px-2 py-0.5 rounded text-xs font-medium"
+                                    :class="result.accuracy == 1.0 ? 'bg-green-100 text-green-800' : (result.accuracy > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800')"
+                                    x-text="(result.accuracy * 100).toFixed(0) + '%'">
+                                </span>
+                                <span x-show="result.accuracy === undefined" class="text-gray-300">-</span>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div x-show="!data && !isLoading"
+        class="text-center py-20 bg-white rounded-lg border border-dashed border-gray-300">
+        <div class="text-gray-400 mb-2">
+            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                </path>
+            </svg>
+        </div>
+        <p class="text-gray-500 font-medium">No benchmark data loaded.</p>
+        <p class="text-gray-400 text-sm mt-1">Select a run from the dropdown or start a new benchmark.</p>
+    </div>
+
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function benchmarkDashboard() {
+        return {
+            files: [],
+            selectedFile: '',
+            data: null,
+            uniqueModels: [],
+            isRunning: false,
+            isLoading: false,
+            charts: {},
+            sortCol: 'avg_response_time_s', // Default sort
+            sortAsc: false, // Default desc (slowest/highest first sometimes useful, but table is generic)
+
+            async init() {
+                await this.fetchFileList();
+                if (this.files.length > 0) {
+                    this.selectedFile = this.files[0]; // Load latest
+                    await this.loadBenchmarkData();
+                }
+            },
+
+            async fetchFileList() {
+                try {
+                    const response = await fetch('/benchmark/api/list');
+                    this.files = await response.json();
+                } catch (error) {
+                    console.error('Error fetching file list:', error);
+                }
+            },
+
+            async loadBenchmarkData() {
+                if (!this.selectedFile) return;
+
+                this.isLoading = true;
+                try {
+                    const response = await fetch(`/benchmark/api/data/${this.selectedFile}`);
+                    this.data = await response.json();
+                    this.processData();
+                    this.updateCharts();
+                } catch (error) {
+                    console.error('Error loading benchmark data:', error);
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            processData() {
+                if (!this.data || !this.data.results) return;
+                this.uniqueModels = [...new Set(this.data.results.map(r => r.model))];
+            },
+
+            get sortedResults() {
+                if (!this.data || !this.data.results) return [];
+
+                return this.data.results.sort((a, b) => {
+                    let valA = a[this.sortCol];
+                    let valB = b[this.sortCol];
+
+                    // Handle N/A or undefined
+                    if (valA === undefined) valA = -999999;
+                    if (valB === undefined) valB = -999999;
+
+                    if (valA < valB) return this.sortAsc ? -1 : 1;
+                    if (valA > valB) return this.sortAsc ? 1 : -1;
+                    return 0;
+                });
+            },
+
+            sortBy(col) {
+                if (this.sortCol === col) {
+                    this.sortAsc = !this.sortAsc;
+                } else {
+                    this.sortCol = col;
+                    this.sortAsc = true;
+                }
+            },
+
+            async runBenchmark() {
+                this.isRunning = true;
+                try {
+                    const response = await fetch('/benchmark/api/run', { method: 'POST' });
+                    const result = await response.json();
+
+                    setTimeout(() => {
+                        this.isRunning = false;
+                        this.fetchFileList();
+                    }, 5000);
+
+                } catch (error) {
+                    console.error('Error running benchmark:', error);
+                    this.isRunning = false;
+                }
+            },
+
+            formatDate(isoString) {
+                if (!isoString) return '-';
+                return new Date(isoString).toLocaleString();
+            },
+
+            updateCharts() {
+                // Wait for Alpine to render x-show="data" containers
+                setTimeout(() => {
+                    if (this.charts.response) this.charts.response.destroy();
+                    if (this.charts.throughput) this.charts.throughput.destroy();
+
+                    const ctxResponse = document.getElementById('responseTimeChart')?.getContext('2d');
+                    const ctxThroughput = document.getElementById('throughputChart')?.getContext('2d');
+
+                    if (!ctxResponse || !ctxThroughput) return;
+
+                    const models = this.uniqueModels;
+                    const tests = [...new Set(this.data.results.map(r => r.test))];
+
+                    // Helper to create gradients
+                    const createGradient = (ctx, colorStart, colorEnd) => {
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                        gradient.addColorStop(0, colorStart);
+                        gradient.addColorStop(1, colorEnd);
+                        return gradient;
+                    };
+
+                    const datasetsResponse = models.map((model, index) => {
+                        const baseColor = this.getColor(index, 1);
+                        const gradient = createGradient(ctxResponse, this.getColor(index, 0.8), this.getColor(index, 0.2));
+
+                        return {
+                            label: model,
+                            data: tests.map(test => {
+                                const res = this.data.results.find(r => r.model === model && r.test === test);
+                                return res ? res.avg_response_time_s : 0;
+                            }),
+                            backgroundColor: gradient,
+                            borderColor: baseColor,
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            borderSkipped: false,
+                            hoverBackgroundColor: this.getColor(index, 0.9),
+                            hoverBorderColor: '#fff',
+                            hoverBorderWidth: 3,
+                        };
+                    });
+
+                    const datasetsThroughput = models.map((model, index) => {
+                        const baseColor = this.getColor(index, 1);
+                        const gradient = createGradient(ctxThroughput, this.getColor(index, 0.8), this.getColor(index, 0.2));
+
+                        return {
+                            label: model,
+                            data: tests.map(test => {
+                                const res = this.data.results.find(r => r.model === model && r.test === test);
+                                return res ? res.avg_tokens_per_sec : 0;
+                            }),
+                            backgroundColor: gradient,
+                            borderColor: baseColor,
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            borderSkipped: false,
+                            hoverBackgroundColor: this.getColor(index, 0.9),
+                            hoverBorderColor: '#fff',
+                            hoverBorderWidth: 3,
+                        };
+                    });
+
+                    const options = {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeOutQuart',
+                            delay: (context) => {
+                                let delay = 0;
+                                if (context.type === 'data' && context.mode === 'default' && !this.charts.response) {
+                                    delay = context.dataIndex * 100 + context.datasetIndex * 50;
+                                }
+                                return delay;
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 24,
+                                    font: { family: "'Inter', sans-serif", size: 12, weight: 500 }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                                titleFont: { family: "'Inter', sans-serif", size: 13, weight: 600 },
+                                bodyFont: { family: "'Inter', sans-serif", size: 12 },
+                                padding: 12,
+                                cornerRadius: 8,
+                                displayColors: true,
+                                boxPadding: 6,
+                                callbacks: {
+                                    label: function (context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                border: { display: false },
+                                grid: {
+                                    color: '#f3f4f6',
+                                    drawBorder: false,
+                                },
+                                ticks: { font: { family: "'Inter', sans-serif" } }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: "'Inter', sans-serif" } }
+                            }
+                        }
+                    };
+
+                    if (ctxResponse) {
+                        this.charts.response = new Chart(ctxResponse, {
+                            type: 'bar',
+                            data: { labels: tests, datasets: datasetsResponse },
+                            options: options
+                        });
+                    }
+
+                    if (ctxThroughput) {
+                        this.charts.throughput = new Chart(ctxThroughput, {
+                            type: 'bar',
+                            data: { labels: tests, datasets: datasetsThroughput },
+                            options: options
+                        });
+                    }
+                }, 50);
+            },
+
+            getColor(index, alpha) {
+                // Premium Color Palette (Vibrant yet Professional)
+                const colors = [
+                    [`rgba(59, 130, 246, ${alpha})`, '#3b82f6'], // Blue
+                    [`rgba(16, 185, 129, ${alpha})`, '#10b981'], // Green
+                    [`rgba(249, 115, 22, ${alpha})`, '#f97316'], // Orange
+                    [`rgba(139, 92, 246, ${alpha})`, '#8b5cf6'], // Violet
+                    [`rgba(236, 72, 153, ${alpha})`, '#ec4899']  // Pink
+                ];
+                // Return RGBA string or just RGB part depending on usage
+                // Refactored helper to prevent breaking change:
+                const c = colors[index % colors.length];
+                // c[0] is the rgba string with alpha
+                return c[0];
+            }
+        }
+    }
+</script>
+{% endblock %}

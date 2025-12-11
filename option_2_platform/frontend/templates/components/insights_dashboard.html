@@ -1,60 +1,59 @@
-<div id="insights-dashboard">
-    <div class="insights-header">
-        Projekt Analyse für {{ project.name }}
+<div id="insights-dashboard" class="p-4 space-y-4">
+    <div class="insights-header mb-4">
+        <h3 class="text-lg font-medium text-gray-900">Projekt Analyse</h3>
+        <p class="text-xs text-gray-500">{{ project.name }}</p>
     </div>
 
-    <!-- Action Cards -->
-    <div class="action-card" 
-         hx-post="/projects/{{ project.id }}/validate" 
-         hx-target="#zone-c-content" 
-         hx-swap="innerHTML"
-         hx-indicator="#validation-loading">
-        <div class="action-icon">🎯</div>
-        <div class="action-text">
-            <h4>Alle Kriterien prüfen</h4>
-            <p>Vollständige Validierung gegen IFB-Kriterienkatalog</p>
+    <!-- Action Cards Grid -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <!-- Main Analysis Card -->
+        <div class="action-card cursor-pointer group flex flex-col p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-primary-500 hover:shadow-md transition-all"
+            hx-post="/projects/{{ project.id }}/validate" hx-target="#zone-c-content" hx-swap="innerHTML"
+            hx-indicator="#validation-loading">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="text-2xl">🎯</div>
+                <h4 class="font-semibold text-gray-900 text-sm group-hover:text-primary-600">Alle Kriterien prüfen</h4>
+            </div>
+            <p class="text-xs text-gray-500 leading-tight">Vollständige Validierung gegen IFB-Kriterien</p>
+        </div>
+
+        <!-- Placeholder Cards -->
+        <div class="action-card cursor-pointer group flex flex-col p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:bg-gray-100 transition-all opacity-70"
+            onclick="alert('Feature kommt bald!')">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="text-2xl">💰</div>
+                <h4 class="font-semibold text-gray-700 text-sm">Finanzplan</h4>
+            </div>
+            <p class="text-xs text-gray-500 leading-tight">Kostenaufstellung prüfen (Bald verfügbar)</p>
+        </div>
+
+        <div class="action-card cursor-pointer group flex flex-col p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:bg-gray-100 transition-all opacity-70"
+            onclick="alert('Feature kommt bald!')">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="text-2xl">🏢</div>
+                <h4 class="font-semibold text-gray-700 text-sm">KMU-Status</h4>
+            </div>
+            <p class="text-xs text-gray-500 leading-tight">KMU-Voraussetzungen (Bald verfügbar)</p>
         </div>
     </div>
 
     <!-- Loading Indicator -->
     <div id="validation-loading" class="htmx-indicator p-4 text-center text-gray-500">
-        <div class="spinner mb-2"></div>
-        Analysiere Dokumente und erstelle Markierungen...
+        <div class="spinner mb-2 mx-auto h-6 w-6 border-b-2 border-primary-600 rounded-full animate-spin"></div>
+        <p class="text-xs">Analysiere...</p>
     </div>
 
-    <div class="action-card" onclick="alert('Feature kommt bald!')">
-        <div class="action-icon">💰</div>
-        <div class="action-text">
-            <h4>Finanzplan analysieren</h4>
-            <p>Detaillierte Prüfung der Kostenaufstellung</p>
+    <!-- Summary Cards (Compact) -->
+    <div class="grid grid-cols-2 gap-2 mt-4">
+        <div class="bg-gray-50 p-2 rounded border border-gray-100 text-center">
+            <div class="text-xl mb-1">📍</div>
+            <div class="text-[10px] text-gray-500 uppercase tracking-wide">Ort</div>
+            <div class="text-xs font-medium">Hamburg</div>
         </div>
-    </div>
-
-    <div class="action-card" onclick="alert('Feature kommt bald!')">
-        <div class="action-icon">🏢</div>
-        <div class="action-text">
-            <h4>KMU-Status validieren</h4>
-            <p>Prüfung der KMU-Voraussetzungen</p>
-        </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="summary-grid">
-        <div class="summary-card">
-            <span>Ort: Hamburg</span>
-            <span>✅</span>
-        </div>
-        <div class="summary-card">
-            <span>Volumen: 150k €</span>
-            <span>💰</span>
-        </div>
-        <div class="summary-card">
-            <span>Antragsteller: {{ project.name.split(' ')[0] }} GmbH</span>
-            <span>🏢</span>
-        </div>
-        <div class="summary-card">
-            <span>Status: In Prüfung</span>
-            <span>🟡</span>
+        <div class="bg-gray-50 p-2 rounded border border-gray-100 text-center">
+            <div class="text-xl mb-1">💰</div>
+            <div class="text-[10px] text-gray-500 uppercase tracking-wide">Volumen</div>
+            <div class="text-xs font-medium">150k €</div>
         </div>
     </div>
 </div>

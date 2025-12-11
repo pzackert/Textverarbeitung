@@ -1,0 +1,52 @@
+{% for project in projects %}
+<tr>
+    <td>
+        <div class="fw-bold">{{ project.name }}</div>
+        <div class="text-muted small">{{ project.applicant or 'Kein Antragsteller' }}</div>
+    </td>
+    <td>
+        <span class="badge rounded-pill 
+            {% if project.status == 'draft' %}bg-secondary
+            {% elif project.status == 'in_review' %}bg-warning text-dark
+            {% elif project.status == 'completed' %}bg-success
+            {% else %}bg-light text-dark border{% endif %}">
+            {{ project.status_display }}
+        </span>
+    </td>
+    <td>
+        <span class="badge bg-light text-dark border">
+            <i class="bi bi-file-earmark-text"></i> {{ project.doc_count }}
+        </span>
+    </td>
+    <td>
+        {% if project.funding_amount %}
+            {{ "{:,.2f}".format(project.funding_amount) }} €
+        {% else %}
+            -
+        {% endif %}
+    </td>
+    <td class="text-muted small">
+        {{ project.last_updated }}
+    </td>
+    <td class="text-end">
+        <div class="btn-group">
+            <a href="/projects/{{ project.id }}/review" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye"></i> Review
+            </a>
+            <button class="btn btn-sm btn-outline-danger" 
+                    hx-delete="/projects/{{ project.id }}"
+                    hx-confirm="Wirklich löschen?"
+                    hx-target="closest tr"
+                    hx-swap="outerHTML">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="6" class="text-center py-4 text-muted">
+        Keine Anträge gefunden.
+    </td>
+</tr>
+{% endfor %}

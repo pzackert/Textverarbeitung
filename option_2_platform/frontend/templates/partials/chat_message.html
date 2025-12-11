@@ -1,3 +1,32 @@
-<div class="message message-{{ role }}">
-    <p>{{ message }}</p>
+{% set is_user = (msg.role == 'user' if msg else role == 'user') %}
+<div class="flex w-full {{ 'justify-end' if is_user else 'justify-start' }}">
+    <div
+        class="max-w-[85%] rounded-lg px-4 py-2 shadow-sm {{ 'bg-blue-100 text-blue-900 rounded-br-none' if is_user else 'bg-white border border-gray-200 text-gray-800 rounded-bl-none' }}">
+        <div class="prose prose-sm max-w-none break-words">
+            {{ (msg.content if msg else message) | safe }}
+        </div>
+        {% if not is_user %}
+        <!-- Sources/Citations (Optional) -->
+        {% if citations or (msg and msg.citations) %}
+        <div class="mt-2 text-xs border-t border-gray-200 pt-1">
+            <span class="font-semibold text-gray-500">Quellen:</span>
+            <ul class="list-disc ml-4 space-y-0.5 text-gray-400">
+                {% for citation in (citations if citations else msg.citations) %}
+                <li>{{ citation.doc_name }} (S. {{ citation.page }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Metadata (Issue 7) -->
+        {% if msg and msg.metadata %}
+        <div class="mt-1 text-[10px] text-gray-400 opacity-70 border-t border-gray-100 pt-1">
+            {{ msg.metadata.get('tokens_per_sec', '-') }} tok/sec •
+            {{ msg.metadata.get('total_tokens', '-') }} tokens •
+            {{ msg.metadata.get('time_to_first_token', '-') }} to first token •
+            Stop reason: {{ msg.metadata.get('stop_reason', 'N/A') }}
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
 </div>

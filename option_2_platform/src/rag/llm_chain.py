@@ -186,7 +186,8 @@ Antwort:
         self, 
         question: str, 
         template_type: str = "standard", 
-        top_k: Optional[int] = None
+        top_k: Optional[int] = None,
+        system_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Execute complete RAG query.
@@ -195,6 +196,7 @@ Antwort:
             question: User question
             template_type: Prompt template to use
             top_k: Number of chunks to retrieve (overrides config)
+            system_prompt: Optional system prompt override
             
         Returns:
             Dict with answer, sources, citations, metadata
@@ -224,6 +226,10 @@ Antwort:
             query=question,
             template_type=template_type
         )
+        
+        # Prepend system prompt if provided
+        if system_prompt:
+            prompt = f"{system_prompt}\n\n{prompt}"
         
         # 3. LLM Generation
         logger.info("Step 3: Generating response from LLM...")

@@ -1,0 +1,150 @@
+<!-- Criteria Catalog Overlay -->
+<div x-show="showCatalog" style="display: none;" class="fixed inset-0 z-50 overflow-hidden"
+    aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+
+    <div class="absolute inset-0 overflow-hidden">
+        <!-- Background overlay -->
+        <div x-show="showCatalog" x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="ease-in-out duration-500"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showCatalog = false"></div>
+
+        <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+            <div x-show="showCatalog" x-transition:enter="transform transition ease-in-out duration-500 sm:duration-700"
+                x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+                x-transition:leave="transform transition ease-in-out duration-500 sm:duration-700"
+                x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+                class="pointer-events-auto w-screen max-w-md">
+
+                <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                    <div class="bg-primary-600 px-4 py-6 sm:px-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-base font-semibold leading-6 text-white" id="slide-over-title">
+                                Kriterienkatalog</h2>
+                            <div class="ml-3 flex h-7 items-center">
+                                <button type="button"
+                                    class="relative rounded-md bg-primary-600 text-primary-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-white"
+                                    @click="showCatalog = false">
+                                    <span class="absolute -inset-2.5"></span>
+                                    <span class="sr-only">Schließen</span>
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                        stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-1">
+                            <p class="text-sm text-primary-100">Übersicht aller Prüfkriterien und Status.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative flex-1 px-4 py-6 sm:px-6">
+                        <!-- Content -->
+                        <div class="space-y-6">
+                            <!-- Helper to iterate if real data is missing, we use standard K001-K006 list -->
+
+                            <!-- K001 -->
+                            <div class="border rounded-lg p-4 bg-green-50 border-green-200 hover:shadow-md transition-shadow cursor-pointer relative group"
+                                onclick="openDocumentWithCitation('Projektskizze_annotiert.pdf', 1)">
+                                <div class="flex justify-between items-start">
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">K001</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-green-700">✓ Erfüllt</span>
+                                        <button type="button"
+                                            class="p-1 text-green-600 hover:bg-green-100 rounded-full transition-colors"
+                                            title="Erneut prüfen"
+                                            onclick="event.stopPropagation(); htmx.ajax('POST', '/projects/{{ project.id }}/check/K001', {target: '#chat-messages', swap: 'beforeend'})">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <h3 class="mt-2 font-semibold text-gray-900">Betriebsstätte Hamburg</h3>
+                                <p class="mt-1 text-sm text-gray-600">Der Antragsteller muss eine Betriebsstätte in
+                                    Hamburg nachweisen.</p>
+                            </div>
+
+                            <!-- K002 -->
+                            <div class="border rounded-lg p-4 bg-green-50 border-green-200 hover:shadow-md transition-shadow cursor-pointer relative group"
+                                onclick="openDocumentWithCitation('Businessplan_annotiert.xlsx', 1)">
+                                <div class="flex justify-between items-start">
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">K002</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-green-700">✓ Erfüllt</span>
+                                        <button type="button"
+                                            class="p-1 text-green-600 hover:bg-green-100 rounded-full transition-colors"
+                                            title="Erneut prüfen"
+                                            onclick="event.stopPropagation(); htmx.ajax('POST', '/projects/{{ project.id }}/check/K002', {target: '#chat-messages', swap: 'beforeend'})">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <h3 class="mt-2 font-semibold text-gray-900">KMU-Status</h3>
+                                <p class="mt-1 text-sm text-gray-600">Unternehmen muss KMU-Kriterien erfüllen
+                                    (Mitarbeiter, Umsatz).</p>
+                            </div>
+
+                            <!-- K003 -->
+                            <div class="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
+                                <div class="flex justify-between items-start">
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">K003</span>
+                                    <span class="text-yellow-800">⚠ Prüfung</span>
+                                </div>
+                                <h3 class="mt-2 font-semibold text-gray-900">Innovationsgehalt</h3>
+                                <p class="mt-1 text-sm text-gray-600">Das Vorhaben muss einen deutlichen
+                                    Innovationsgehalt aufweisen.</p>
+                            </div>
+
+                            <!-- K004 -->
+                            <div class="border rounded-lg p-4 bg-gray-50 border-gray-200">
+                                <div class="flex justify-between items-start">
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">K004</span>
+                                    <span class="text-gray-500">○ Offen</span>
+                                </div>
+                                <h3 class="mt-2 font-semibold text-gray-900">Finanzielle Machbarkeit</h3>
+                                <p class="mt-1 text-sm text-gray-600">Gesamtfinanzierung muss gesichert sein.</p>
+                            </div>
+
+                            <!-- K005 -->
+                            <div class="border rounded-lg p-4 bg-gray-50 border-gray-200">
+                                <div class="flex justify-between items-start">
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">K005</span>
+                                    <span class="text-gray-500">○ Offen</span>
+                                </div>
+                                <h3 class="mt-2 font-semibold text-gray-900">Marktpotenzial</h3>
+                                <p class="mt-1 text-sm text-gray-600">Verwertungschancen und Zielmarkt müssen plausibel
+                                    sein.</p>
+                            </div>
+
+                            <!-- K006 -->
+                            <div class="border rounded-lg p-4 bg-gray-50 border-gray-200">
+                                <div class="flex justify-between items-start">
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">K006</span>
+                                    <span class="text-gray-500">○ Offen</span>
+                                </div>
+                                <h3 class="mt-2 font-semibold text-gray-900">Qualifikation</h3>
+                                <p class="mt-1 text-sm text-gray-600">Das Team muss über notwendige Qualifikationen
+                                    verfügen.</p>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

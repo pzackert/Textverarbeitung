@@ -37,6 +37,7 @@ dependencies = [
     "httpx>=0.27.0",
     "pyyaml>=6.0.0",
     "itsdangerous>=2.2.0",
+    "psutil>=6.0.0",
 ]
 
 [project.optional-dependencies]
@@ -57,3 +58,10 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: Unit tests (fast, no dependencies)",
+    "integration: Integration tests (slower, requires services)",
+    "system: System health and deployment checks",
+    "slow: Tests that take longer to run",
+]
+

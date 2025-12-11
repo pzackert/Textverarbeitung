@@ -30,7 +30,8 @@ async def query_rag(
         result = llm_chain.query(
             question=request.question,
             template_type=request.template_type,
-            top_k=request.top_k
+            top_k=request.top_k,
+            system_prompt=request.system_prompt
         )
         
         # Parse result

@@ -5,7 +5,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from pathlib import Path
 
 from src.api.main import app as api_app
-from frontend.routers import dashboard, projects, chat, admin
+from frontend.routers import dashboard, projects, chat, admin, settings, logo
 
 # Configure logging
 logging.basicConfig(
@@ -42,6 +42,10 @@ def create_app() -> FastAPI:
     app.include_router(projects.router)
     app.include_router(chat.router)
     app.include_router(admin.router)
+    app.include_router(settings.router)
+    app.include_router(logo.router)
+    from frontend.routers import benchmark
+    app.include_router(benchmark.router)
     
     return app
 
