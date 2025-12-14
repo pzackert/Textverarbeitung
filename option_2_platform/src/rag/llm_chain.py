@@ -285,8 +285,10 @@ def create_llm_chain(config_path: str = "config/config.yaml") -> LLMChain:
     vector_store = VectorStore(
         persist_directory=config.persist_directory,
         collection_name=config.collection_name,
-        embedding_function=embedding_generator
+        embedding_function=embedding_generator,
+        schema_version=config.metadata_schema_version,
     )
+    vector_store.ensure_schema(config.metadata_schema_version)
     
     retrieval_engine = RetrievalEngine(
         vector_store=vector_store,

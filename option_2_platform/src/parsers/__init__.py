@@ -1,15 +1,17 @@
-from .models import Document
+from .models import Document, Block, BoundingBox
 from .exceptions import (
     ParserError,
     UnsupportedFormatError,
     CorruptedFileError,
     EmptyDocumentError
 )
-from .base import BaseParser
+from .docling_parser import DoclingParser
 
 __all__ = [
     'Document',
-    'BaseParser',
+    'Block',
+    'BoundingBox',
+    'DoclingParser',
     'ParserError',
     'UnsupportedFormatError',
     'CorruptedFileError',

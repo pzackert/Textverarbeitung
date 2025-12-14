@@ -13,6 +13,10 @@ class RAGConfig(BaseModel):
     persist_directory: str = "data/chromadb"
     collection_name: str = "ifb_documents"
     vector_store_path: str = "data/chromadb"
+    metadata_schema_version: str = "docling-v1"
+
+    # Safety for oversized Docling blocks
+    max_chunk_tokens: int = 800
 
     # LLM Settings
     llm_provider: str = "ollama"

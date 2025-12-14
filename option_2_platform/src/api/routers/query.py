@@ -1,5 +1,8 @@
+import json
 import time
 import logging
+from typing import Any, Dict, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.api.schemas import QueryRequest, QueryResponse, SourceInfo, Citation
 from src.api.dependencies import get_llm_chain
@@ -7,6 +10,54 @@ from src.rag.llm_chain import LLMChain
 
 router = APIRouter(prefix="/query", tags=["query"])
 logger = logging.getLogger(__name__)
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_int(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_bbox(raw_bbox: Any) -> tuple[Optional[Dict[str, Any]], Optional[list[float]]]:
+    bbox_dict: Optional[Dict[str, Any]] = None
+    if raw_bbox is None:
+        return None, None
+    if isinstance(raw_bbox, str):
+        try:
+            raw_bbox = json.loads(raw_bbox)
+        except Exception:
+            return None, None
+    if isinstance(raw_bbox, dict):
+        bbox_dict = raw_bbox
+        coords = [
+            bbox_dict.get("x0"),
+            bbox_dict.get("y0"),
+            bbox_dict.get("x1"),
+            bbox_dict.get("y1"),
+        ]
+    elif isinstance(raw_bbox, list):
+        coords = raw_bbox
+    else:
+        return None, None
+
+    cleaned_coords: list[float] = []
+    for v in coords:
+        if v is None:
+            return bbox_dict, None
+        try:
+            cleaned_coords.append(float(v))
+        except Exception:
+            return bbox_dict, None
+
+    return bbox_dict, cleaned_coords
 
 @router.post("", response_model=QueryResponse)
 async def query_rag(
@@ -42,14 +93,48 @@ async def query_rag(
         sources_data = result.get("sources", [])
         metadata = result.get("metadata", {})
         
-        # Map sources to SourceInfo
+        # Map sources to SourceInfo with numeric bbox/page data
         sources = []
         for s in sources_data:
+            meta: Dict[str, Any] = s.get("metadata", {}) if isinstance(s, dict) else {}
+
+            bbox_dict, bbox_list = _parse_bbox(s.get("bbox") or meta.get("bbox"))
+            page_number = _safe_int(
+                s.get("page")
+                or s.get("page_number")
+                or meta.get("page_number")
+                or (bbox_dict or {}).get("page")
+            )
+            page_width = _safe_float(meta.get("page_width") or (bbox_dict or {}).get("page_width"))
+            page_height = _safe_float(meta.get("page_height") or (bbox_dict or {}).get("page_height"))
+
+            chunk_id_raw = meta.get("chunk_id") if isinstance(meta, dict) else None
+            if chunk_id_raw is None:
+                chunk_id_raw = s.get("chunk_id")
+            try:
+                chunk_id = int(chunk_id_raw) if chunk_id_raw is not None else None
+            except (TypeError, ValueError):
+                chunk_id = None
+
+            score = _safe_float(s.get("score"))
+            source_file = (
+                s.get("source")
+                or meta.get("source")
+                or meta.get("source_file")
+                or "unknown"
+            )
+
             sources.append(SourceInfo(
-                source_file=s.get("source", "unknown"),
-                page_number=s.get("page"),
-                chunk_id=s.get("chunk_id", 0),
-                score=s.get("score")
+                source_file=source_file,
+                page_number=page_number,
+                page_width=page_width,
+                page_height=page_height,
+                bbox=bbox_list,
+                chunk_id=chunk_id,
+                score=score,
+                docling_id=meta.get("docling_id"),
+                table=meta.get("table"),
+                table_md=meta.get("table_md"),
             ))
             
         # Create citations (simplified mapping for now)

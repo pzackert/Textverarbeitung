@@ -96,6 +96,26 @@ def test_query_returns_results(vector_store, sample_chunks):
     assert "IFB" in results[0]['content']
     assert results[0]['score'] > 0.0
 
+
+def test_query_keeps_bbox_metadata(vector_store):
+    chunk = Chunk(
+        content="bbox test",
+        metadata={
+            "source": "doc.pdf",
+            "bbox": {"page": 1, "x0": 0, "y0": 0, "x1": 10, "y1": 20, "page_width": 200, "page_height": 400},
+            "page_width": 200,
+            "page_height": 400,
+            "chunk_id": 0,
+        },
+    )
+    vector_store.add_chunks([chunk])
+    results = vector_store.query("bbox test", top_k=1)
+    assert results
+    meta = results[0].get("metadata", {})
+    assert "bbox" in meta
+    assert meta.get("page_width") == 200
+    assert meta.get("page_height") == 400
+
 def test_german_text_query(vector_store, sample_chunks):
     """Test queries with German text and umlauts."""
     vector_store.add_chunks(sample_chunks)

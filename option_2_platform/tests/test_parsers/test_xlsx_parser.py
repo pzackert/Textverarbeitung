@@ -1,30 +1,40 @@
 import pytest
-from pathlib import Path
-from src.parsers.xlsx_parser import XlsxParser
-from src.parsers.exceptions import CorruptedFileError
+from src.parsers.docling_parser import DoclingParser
 
-@pytest.fixture
-def xlsx_parser():
-    return XlsxParser()
 
-def test_xlsx_parser_init(xlsx_parser):
-    assert xlsx_parser is not None
-    assert xlsx_parser.supported_formats == ['xlsx']
+class _FakeXlsxPage:
+    def __init__(self):
+        self.width = 120
+        self.height = 300
+        self.elements = []
 
-def test_xlsx_parser_accepts_xlsx(xlsx_parser):
-    assert xlsx_parser.accepts_format('data.xlsx') == True
 
-def test_xlsx_parser_rejects_non_xlsx(xlsx_parser):
-    assert xlsx_parser.accepts_format('data.pdf') == False
-    assert xlsx_parser.accepts_format('data.docx') == False
-    assert xlsx_parser.accepts_format('data.csv') == False
+class _FakeXlsxResult:
+    def __init__(self):
+        self.pages = [_FakeXlsxPage()]
 
-def test_xlsx_parser_missing_file(xlsx_parser):
+
+class _FakeXlsxConverter:
+    def convert(self, path: str):
+        return _FakeXlsxResult()
+
+
+def test_docling_parser_accepts_xlsx(tmp_path):
+    parser = DoclingParser(converter_cls=_FakeXlsxConverter)
+    xlsx_file = tmp_path / "sample.xlsx"
+    xlsx_file.write_text("fake")
+
+    docs = parser.parse(str(xlsx_file))
+    assert docs[0].metadata.get("page_count") == 1
+
+
+def test_docling_parser_rejects_wrong_format_xlsx():
+    parser = DoclingParser(converter_cls=_FakeXlsxConverter)
+    with pytest.raises(ValueError):
+        parser.parse("file.csv")
+
+
+def test_docling_parser_missing_file_xlsx():
+    parser = DoclingParser(converter_cls=_FakeXlsxConverter)
     with pytest.raises(FileNotFoundError):
-        xlsx_parser.parse('nonexistent.xlsx')
-
-def test_xlsx_parser_invalid_xlsx(xlsx_parser, tmp_path):
-    invalid_xlsx = tmp_path / 'invalid.xlsx'
-    invalid_xlsx.write_text('This is not an XLSX')
-    with pytest.raises(CorruptedFileError):
-        xlsx_parser.parse(str(invalid_xlsx))
+        parser.parse("missing.xlsx")

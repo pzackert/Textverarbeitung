@@ -4,6 +4,7 @@ Handles storage and retrieval of embeddings for RAG system.
 """
 from typing import List, Dict, Optional, Any
 import chromadb
+import json
 from chromadb.config import Settings
 from pathlib import Path
 import logging
@@ -32,7 +33,8 @@ class VectorStore:
         self,
         collection_name: str = "ifb_documents",
         persist_directory: str = "data/chromadb",
-        embedding_function: Optional[EmbeddingGenerator] = None
+        embedding_function: Optional[EmbeddingGenerator] = None,
+        schema_version: Optional[str] = None,
     ):
         """
         Initialize vector store.
@@ -45,9 +47,10 @@ class VectorStore:
         self.collection_name = collection_name
         self.persist_directory = persist_directory
         self.embedding_function = embedding_function
+        self.schema_version = schema_version
         
         self._init_client(persist_directory)
-        self._get_or_create_collection(collection_name)
+        self._get_or_create_collection(collection_name, schema_version)
         
     def _init_client(self, persist_directory: str):
         """Initialize ChromaDB client with persistence."""
@@ -61,19 +64,35 @@ class VectorStore:
             logger.error(f"Failed to initialize ChromaDB client: {e}")
             raise RAGException(f"Failed to initialize ChromaDB client: {e}")
             
-    def _get_or_create_collection(self, collection_name: str):
+    def _get_or_create_collection(self, collection_name: str, schema_version: Optional[str] = None):
         """Get existing collection or create new one."""
         try:
             # We don't pass embedding_function here because we handle embeddings manually
             # to use our optimized EmbeddingGenerator
             self.collection = self.client.get_or_create_collection(
                 name=collection_name,
-                metadata={"hnsw:space": "cosine"} # Use cosine similarity
+                metadata={"hnsw:space": "cosine", "schema_version": schema_version} if schema_version else {"hnsw:space": "cosine"}
             )
             logger.info(f"Accessed collection: {collection_name}")
         except Exception as e:
             logger.error(f"Failed to get/create collection {collection_name}: {e}")
             raise RAGException(f"Failed to get/create collection: {e}")
+
+    def ensure_schema(self, schema_version: str):
+        """Recreate collection if schema version mismatches (clean slate)."""
+        current = None
+        try:
+            current = (self.collection.metadata or {}).get("schema_version")
+        except Exception:
+            current = None
+
+        if current != schema_version:
+            try:
+                self.client.delete_collection(self.collection_name)
+            except Exception:
+                logger.warning("Failed to delete existing collection; recreating anyway")
+            self._get_or_create_collection(self.collection_name, schema_version)
+            logger.info(f"Recreated collection with schema_version={schema_version}")
 
     def add_chunks(self, chunks: List[Chunk]) -> List[str]:
         """
@@ -106,10 +125,11 @@ class VectorStore:
             
             metadatas = []
             for chunk in chunks:
-                meta = chunk.metadata.copy()
-                for k, v in meta.items():
-                    if isinstance(v, (list, dict)):
-                        meta[k] = str(v)
+                meta = {k: v for k, v in chunk.metadata.copy().items() if v is not None}
+                # Chroma requires scalar metadata; encode nested structures as JSON strings
+                for k, v in list(meta.items()):
+                    if isinstance(v, (dict, list)):
+                        meta[k] = json.dumps(v)
                 metadatas.append(meta)
 
             ids = []

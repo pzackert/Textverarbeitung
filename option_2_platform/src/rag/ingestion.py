@@ -6,9 +6,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 import logging
 
-from src.parsers.pdf_parser import PDFParser
-from src.parsers.docx_parser import DocxParser
-from src.parsers.xlsx_parser import XlsxParser
+from src.parsers.docling_parser import DoclingParser
 from src.parsers.models import Document
 from .chunker import Chunker
 from .embeddings import EmbeddingGenerator
@@ -47,9 +45,9 @@ class IngestionPipeline:
     def _init_parsers(self):
         """Initialize document parsers."""
         self.parsers = {
-            '.pdf': PDFParser(),
-            '.docx': DocxParser(),
-            '.xlsx': XlsxParser(),
+            '.pdf': DoclingParser(),
+            '.docx': DoclingParser(),
+            '.xlsx': DoclingParser(),
         }
     
     def _init_chunker(self):
@@ -57,6 +55,7 @@ class IngestionPipeline:
         self.chunker = Chunker(
             chunk_size=self.config.chunk_size,
             chunk_overlap=self.config.chunk_overlap,
+            max_tokens=self.config.max_chunk_tokens,
         )
     
     def _init_embedder(self):
@@ -70,8 +69,10 @@ class IngestionPipeline:
         self.vector_store = VectorStore(
             collection_name=self.config.collection_name,
             persist_directory=self.config.vector_store_path,
-            embedding_function=self.embedder
+            embedding_function=self.embedder,
+            schema_version=self.config.metadata_schema_version,
         )
+        self.vector_store.ensure_schema(self.config.metadata_schema_version)
     
     def ingest_file(self, file_path: str, project_id: Optional[str] = None) -> Dict[str, Any]:
         """

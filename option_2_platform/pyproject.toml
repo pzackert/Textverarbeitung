@@ -22,14 +22,15 @@ dependencies = [
     # RAG System
     "chromadb>=0.5.0",
     "sentence-transformers>=3.0.0",
+    "langchain-text-splitters>=0.0.1",
 
     # LLM
     "ollama>=0.3.0",
 
-    # Document Parsing
-    "pymupdf>=1.23.0",
-    "python-docx>=1.1.0",
-    "openpyxl>=3.1.0",
+    # Document Parsing (Docling)
+    "docling>=0.13.0",
+    "docling-core>=0.13.0",
+    "pymupdf>=1.24.0",
 
     # Utils
     "pydantic>=2.0.0",

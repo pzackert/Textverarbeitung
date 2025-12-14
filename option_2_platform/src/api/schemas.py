@@ -14,8 +14,14 @@ class IngestResponse(BaseModel):
 class SourceInfo(BaseModel):
     source_file: str
     page_number: Optional[int] = None
+    page_width: Optional[float] = None
+    page_height: Optional[float] = None
+    bbox: Optional[List[float]] = None  # [x0, y0, x1, y1]
     chunk_id: Optional[int] = None
     score: Optional[float] = None
+    docling_id: Optional[str] = None
+    table: Optional[bool] = None
+    table_md: Optional[str] = None
 
 class Citation(BaseModel):
     citation_number: int
