@@ -1,7 +1,7 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.api.routers import ingest, query, system
+from src.api.routers import ingest, query, system, criteria, knowledge, chat_global, projects
 from src.api.middleware import LoggingMiddleware
 
 # Configure logging
@@ -32,6 +32,11 @@ app.add_middleware(
 app.include_router(ingest.router)
 app.include_router(query.router)
 app.include_router(system.router)
+app.include_router(criteria.router)
+app.include_router(knowledge.router)
+app.include_router(chat_global.router)
+app.include_router(projects.router)
+
 
 @app.get("/")
 async def root():

@@ -1,53 +1,105 @@
 {% extends "base.html" %}
 
-{% block title %}Einstellungen - IFB Prüfung{% endblock %}
-
 {% block content %}
-<div class="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Einstellungen</h1>
-        <p class="mt-2 text-sm text-gray-600">Konfigurieren Sie das Verhalten des KI-Assistenten.</p>
+<div class="max-w-4xl mx-auto space-y-8">
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Einstellungen</h1>
+        <p class="text-gray-500">Konfigurieren Sie das System und verwalten Sie globales Wissen.</p>
     </div>
 
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <form action="/settings" method="POST">
-            <div class="px-4 py-5 sm:p-6 space-y-6">
+    <!-- Global Knowledge Section -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-700">🧠 Globales Wissen (System-Kontext)</h2>
+            <p class="text-sm text-gray-500 mt-1">
+                Laden Sie Dokumente hoch, die das "Wissen" des Agenten definieren (z.B. Richtlinien, Handbücher).
+                Diese Dokumente werden bei <strong>jeder</strong> Prüfung als Kontext herangezogen.
+            </p>
+        </div>
 
-                <!-- Greeting Message -->
-                <div>
-                    <label for="greeting_message"
-                        class="block text-sm font-medium text-gray-700">Begrüßungsformel</label>
-                    <div class="mt-1">
-                        <input type="text" name="greeting_message" id="greeting_message"
-                            value="{{ settings.greeting_message }}" required
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-2 px-3"
-                            placeholder="Hallo! Wie kann ich helfen?">
-                    </div>
-                    <p class="mt-2 text-sm text-gray-500">
-                        Diese Nachricht wird angezeigt, wenn ein Benutzer den Chat zum ersten Mal öffnet.
-                    </p>
-                </div>
-
-                <!-- System Prompt -->
-                <div>
-                    <label for="system_prompt" class="block text-sm font-medium text-gray-700">System-Prompt</label>
-                    <div class="mt-1">
-                        <textarea id="system_prompt" name="system_prompt" rows="5" required
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-2 px-3">{{ settings.system_prompt }}</textarea>
-                    </div>
-                    <p class="mt-2 text-sm text-gray-500">
-                        Definiert die Rolle und das Verhalten des Assistenten.
-                    </p>
-                </div>
-
-            </div>
-            <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+        <div class="p-6 space-y-6">
+            <!-- Upload Form -->
+            <form action="/settings/knowledge/upload" method="POST" enctype="multipart/form-data"
+                class="flex gap-4 items-center">
+                <input type="file" name="file" required class="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100
+                " />
                 <button type="submit"
-                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                    Speichern
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    Hochladen
                 </button>
+            </form>
+
+            <!-- File List -->
+            <div class="border rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Dateiname</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Größe</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for file in knowledge_files %}
+                        <tr>
+                            <td
+                                class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                                {{ file.filename }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ (file.size_bytes / 1024) | round(1) }} KB
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <form action="/settings/knowledge/delete" method="POST"
+                                    onsubmit="return confirm('Datei wirklich löschen?');">
+                                    <input type="hidden" name="filename" value="{{ file.filename }}">
+                                    <button type="submit"
+                                        class="text-red-600 hover:text-red-900 font-medium hover:underline">Löschen</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="px-6 py-8 text-center text-gray-500 text-sm italic">
+                                Noch kein globales Wissen vorhanden.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        </form>
+        </div>
+    </div>
+
+    <!-- System Configuration (Existing placeholders) -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden opacity-50">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-700">⚙️ System-Einstellungen (Kommend)</h2>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-500">LLM Modell Auswahl und Prompt-Templates folgen in Phase 6.</p>
+        </div>
     </div>
 </div>
 {% endblock %}

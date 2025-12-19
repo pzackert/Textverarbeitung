@@ -8,7 +8,7 @@ from src.core.models import Project, Document
 
 class ProjectService:
     def __init__(self):
-        self.storage_path = Path("data/projects/projects.json")
+        self.storage_path = Path("data/input/registry.json")
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         
     def _load_projects(self) -> Dict[str, Project]:
@@ -18,7 +18,29 @@ class ProjectService:
         with open(self.storage_path) as f:
             try:
                 data = json.load(f)
-                return {pid: Project(**pdata) for pid, pdata in data.items()}
+                projects = {}
+                for pid, pdata in data.items():
+                    # Migration: title -> name
+                    if "title" in pdata and "name" not in pdata:
+                        pdata["name"] = pdata.pop("title")
+                    
+                    # Migration: documents path
+                    if "documents" in pdata and isinstance(pdata["documents"], list):
+                        for doc in pdata["documents"]:
+                            # ensure filename
+                            if "filename" not in doc and "name" in doc:
+                                doc["filename"] = doc.pop("name")
+                            
+                            # ensure path
+                            if "path" not in doc and "filename" in doc:
+                                # Default to uploads folder
+                                doc["path"] = f"data/input/{pid}/uploads/{doc['filename']}"
+                    
+                    try:
+                        projects[pid] = Project(**pdata)
+                    except Exception as e:
+                        print(f"Skipping invalid project {pid}: {e}")
+                return projects
             except json.JSONDecodeError:
                 return {}
     

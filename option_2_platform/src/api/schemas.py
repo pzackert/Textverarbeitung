@@ -41,30 +41,25 @@ class QueryResponse(BaseModel):
 
 # --- System Schemas ---
 
-class LLMServiceStatus(BaseModel):
-    available: bool
-    provider: str
-    base_url: str
-    can_autostart: bool = False
-    instructions: Optional[str] = None
+class ComponentStatus(BaseModel):
+    status: str  # "loading" | "ready" | "error" | "pending" | "connecting"
+    progress: int = 0
+    message: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
 
-class LLMModelStatus(BaseModel):
-    loaded: bool
-    name: str
-    size: Optional[str] = None
-    can_autopull: bool = False
-    instructions: Optional[str] = None
-
-class VectorDBStatus(BaseModel):
-    available: bool
-    documents: int
+class SystemComponents(BaseModel):
+    ollama: ComponentStatus
+    lm_studio: ComponentStatus
+    llm_model: ComponentStatus
+    embedding_model: ComponentStatus
+    chromadb: ComponentStatus
+    rag_pipeline: ComponentStatus
 
 class SystemStatus(BaseModel):
-    llm_service: LLMServiceStatus
-    llm_model: LLMModelStatus
-    vector_db: VectorDBStatus
-    # Backward compatibility
-    ollama_available: bool
-    chromadb_available: bool
-    documents_count: int
+    status: str  # "initializing" | "ready" | "error"
+    components: SystemComponents
+    # Backward compatibility (Optional)
+    ollama_available: bool = False
+    chromadb_available: bool = False
+    documents_count: int = 0
     embeddings_cached: int = 0

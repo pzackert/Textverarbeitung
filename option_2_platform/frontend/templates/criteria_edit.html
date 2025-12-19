@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center gap-4">
+        <a href="/criteria" class="text-gray-500 hover:text-gray-700 bg-white p-2 rounded-lg shadow-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                </path>
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-800">
+            {% if mode == 'create' %}Neues Kriterium erstellen{% else %}Kriterium bearbeiten{% endif %}
+        </h1>
+    </div>
+
+    <!-- Error Alert -->
+    {% if error %}
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                    fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700">
+                    {{ error }}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form -->
+    <form method="POST" class="bg-white rounded-lg shadow-sm border border-gray-100 p-6 space-y-6">
+
+        <!-- Basic Info -->
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">ID *</label>
+                <input type="text" name="id" value="{{ criterion.id if criterion else '' }}"
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono"
+                    {% if mode=='edit' %}readonly class="bg-gray-100" {% else %}required placeholder="K001" {% endif %}>
+                <p class="text-xs text-gray-500 mt-1">Eindeutige Kennung (z.B. K001)</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Kategorie *</label>
+                <select name="kategorie"
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="wirtschaftliche_bewertung" {% if criterion and
+                        criterion.kategorie=='wirtschaftliche_bewertung' %}selected{% endif %}>Wirtschaftliche Bewertung
+                    </option>
+                    <option value="inhaltliche_bewertung" {% if criterion and
+                        criterion.kategorie=='inhaltliche_bewertung' %}selected{% endif %}>Inhaltliche Bewertung
+                    </option>
+                    <option value="andere" {% if criterion and criterion.kategorie=='andere' %}selected{% endif %}>
+                        Andere</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input type="text" name="name" value="{{ criterion.name if criterion else '' }}" required
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="z.B. Innovationsgehalt">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Kurzbeschreibung *</label>
+                <input type="text" name="kurz" value="{{ criterion.kurz if criterion else '' }}" required
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Ein Satz Zusammenfassung">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Langbeschreibung</label>
+                <textarea name="lang" rows="3"
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ criterion.lang if criterion else '' }}</textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    System Prompt
+                    <span class="text-xs font-normal text-gray-500 ml-1">(Anweisung an die KI)</span>
+                </label>
+                <textarea name="prompt" rows="6"
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm">{{ criterion.prompt if criterion else '' }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Beschreiben Sie genau, wie die KI dieses Kriterium prüfen soll.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="recommended" id="recommended" value="true"
+                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" {% if criterion and
+                    criterion.recommended %}checked{% endif %}>
+                <label for="recommended" class="text-sm text-gray-700">Als Standard empfohlen</label>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="pt-4 flex items-center justify-end gap-3 border-t border-gray-100">
+            <a href="/criteria" class="text-gray-600 hover:text-gray-800 font-medium">Abbrechen</a>
+            <button type="submit"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-sm transition-colors font-medium">
+                Speichern
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

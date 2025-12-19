@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Form, UploadFile, File, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from typing import Optional
 from pathlib import Path
 import logging
@@ -24,6 +25,11 @@ from src.core.models import ChatMessage, Citation
 from frontend.services.api_client import api_client
 import os
 import uuid
+from src.api.dependencies import get_llm_chain
+from src.rag.llm_chain import LLMChain
+from fastapi import Depends
+from src.services.criteria_service import criteria_service
+from src.services.pdf_annotation_service import pdf_annotation_service
 
 logger = logging.getLogger(__name__)
 
@@ -238,128 +244,166 @@ async def get_project_file(project_id: str, filename: str):
              file_path = f"data/input/{project_id}/{filename}"
 
     if not os.path.exists(file_path):
-        # Try legacy path just in case
-        legacy_path = f"data/projects/{project_id}/{filename}"
-        if os.path.exists(legacy_path):
-            file_path = legacy_path
+        # Try new input path as primary fallback
+        new_path = f"data/input/{project_id}/{filename}"
+        if os.path.exists(new_path):
+            file_path = new_path
         else:
-            # Try new input path
-            new_path = f"data/input/{project_id}/{filename}"
-            if os.path.exists(new_path):
-                file_path = new_path
+            # Check subfolders in input
+            uploads_path = f"data/input/{project_id}/uploads/{filename}"
+            if os.path.exists(uploads_path):
+                 file_path = uploads_path
             else:
-                raise HTTPException(404, "File not found")
+                annotated_path = f"data/input/{project_id}/annotated/{filename}"
+                if os.path.exists(annotated_path):
+                    file_path = annotated_path
+                else:
+                    raise HTTPException(404, "File not found")
         
     return FileResponse(file_path)
 
 @router.post("/{project_id}/analyze", response_class=HTMLResponse)
-async def analyze_project(project_id: str, request: Request):
-    """Startet die Analyse und gibt die Ergebnisse zurück (State 2)."""
+async def analyze_project(
+    project_id: str, 
+    request: Request,
+    llm_chain: LLMChain = Depends(get_llm_chain)
+):
+    """Startet die Analyse und gibt die Ergebnisse zurück (Real RAG)."""
     project = project_service.get_project(project_id)
     if not project:
         raise HTTPException(404, "Project not found")
         
-    # Mock Analysis Results with Citations
-    # In a real app, this would come from the RAG system
+    # Get criteria
+    criteria_list = criteria_service.get_all()
     
-    # Find the PDF document ID for citations
-    pdf_doc = next((d for d in project.documents if d.filename.endswith('.pdf')), None)
-    pdf_doc_id = pdf_doc.id if pdf_doc else "unknown"
-    pdf_filename = pdf_doc.filename if pdf_doc else "Dokument.pdf"
-
-    criteria_results = [
-        {
-            "id": "K001",
-            "name": "Betriebsstätte Hamburg",
-            "status": "pass",
-            "answer": "Ja, erfüllt",
-            "reasoning": "Der Antragsteller hat eine registrierte Betriebsstätte in Hamburg gemäß Gewerbeanmeldung. Der Mietvertrag bestätigt die Adresse in Altona.",
-            "citations": [
-                {
-                    "doc_id": pdf_doc_id,
-                    "doc_name": pdf_filename,
-                    "page": 1,
-                    "text_snippet": "Hamburg"
-                }
-            ]
-        },
-        {
-            "id": "K002",
-            "name": "KMU-Status",
-            "status": "pass",
-            "answer": "Ja, erfüllt",
-            "reasoning": "Die Mitarbeiterzahl liegt unter 250 (aktuell 45) und der Jahresumsatz unter 50 Mio. EUR.",
-            "citations": [
-                {
-                    "doc_id": pdf_doc_id,
-                    "doc_name": pdf_filename,
-                    "page": 2,
-                    "text_snippet": "Mitarbeiter"
-                }
-            ]
-        },
-        {
-            "id": "K003",
-            "name": "Innovationsgehalt",
-            "status": "warning",
-            "answer": "Prüfung erforderlich",
-            "reasoning": "Der technische Innovationsgrad ist im Projektplan beschrieben, aber die Abgrenzung zum Stand der Technik ist nicht eindeutig formuliert.",
-            "citations": [
-                {
-                    "doc_id": pdf_doc_id,
-                    "doc_name": pdf_filename,
-                    "page": 3,
-                    "text_snippet": "Innovation"
-                }
-            ]
-        }
-    ]
-
-    # Create Chat Messages for Analysis Progress (Issue 6B & 7)
+    # Create Chat Messages for Analysis Progress
     messages_html = ""
     new_messages = []
 
     # 1. Start Message
     start_msg = ChatMessage(
         role="assistant", 
-        content="<strong>Starte Analyse...</strong><br>Prüfe Kriterien für diesen Antrag.",
+        content=f"<strong>Starte Analyse...</strong><br>Prüfe {len(criteria_list)} Kriterien für diesen Antrag.",
         metadata={"time_formatted": "0.1s", "stop_reason": "none", "tokens_per_sec": "-", "total_tokens": "-"}
     )
     new_messages.append(start_msg)
 
-    # 2. Iterate simulated results and create messages
-    for criterion in criteria_results:
-        status_icon = "✅" if criterion["status"] == "pass" else "⚠️" if criterion["status"] == "warning" else "❌"
-        content = (
-            f"<strong>{status_icon} {criterion['id']} - {criterion['name']}</strong><br>"
-            f"{criterion['answer']}<br>"
-            f"<span class='text-xs text-gray-500'>{criterion['reasoning']}</span>"
-        )
-        
-        # Mock various metadata for realism (Issue 7)
-        import random
-        tok_sec = round(random.uniform(20.0, 35.0), 2)
-        total_tok = random.randint(50, 150)
-        time_first = round(random.uniform(0.5, 1.5), 2)
-        
-        msg = ChatMessage(
-            role="assistant",
-            content=content,
-            metadata={
-                "tokens_per_sec": tok_sec,
-                "total_tokens": total_tok,
-                "time_to_first_token": f"{time_first}s",
-                "stop_reason": "stop"
-            },
-            citations=[Citation(**c) for c in criterion["citations"]] if criterion.get("citations") else None
-        )
-        new_messages.append(msg)
+    # 2. Iterate and Evaluate
+    for criterion in criteria_list:
+        try:
+            # --- RAG Retrieval ---
+            eval_query = f"Evaluate criterion '{criterion.title}': {criterion.description}. Provide assessment and evidence."
+            
+            sources = []
+            context = ""
+            if hasattr(llm_chain, 'retrieval_engine') and llm_chain.retrieval_engine:
+                try:
+                    # Retrieve relevant documents
+                    filter_dict = {"app_id": project_id}
+                    results = llm_chain.retrieval_engine.vector_store.similarity_search(
+                        eval_query,
+                        k=5,
+                        filter=filter_dict
+                    )
+                    
+                    for doc in results:
+                        context += f"\n\n{doc.page_content}"
+                        sources.append({
+                            'document': doc.metadata.get("source", "unknown"),
+                            'page': doc.metadata.get("page", 1),
+                            'text': doc.page_content
+                        })
+                except Exception as e:
+                    logger.warning(f"RAG retrieval failed for {criterion.id}: {e}")
+
+            # --- LLM Evaluation ---
+            eval_status = "warning"
+            explanation = "Keine relevanten Dokumente gefunden."
+            score = 0.0
+
+            if context:
+                prompt = f"""Evaluate the following criterion for a funding application:
+
+Criterion: {criterion.title}
+Description: {criterion.description}
+
+Based on the following evidence from the application documents:
+{context}
+
+Provide:
+1. A clear assessment (PASS, WARNING, or FAIL)
+2. A brief German explanation (max 2 sentences)
+3. A confidence score (0-1)
+
+Format your response exactly as:
+Status: [PASS/WARNING/FAIL]
+Score: [0.0-1.0]
+Explanation: [Your German explanation]
+"""
+                try:
+                    response = llm_chain.generate(prompt)
+                    
+                    # Parse response
+                    if "PASS" in response.upper():
+                        eval_status = "pass"
+                    elif "FAIL" in response.upper():
+                        eval_status = "fail"
+                    else:
+                        eval_status = "warning"
+                        
+                    # Extract explanation
+                    explanation = response
+                    for line in response.split('\n'):
+                        if line.lower().startswith('explanation:'):
+                            explanation = line.split(':', 1)[1].strip()
+                            break
+                except Exception as e:
+                    explanation = f"LLM Fehler: {str(e)}"
+            
+            # --- Generate Annotation ---
+            if sources:
+                # Find PDF to annotate
+                pdf_docs = [d for d in project.documents if d.filename.lower().endswith('.pdf')]
+                if pdf_docs:
+                    pdf_annotation_service.annotate_from_rag_results(
+                        project_id=project_id,
+                        original_filename=pdf_docs[0].filename,
+                        rag_sources=sources,
+                        status=eval_status
+                    )
+
+            # --- Build Message ---
+            status_icon = "✅" if eval_status == "pass" else "⚠️" if eval_status == "warning" else "❌"
+            content = (
+                f"<strong>{status_icon} {criterion.id} - {criterion.title}</strong><br>"
+                f"{explanation}"
+            )
+            
+            msg = ChatMessage(
+                role="assistant",
+                content=content,
+                metadata={
+                    "stop_reason": "stop"
+                },
+                citations=[Citation(**{
+                    'doc_id': 'unknown', # simplified
+                    'doc_name': s['document'], 
+                    'page': s['page'], 
+                    'text_snippet': s['text'][:100]
+                }) for s in sources[:2]] if sources else None
+            )
+            new_messages.append(msg)
+
+        except Exception as e:
+            logger.error(f"Error evaluating {criterion.id}: {e}")
+            # Continue with next or show error msg
+            pass
 
     # 3. Completion Message
     summary_msg = ChatMessage(
         role="assistant",
-        content="<strong>Analyse abgeschlossen.</strong> Alle Kriterien wurden geprüft.",
-        metadata={"stop_reason": "finished", "total_tokens": 15, "tokens_per_sec": 45.0, "time_to_first_token": "0.05s"}
+        content="<strong>Analyse abgeschlossen.</strong> Alle Kriterien wurden geprüft und Annotationen erstellt.",
+        metadata={"stop_reason": "finished"}
     )
     new_messages.append(summary_msg)
 
@@ -408,49 +452,75 @@ async def update_project_status(project_id: str, request: Request, status: str =
         context={"project": project}
     )
 
-@router.post("/{project_id}/chat", response_class=HTMLResponse)
-async def chat_project(project_id: str, request: Request, message: str = Form(...)):
-    """Chat mit dem KI-Assistenten."""
-    # In a real app, we would call the LLM here.
-    # For now, we return a dummy response.
-    
-    # 1. User Message
-    user_msg = ChatMessage(role="user", content=message)
-    chat_service.append_message(project_id, user_msg)
-    
-    # Render User Message HTML to append immediately (optional, or we append both)
-    # We will append both for simplicity in one swap
-    user_msg_html = templates.get_template("partials/chat_message.html").render(
-        msg=user_msg
-    )
-    
-    # 2. Assistant Logic (Mock LLM)
-    if "finanz" in message.lower():
-        response_text = "Der Finanzplan sieht solide aus. Die Personalkosten liegen im üblichen Rahmen (65% des Budgets)."
-    elif "kmu" in message.lower():
-        response_text = "Das Unternehmen erfüllt die KMU-Kriterien: < 250 Mitarbeiter und < 50 Mio. € Umsatz."
-    else:
-        response_text = f"Das ist eine interessante Frage zu '{message}'. Ich analysiere die Dokumente..."
+@router.post("/{project_id}/rag/ingest")
+async def ingest_project_documents(
+    project_id: str,
+    background_tasks: BackgroundTasks
+):
+    """Ingest all documents for a project (Ephemeral RAG)."""
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
 
-    # 3. Assistant Message
-    import random
-    assistant_msg = ChatMessage(
-        role="assistant", 
-        content=response_text,
-        metadata={ # Mock Metadata (Issue 7)
-            "tokens_per_sec": round(random.uniform(22.0, 28.0), 2),
-            "total_tokens": len(response_text.split()) * 2, # rough estimate
-            "time_to_first_token": f"{round(random.uniform(0.2, 0.8), 2)}s",
-            "stop_reason": "stop"
-        }
-    )
-    chat_service.append_message(project_id, assistant_msg)
+    def _run_ingestion():
+        try:
+            from src.rag.ingestion import IngestionPipeline
+            pipeline = IngestionPipeline()
+            
+            for doc in project.documents:
+                # Resolve path
+                file_path = doc.path
+                if not os.path.exists(file_path):
+                     # Try modern path fallback
+                     modern_path = f"data/input/{project_id}/uploads/{doc.filename}"
+                     if os.path.exists(modern_path):
+                         file_path = modern_path
+                
+                if os.path.exists(file_path):
+                    logger.info(f"Ingesting {doc.filename} for project {project_id}")
+                    try:
+                        pipeline.ingest_file(file_path, project_id=project_id)
+                    except Exception as e:
+                        logger.error(f"Failed to ingest {doc.filename}: {e}")
+                else:
+                    logger.warning(f"File not found for ingestion: {doc.filename}")
+                    
+            logger.info(f"Ephemeral RAG ingestion completed for {project_id}")
+            
+        except Exception as e:
+            logger.error(f"Project ingestion failed: {e}")
 
-    assistant_msg_html = templates.get_template("partials/chat_message.html").render(
-        msg=assistant_msg
-    )
+    # Run in background to not block UI load
+    background_tasks.add_task(_run_ingestion)
     
-    return HTMLResponse(content=user_msg_html + assistant_msg_html)
+    return {"status": "started", "message": "Ingestion started in background"}
+
+@router.delete("/{project_id}/rag")
+async def clear_project_rag(project_id: str):
+    """Clear RAG context for a project (Exit Handler)."""
+    try:
+        # We need access to VectorStore. 
+        # Using LLMChain dependency or initializing new one.
+        # Initializing new VectorStore is safer/easier here.
+        from src.rag.vector_store import VectorStore
+        # We need config for correct paths
+        from src.rag.config import RAGConfig
+        
+        config = RAGConfig.from_yaml()
+        vs = VectorStore(
+            persist_directory=config.persist_directory,
+            collection_name=config.collection_name
+        )
+        
+        # Delete by metadata
+        vs.delete_by_metadata({"project_id": project_id})
+        
+        logger.info(f"Cleared RAG context for {project_id}")
+        return {"status": "success", "message": "RAG context cleared"}
+        
+    except Exception as e:
+        logger.error(f"Failed to clear RAG context: {e}")
+        raise HTTPException(500, f"Failed to clear RAG context: {e}")
 
 @router.post("/{project_id}/upload", response_class=HTMLResponse)
 async def upload_document(project_id: str, request: Request, file: UploadFile = File(...)):
@@ -464,9 +534,14 @@ async def upload_document(project_id: str, request: Request, file: UploadFile = 
         content = await file.read()
         filename = file.filename or "uploaded_file"
         doc = project_service.save_document(project_id, filename, content)
+        
+        # Use background task for ingestion? For now, we rely on lazy load in UI or explicit trigger.
+        # But to be safe, we could trigger it here effectively.
+        # For this demo, let's keep it consistent: UI triggers it via animation loop.
+        
     except Exception as e:
         # Handle error (e.g. file save failed)
-        print(f"Upload error: {e}")
+        logger.error(f"Upload error: {e}")
         pass
     
     # Redirect back to review

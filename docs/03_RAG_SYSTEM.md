@@ -10,6 +10,12 @@
 
 RAG (Retrieval-Augmented Generation) System für intelligente Dokumentenanalyse und kontextbasierte LLM-Antworten.
 
+> **Docling-Update (Dez 2025)**
+> - Parser & Chunking basieren ausschließlich auf Docling-Blöcken (PDF/DOCX/XLSX) mit Bounding Boxes.
+> - Jeder Chunk speichert `bbox`, `page_width`, `page_height`, `docling_id`, `table_md` (falls Tabelle).
+> - Hybrid Chunking: Docling-Blöcke zuerst, bei Token-Überschreitung sekundärer Split mit geerbter BBox.
+> - Vector Store wird mit Schema-Version `docling-v1` neu aufgebaut (automatische Rekreation bei Mismatch).
+
 ### Was ist RAG?
 
 RAG kombiniert die Stärken von **Informationsabruf** und **Textgenerierung**:

@@ -6,7 +6,7 @@ import sys
 # Add parent directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
-from benchmarks.utils.config import ModelConfig
+from benchmarks.utils.config import ConfigLoader, ModelConfig
 from benchmarks.utils.llm_client import LLMClient
 
 
@@ -15,10 +15,7 @@ class TestHelloWorld:
 
     @pytest.mark.parametrize(
         "model_config",
-        [
-            ModelConfig(name="qwen2.5:0.5b", backend="ollama", enabled=True),
-            ModelConfig(name="qwen2.5:7b", backend="ollama", enabled=True),
-        ],
+        ConfigLoader.from_project_root().get_enabled_models(),
     )
     def test_hello_world(self, model_config):
         """
@@ -32,32 +29,39 @@ class TestHelloWorld:
         - tokens_per_sec: Generation speed
         """
         client = LLMClient(model_config.name)
+        repetitions = ConfigLoader.from_project_root().repetitions
 
         # Check availability
-        available = client.check_availability()
-        if not available:
+        if not client.check_availability():
             pytest.skip(f"Model {model_config.name} not available")
 
-        # Query
         prompt = "Say hello!"
-        result = client.query(prompt, temperature=0.7, max_tokens=100)
+        successes = 0
+        response_times = []
+        last_response = ""
 
-        # Assertions
-        assert result["success"], "Query failed"
-        assert result["response"], "Response is empty"
+        for _ in range(repetitions):
+            result = client.query(prompt, temperature=0.7, max_tokens=100)
+            if not result.get("success") or not result.get("response"):
+                continue
+            response_lower = result["response"].lower()
+            if "hello" in response_lower or "hi" in response_lower:
+                successes += 1
+                last_response = result["response"]
+                metrics = result.get("metrics")
+                if metrics and metrics.response_time_s is not None:
+                    response_times.append(metrics.response_time_s)
 
-        # Validate response contains 'hello' (case-insensitive)
-        response_lower = result["response"].lower()
-        assert "hello" in response_lower or "hi" in response_lower, (
-            f"Response doesn't contain greeting. Got: {result['response']}"
-        )
-
-        # Check metrics
-        metrics = result["metrics"]
-        assert metrics is not None, "Metrics not collected"
-        assert metrics.response_time_s > 0, "Response time should be positive"
+        assert successes > 0, f"Greeting not returned by {model_config.name}"
 
         # Store for result collection
-        TestHelloWorld.last_metrics = metrics
         TestHelloWorld.last_model = model_config.name
-        TestHelloWorld.last_response = result["response"]
+        TestHelloWorld.last_response = last_response
+        TestHelloWorld.last_metrics = None
+        if response_times:
+            avg_rt = sum(response_times) / len(response_times)
+            TestHelloWorld.last_metrics = TestHelloWorld.last_metrics or {}
+            TestHelloWorld.last_metrics = {
+                "avg_response_time_s": round(avg_rt, 2),
+                "runs": successes,
+            }

@@ -37,6 +37,13 @@ uv venv && uv sync
 uv run pytest tests/ -v
 ```
 
+### Start Frontend
+The platform includes a web interface.
+```bash
+uv run uvicorn frontend.main:app --reload --port 8000
+```
+Open [http://localhost:8000](http://localhost:8000)
+
 ### RAG Demo
 To test the complete RAG system (requires Ollama):
 ```bash

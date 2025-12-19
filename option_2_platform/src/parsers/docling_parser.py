@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 from src.parsers.models import Document, Block, BoundingBox
 
@@ -19,13 +19,58 @@ class DoclingParser:
 
         try:
             # Lazy import so unit tests can mock without docling installed
-            from docling.document_converter import DocumentConverter
+            from docling.document_converter import (
+                DocumentConverter,
+                InputFormat,
+                PdfFormatOption,
+                WordFormatOption,
+                ExcelFormatOption,
+            )
+            from docling.datamodel.pipeline_options import (
+                ThreadedPdfPipelineOptions,
+                ConvertPipelineOptions,
+                OcrAutoOptions,
+            )
+            from docling.pipeline.threaded_standard_pdf_pipeline import (
+                ThreadedStandardPdfPipeline,
+            )
         except Exception as exc:  # pragma: no cover - runtime import guard
             raise ImportError(
                 "docling is required. Install with `uv add docling docling-core`."
             ) from exc
 
-        self.converter_cls = DocumentConverter
+        convert_opts = ConvertPipelineOptions(
+            do_picture_classification=False,
+            do_picture_description=False,
+        )
+
+        def make_pdf_opts(do_ocr: bool) -> ThreadedPdfPipelineOptions:
+            return ThreadedPdfPipelineOptions(
+                do_ocr=do_ocr,
+                ocr_options=OcrAutoOptions(lang=["deu", "eng"], force_full_page_ocr=False),
+                do_table_structure=False,
+                generate_page_images=False,
+                generate_picture_images=False,
+                generate_table_images=False,
+                generate_parsed_pages=False,
+            )
+
+        def make_converter(do_ocr: bool) -> DocumentConverter:
+            format_options = {
+                InputFormat.PDF: PdfFormatOption(
+                    pipeline_cls=ThreadedStandardPdfPipeline,
+                    pipeline_options=make_pdf_opts(do_ocr),
+                ),
+                InputFormat.DOCX: WordFormatOption(
+                    pipeline_options=convert_opts,
+                ),
+                InputFormat.XLSX: ExcelFormatOption(
+                    pipeline_options=convert_opts,
+                ),
+            }
+            return DocumentConverter(format_options=format_options)
+
+        self._make_converter = make_converter
 
     def parse(self, file_path: str) -> List[Document]:
         path = Path(file_path)
@@ -34,44 +79,53 @@ class DoclingParser:
         if not path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        converter = self.converter_cls()
+        # Heuristic: extremely large PDFs are assumed to contain text layers; skip OCR to avoid timeouts
+        do_ocr = not (path.suffix.lower() == ".pdf" and path.stat().st_size > 10 * 1024 * 1024)
+        converter = self._make_converter(do_ocr=do_ocr)
         result = converter.convert(str(path))
+        doc = getattr(result, "document", None)
+        if doc is None:
+            raise ValueError("Docling conversion produced no document")
 
-        blocks: List[Block] = []
-        all_text_parts: List[str] = []
+        page_texts: dict[int, List[str]] = {}
+        page_bboxes: dict[int, Optional[BoundingBox]] = {}
 
-        pages = getattr(result, "pages", []) or getattr(result, "document", [])
-        for page_index, page in enumerate(pages):
-            width = self._extract_dim(page, "width")
-            height = self._extract_dim(page, "height")
-            elements = getattr(page, "elements", []) or getattr(page, "blocks", [])
+        for node in self._iter_text_nodes(doc):
+            text = node.text.strip()
+            if not text:
+                continue
 
-            for element in elements:
-                text, table_md, block_type = self._extract_text(element)
-                if not text and not table_md:
-                    continue
+            prov = getattr(node, "prov", []) or []
+            bbox = self._bbox_from_prov(prov)
+            page_no = prov[0].page_no if prov else 1
 
-                bbox = self._extract_bbox(element, page_index, width, height)
-                block = Block(
-                    text=text or table_md or "",
-                    bbox=bbox,
-                    block_type=block_type,
-                    table_md=table_md,
-                    docling_id=getattr(element, "id", None),
-                    page_number=page_index + 1,
-                )
-                blocks.append(block)
-                if text:
-                    all_text_parts.append(text)
-                if table_md:
-                    all_text_parts.append(table_md)
+            page_texts.setdefault(page_no, []).append(text)
+            if page_no not in page_bboxes and bbox:
+                page_bboxes[page_no] = bbox
 
-        if not blocks:
+        if not page_texts:
             raise ValueError("Docling returned no blocks for document")
 
-        full_text = "\n\n".join(all_text_parts)
+        blocks: List[Block] = []
+        for page_no in sorted(page_texts.keys()):
+            combined = "\n".join(page_texts[page_no]).strip()
+            if not combined:
+                continue
+            blocks.append(
+                Block(
+                    text=combined,
+                    bbox=page_bboxes.get(page_no),
+                    block_type="page",
+                    table_md=None,
+                    docling_id=None,
+                    page_number=page_no,
+                )
+            )
+
+        full_text = "\n\n".join(block.text for block in blocks)
+        page_count = max((b.page_number for b in blocks), default=1)
         metadata = {
-            "page_count": len(pages),
+            "page_count": page_count,
             "file_size": path.stat().st_size,
         }
 
@@ -85,51 +139,39 @@ class DoclingParser:
             )
         ]
 
-    def _extract_dim(self, page, attr: str) -> Optional[float]:
-        return (
-            getattr(page, attr, None)
-            or getattr(page, f"page_{attr}", None)
-            or getattr(getattr(page, "size", None), attr, None)
-        )
+    def _iter_text_nodes(self, doc) -> Iterable:
+        """Depth-first traversal that resolves RefItems and yields text-bearing nodes."""
 
-    def _extract_bbox(
-        self,
-        element,
-        page_index: int,
-        page_width: Optional[float],
-        page_height: Optional[float],
-    ) -> Optional[BoundingBox]:
-        bbox_val = getattr(element, "bbox", None) or getattr(element, "bounding_box", None)
+        def resolve(node):
+            return node.resolve(doc) if hasattr(node, "resolve") else node
+
+        stack = list(getattr(doc.body, "children", []) or [])
+        while stack:
+            raw = stack.pop(0)
+            node = resolve(raw)
+            if getattr(node, "text", None):
+                yield node
+            children = getattr(node, "children", None) or []
+            stack.extend(children)
+
+    def _bbox_from_prov(self, prov_list) -> Optional[BoundingBox]:
+        if not prov_list:
+            return None
+
+        first = prov_list[0]
+        bbox_val = getattr(first, "bbox", None)
         if bbox_val is None:
             return None
 
-        # Support list/tuple or object with coords
-        if isinstance(bbox_val, (list, tuple)) and len(bbox_val) >= 4:
-            x0, y0, x1, y1 = bbox_val[:4]
-        else:
-            x0 = getattr(bbox_val, "x0", None)
-            y0 = getattr(bbox_val, "y0", None)
-            x1 = getattr(bbox_val, "x1", None)
-            y1 = getattr(bbox_val, "y1", None)
-
-        if None in (x0, y0, x1, y1):
+        try:
+            return BoundingBox(
+                page=first.page_no,
+                x0=float(bbox_val.l),
+                y0=float(bbox_val.b),
+                x1=float(bbox_val.r),
+                y1=float(bbox_val.t),
+                page_width=float(getattr(bbox_val, "page_width", 0.0)),
+                page_height=float(getattr(bbox_val, "page_height", 0.0)),
+            )
+        except Exception:
             return None
-
-        return BoundingBox(
-            page=page_index + 1,
-            x0=float(x0),
-            y0=float(y0),
-            x1=float(x1),
-            y1=float(y1),
-            page_width=float(page_width) if page_width else 0.0,
-            page_height=float(page_height) if page_height else 0.0,
-        )
-
-    def _extract_text(self, element):
-        # Heuristic extraction to avoid tight coupling to docling internals
-        text = getattr(element, "text", None) or getattr(element, "content", None)
-        table_md = getattr(element, "markdown", None)
-        block_type = getattr(element, "type", None) or getattr(element, "category", "paragraph")
-        if table_md:
-            block_type = "table"
-        return text, table_md, block_type or "paragraph"

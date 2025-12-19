@@ -5,8 +5,8 @@
 llm:
   provider: "ollama"
   base_url: "http://localhost:11434"
-  models_dir: "~/.cache/lm-studio/models"
-  model: "qwen2.5:7b"  # Ollama model tag
+  models_dir: "~/.ollama/models"
+  model: "ministral-3b-lmshare"  # Ollama tag using shared GGUF
   temperature: 0.1
   max_tokens: 2048
   timeout: 120
@@ -24,7 +24,7 @@ rag:
 
   # LLM Settings
   llm_provider: "ollama"
-  llm_model: "qwen2.5:7b"
+  llm_model: "ministral-3b-lmshare"
   llm_base_url: "http://localhost:11434"
   llm_temperature: 0.7
   llm_max_tokens: 2000

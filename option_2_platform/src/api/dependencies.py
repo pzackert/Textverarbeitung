@@ -84,5 +84,16 @@ def get_llm_chain() -> LLMChain:
             logger.info("LLMChain initialized successfully.")
         except Exception as e:
             logger.error(f"Failed to initialize LLMChain: {e}")
-            raise
+            # Return a Mock Chain that handles queries gracefully
+            class MockLLMChain:
+                config = type('Config', (), {'llm_model': 'Error'})()
+                def query(self, *args, **kwargs):
+                    return {
+                        "answer": f"System Error: LLM Service Unavailable. ({str(e)})",
+                        "citations": [],
+                        "sources": [],
+                        "metadata": {"error": str(e)}
+                    }
+            _llm_chain = MockLLMChain()
+            
     return _llm_chain

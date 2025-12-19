@@ -32,39 +32,44 @@ class LLMClient:
             backend_url: Base URL of Ollama service
         """
         self.model_name = model_name
-        self.backend_url = backend_url.rstrip("/")
+        # Allow overriding the backend URL (LM Studio uses 1234 by default)
+        env_base = os.getenv("LLM_BASE_URL")
+        self.backend_url = (env_base or backend_url).rstrip("/")
         self._process = psutil.Process(os.getpid())
         self._last_metrics: Optional[MetricsData] = None
+        self._supports_openai = False
 
     def check_availability(self) -> bool:
         """Check if Ollama service and model are available."""
         try:
-            # Check if service is running
-            response = requests.get(self.backend_url, timeout=5)
-            if response.status_code != 200:
-                logger.warning(f"Ollama service returned status {response.status_code}")
-                return False
-
-            # Check if model is loaded
-            url = f"{self.backend_url}/api/tags"
-            response = requests.get(url, timeout=5)
-            if response.status_code != 200:
-                logger.warning(f"Failed to fetch model tags")
-                return False
-
-            models_data = response.json()
-            models = models_data.get("models", [])
-            model_names = [m.get("name", "") for m in models]
-
-            # Check for model
-            for model_name in model_names:
-                if self.model_name in model_name:
-                    logger.info(f"Model {self.model_name} is available")
+            # Try OpenAI-compatible listing first (LM Studio)
+            resp = requests.get(f"{self.backend_url}/v1/models", timeout=5)
+            if resp.status_code == 200 and isinstance(resp.json(), dict):
+                data = resp.json().get("data", []) or []
+                names = [m.get("id", "") for m in data]
+                if any(self.model_name == n or self.model_name in n for n in names):
+                    self._supports_openai = True
+                    logger.info(f"Model {self.model_name} available via /v1/models")
                     return True
 
-            logger.warning(
-                f"Model {self.model_name} not found. Available: {model_names}"
-            )
+            # Fallback to Ollama tags if OpenAI-style not available
+            ping = requests.get(self.backend_url, timeout=5)
+            if ping.status_code != 200:
+                logger.warning(f"Service returned status {ping.status_code}")
+                return False
+
+            tags = requests.get(f"{self.backend_url}/api/tags", timeout=5)
+            if tags.status_code != 200:
+                logger.warning("Failed to fetch model tags")
+                return False
+
+            models = tags.json().get("models", [])
+            model_names = [m.get("name", "") for m in models]
+            if any(self.model_name == n or self.model_name in n for n in model_names):
+                logger.info(f"Model {self.model_name} available via /api/tags")
+                return True
+
+            logger.warning(f"Model {self.model_name} not found. Available: {model_names}")
             return False
 
         except requests.exceptions.RequestException as e:
@@ -88,25 +93,35 @@ class LLMClient:
         }
 
         try:
-            # Send a simple generate request to warm up the model
-            url = f"{self.backend_url}/api/generate"
-            payload = {
+            # Prefer OpenAI-style warmup for LM Studio
+            url_chat = f"{self.backend_url}/v1/chat/completions"
+            chat_payload = {
                 "model": self.model_name,
-                "prompt": "Hi",
+                "messages": [{"role": "user", "content": "Hi"}],
+                "max_tokens": 1,
                 "stream": False,
-                "options": {"num_predict": 1, "temperature": 0.7},
             }
 
-            response = requests.post(url, json=payload, timeout=120)
+            response = requests.post(url_chat, json=chat_payload, timeout=120)
+            if response.status_code == 404:
+                # Fallback to Ollama generate
+                url = f"{self.backend_url}/api/generate"
+                payload = {
+                    "model": self.model_name,
+                    "prompt": "Hi",
+                    "stream": False,
+                    "options": {"num_predict": 1, "temperature": 0.7},
+                }
+                response = requests.post(url, json=payload, timeout=120)
+
             elapsed = time.time() - start_time
 
             if response.status_code == 200:
-                data = response.json()
-                metrics["warmup_time_s"] = round(elapsed, 2)
+                metrics["warmup_time_s"] = max(round(elapsed, 2), 0.01)
                 metrics["success"] = True
                 metrics["ram_used_mb"] = round(self._get_memory_usage(), 1)
                 logger.info(
-                    f"Model {self.model_name} warmed up in {elapsed:.2f}s"
+                    f"Model {self.model_name} warmed up in {metrics['warmup_time_s']:.2f}s"
                 )
             else:
                 logger.error(f"Failed to load model: {response.status_code}")
@@ -114,7 +129,7 @@ class LLMClient:
         except requests.exceptions.Timeout:
             logger.error(f"Timeout loading model {self.model_name}")
             elapsed = time.time() - start_time
-            metrics["warmup_time_s"] = round(elapsed, 2)
+            metrics["warmup_time_s"] = max(round(elapsed, 2), 0.01)
         except Exception as e:
             logger.error(f"Error loading model: {e}")
 
@@ -147,26 +162,48 @@ class LLMClient:
         }
 
         try:
-            url = f"{self.backend_url}/api/generate"
-            payload = {
-                "model": self.model_name,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "num_predict": max_tokens,
+            if self._supports_openai:
+                url = f"{self.backend_url}/v1/chat/completions"
+                payload = {
+                    "model": self.model_name,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": max_tokens,
                     "temperature": temperature,
-                },
-            }
+                    "stream": False,
+                }
+                response = requests.post(url, json=payload, timeout=120)
+            else:
+                url = f"{self.backend_url}/api/generate"
+                payload = {
+                    "model": self.model_name,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "num_predict": max_tokens,
+                        "temperature": temperature,
+                    },
+                }
 
-            if context_length:
-                payload["options"]["num_ctx"] = context_length
+                if context_length:
+                    payload["options"]["num_ctx"] = context_length
 
-            response = requests.post(url, json=payload, timeout=120)
+                response = requests.post(url, json=payload, timeout=120)
             elapsed = time.time() - start_time
 
             if response.status_code == 200:
                 data = response.json()
-                response_text = data.get("response", "")
+                response_text = ""
+                if self._supports_openai:
+                    choices = data.get("choices", []) or []
+                    if choices and "message" in choices[0]:
+                        response_text = choices[0]["message"].get("content", "")
+                else:
+                    response_text = data.get("response", "")
+
+                # Drop empty generations early so callers can skip on failure
+                if not response_text.strip():
+                    logger.error("Query returned empty response text")
+                    return result
 
                 # Calculate metrics
                 # eval_count is the number of tokens generated

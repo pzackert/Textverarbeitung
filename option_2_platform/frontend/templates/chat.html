@@ -1,102 +1,187 @@
 {% extends "base.html" %}
 
-{% block title %}IFB Chat{% endblock %}
-
 {% block content %}
-<div class="flex h-full">
-    <!-- Sidebar -->
-    <div class="w-64 bg-white border-r border-gray-200 p-4 hidden md:block overflow-y-auto">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">System Status</h2>
+<div class="flex h-[calc(100vh-6rem)] -mt-4 bg-white border rounded-lg shadow-sm overflow-hidden" x-data="globalChat()"
+    x-init="initChat()">
 
-        {% include "components/system_status.html" %}
+    <!-- Sidebar: Chat History -->
+    <div class="w-1/4 border-r bg-gray-50 flex flex-col">
+        <div class="p-4 border-b flex justify-between items-center bg-white">
+            <h2 class="font-semibold text-gray-700">Globale Chats</h2>
+            <button @click="createChat()" class="text-blue-600 hover:bg-blue-50 p-1 rounded transition-colors"
+                title="Neuer Chat">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </button>
+        </div>
 
-        <div class="mt-8">
-            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Tips</h3>
-            <ul class="text-sm text-gray-600 space-y-2">
-                <li>• Ask specific questions</li>
-                <li>• Reference document sections</li>
-                <li>• Check sources for verification</li>
-            </ul>
+        <div class="flex-1 overflow-y-auto p-2 space-y-2">
+            <template x-for="chat in chatList" :key="chat.chat_id">
+                <div @click="loadChat(chat.chat_id)"
+                    class="p-3 rounded-lg cursor-pointer transition-colors group relative"
+                    :class="activeChatId === chat.chat_id ? 'bg-white shadow border border-blue-100' : 'hover:bg-gray-100'">
+                    <h3 class="font-medium text-sm text-gray-900 truncate" x-text="chat.title"></h3>
+                    <p class="text-xs text-gray-500 truncate mt-1" x-text="chat.last_message"></p>
+
+                    <!-- Delete Button (Hover) -->
+                    <button @click.stop="deleteChat(chat.chat_id)"
+                        class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 p-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </template>
         </div>
     </div>
 
-    <!-- Chat Area -->
-    <div class="flex-1 flex flex-col bg-gray-50">
-        <!-- Header (Issue 8) -->
-        <div class="px-4 py-3 bg-white border-b border-gray-200 flex justify-between items-center shadow-sm z-10">
-            <h1 class="text-lg font-semibold text-gray-800">Global Chat</h1>
-            {% if model_name %}
-            <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                Modell: {{ model_name }}
-            </span>
-            {% endif %}
+    <!-- Main Chat Area -->
+    <div class="w-3/4 flex flex-col bg-white">
+
+        <!-- Header (Active Chat Info) -->
+        <div class="h-14 border-b flex items-center px-6 justify-between bg-white" x-show="activeChatId">
+            <span class="font-semibold text-gray-800" x-text="activeChatTitle"></span>
+            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">Globaler Modus (Kein
+                Projekt-Kontext)</span>
         </div>
 
-        <!-- Messages -->
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
-            {% if chat_history %}
-            {% for msg in chat_history %}
-            {% include "partials/chat_message.html" with context %}
-            {% endfor %}
-            {% else %}
-            <div class="text-center text-gray-500 mt-8">
-                <p class="text-lg font-medium">{{ greeting_message }}</p>
-            </div>
-            {% endif %}
-            <div id="thinking-indicator" class="htmx-indicator flex w-full justify-start mt-2">
-                <div
-                    class="max-w-[85%] rounded-lg px-4 py-2 shadow-sm bg-white border border-gray-200 text-gray-500 rounded-bl-none flex items-center gap-2">
-                    <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none"
-                        viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                        </circle>
-                        <path class="opacity-75" fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                    </svg>
-                    <span class="text-sm">Analysiere...</span>
+        <!-- Empty State -->
+        <div x-show="!activeChatId" class="flex-1 flex items-center justify-center flex-col text-gray-400">
+            <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
+                </path>
+            </svg>
+            <p>Wählen Sie einen Chat aus oder erstellen Sie einen neuen.</p>
+        </div>
+
+        <!-- Messages Area -->
+        <div x-show="activeChatId" class="flex-1 overflow-y-auto p-6 space-y-6" id="chat-scroller">
+            <template x-for="msg in messages" :key="msg.timestamp">
+                <div class="flex flex-col" :class="msg.role === 'user' ? 'items-end' : 'items-start'">
+                    <div class="max-w-[80%] rounded-2xl px-5 py-3 shadow-sm"
+                        :class="msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'">
+                        <p class="whitespace-pre-wrap leading-relaxed" x-text="msg.content"></p>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Typing Indicator -->
+            <div x-show="isTyping" class="flex items-start">
+                <div class="bg-gray-100 rounded-2xl rounded-bl-none px-4 py-3">
+                    <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Input Area -->
-        <div class="bg-white border-t border-gray-200 p-4">
-            <form hx-post="/chat/query" hx-target="#chat-messages" hx-swap="beforeend"
-                hx-indicator="#thinking-indicator"
-                hx-on::after-request="this.reset(); document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;">
-
-                <div class="relative rounded-md shadow-sm max-w-4xl mx-auto">
-                    <input type="text" name="question"
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-3 pl-4 pr-12"
-                        placeholder="Wie kann ich helfen?" required autocomplete="off">
-                    <div class="absolute inset-y-0 right-0 flex items-center">
-                        <button type="submit"
-                            class="inline-flex items-center justify-center p-2 rounded-full text-primary-600 hover:text-primary-700 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 mx-1">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </form>
+        <div x-show="activeChatId" class="p-4 border-t bg-white">
+            <div class="relative">
+                <textarea x-model="userInput" @keydown.enter.prevent="sendMessage()"
+                    class="w-full border-gray-300 rounded-lg pr-12 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                    rows="3" placeholder="Nachricht schreiben..."></textarea>
+                <button @click="sendMessage()" :disabled="!userInput.trim() || isTyping"
+                    class="absolute right-2 bottom-2 p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
+
     </div>
 </div>
 
 <script>
-    document.body.addEventListener('htmx:afterSwap', function (evt) {
-        if (evt.detail.target.id === 'chat-messages') {
-            // Scroll to bottom
-            const container = document.getElementById('chat-messages');
-            container.scrollTop = container.scrollHeight;
+    function globalChat() {
+        return {
+            chatList: [],
+            activeChatId: null,
+            activeChatTitle: '',
+            messages: [],
+            userInput: '',
+            isTyping: false,
 
-            // Clear input
-            const input = document.querySelector('input[name="question"]');
-            if (input) input.value = '';
+            async initChat() {
+                await this.refreshList();
+            },
+
+            async refreshList() {
+                const res = await fetch('/api/chat/global/list');
+                this.chatList = await res.json();
+            },
+
+            async createChat() {
+                const res = await fetch('/api/chat/global/create', { method: 'POST' });
+                const chat = await res.json();
+                await this.refreshList();
+                this.loadChat(chat.chat_id);
+            },
+
+            async deleteChat(chatId) {
+                if (!confirm("Chat löschen?")) return;
+                await fetch(`/api/chat/global/${chatId}`, { method: 'DELETE' });
+                if (this.activeChatId === chatId) {
+                    this.activeChatId = null;
+                    this.messages = [];
+                }
+                await this.refreshList();
+            },
+
+            async loadChat(chatId) {
+                this.activeChatId = chatId;
+                this.activeChatTitle = this.chatList.find(c => c.chat_id === chatId)?.title || 'Chat';
+
+                const res = await fetch(`/api/chat/global/${chatId}/history`);
+                const data = await res.json();
+                this.messages = data.messages;
+                this.scrollToBottom();
+            },
+
+            async sendMessage() {
+                if (!this.userInput.trim() || this.isTyping) return;
+
+                const text = this.userInput;
+                this.userInput = '';
+
+                // Optimistic UI update
+                this.messages.push({ role: 'user', content: text, timestamp: new Date().toISOString() });
+                this.scrollToBottom();
+                this.isTyping = true;
+
+                try {
+                    const res = await fetch(`/api/chat/global/${this.activeChatId}/message`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: text, use_base_documents: true })
+                    });
+
+                    const data = await res.json();
+                    this.messages.push({ role: 'assistant', content: data.response, timestamp: data.timestamp });
+                    await this.refreshList(); // Update previews
+                } catch (e) {
+                    console.error("Msg failed", e);
+                    this.messages.push({ role: 'assistant', content: "Fehler beim Senden der Nachricht.", timestamp: new Date().toISOString() });
+                } finally {
+                    this.isTyping = false;
+                    this.scrollToBottom();
+                }
+            },
+
+            scrollToBottom() {
+                this.$nextTick(() => {
+                    const container = document.getElementById('chat-scroller');
+                    if (container) container.scrollTop = container.scrollHeight;
+                });
+            }
         }
-    });
+    }
 </script>
 {% endblock %}

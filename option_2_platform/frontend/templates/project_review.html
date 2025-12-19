@@ -56,20 +56,23 @@
 
     <!-- Review Logic -->
     <script src="{{ url_for('static', path='/js/review.js') }}"></script>
+
+    <!-- Chat Logic -->
+    <script src="{{ url_for('static', path='/js/chat.js') }}"></script>
 </head>
 
 <body class="bg-gray-100 font-sans overflow-hidden">
 
     <div class="review-container">
         <!-- ZONE A: Sidebar Placeholder (Fixed Width in Grid) -->
-        <div class="sidebar-placeholder" style="width: 60px;"></div>
+        <div class="sidebar-placeholder" style="width: 80px;"></div>
 
         <!-- ZONE A: Actual Sidebar (Overlay) -->
         <aside class="review-sidebar group">
             <div class="sidebar-content">
                 <!-- Header -->
                 <div class="sidebar-header">
-                    <a href="/projects" class="back-link" title="Zurück zur Übersicht">
+                    <a href="/projects" class="back-link" title="Zurück zur Übersicht" onclick="cleanupAndExit(event)">
                         <div class="icon-box">
                             <svg class="w-5 h-5 text-gray-500 group-hover:text-primary-600 transition-colors"
                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,13 +101,20 @@
                 <!-- File List -->
                 <div class="file-list">
                     <div
-                        class="px-2 mb-2 block group-hover:opacity-100 group-hover:visible opacity-0 invisible transition-all duration-300 delay-75">
+                        class="px-2 mb-2 flex items-center justify-between group-hover:opacity-100 group-hover:visible opacity-0 invisible transition-all duration-300 delay-75">
                         <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Dokumente</h3>
+                        <!-- Toggle View -->
+                        <div id="view-toggle-container" class="hidden flex bg-gray-100 rounded-lg p-0.5">
+                            <button id="btn-original" onclick="toggleView('original')"
+                                class="px-2 py-0.5 text-[10px] font-medium rounded-md bg-white shadow-sm text-gray-800">Orig.</button>
+                            <button id="btn-annotated" onclick="toggleView('annotated')"
+                                class="px-2 py-0.5 text-[10px] font-medium rounded-md text-gray-500 hover:text-gray-700">Anno.</button>
+                        </div>
                     </div>
 
                     {% for doc in project.documents %}
-                    <button class="file-item {% if loop.first %}active{% endif %}"
-                        onclick="loadDocument('{{ doc.id }}', '{{ doc.filename }}')">
+                    <button class="file-item {% if loop.first %}active{% endif %}" data-doc-id="{{ doc.id }}"
+                        data-filename="{{ doc.filename }}" onclick="loadDocument('{{ doc.id }}', '{{ doc.filename }}')">
                         <div class="file-icon-wrapper">
                             <div class="file-icon">
                                 {% if doc.filename.lower().endswith('.pdf') %}📕{% elif

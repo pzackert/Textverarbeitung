@@ -187,7 +187,8 @@ Antwort:
         question: str, 
         template_type: str = "standard", 
         top_k: Optional[int] = None,
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
+        metadata_filter: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Execute complete RAG query.
@@ -197,6 +198,7 @@ Antwort:
             template_type: Prompt template to use
             top_k: Number of chunks to retrieve (overrides config)
             system_prompt: Optional system prompt override
+            metadata_filter: Filter for retrieval (e.g. {"project_id": "..."})
             
         Returns:
             Dict with answer, sources, citations, metadata
@@ -208,7 +210,8 @@ Antwort:
         logger.info("Step 1: Retrieving documents...")
         results = self.retrieval_engine.retrieve(
             query=question,
-            top_k=top_k or self.config.top_k
+            top_k=top_k or self.config.top_k,
+            metadata_filter=metadata_filter
         )
         
         if not results:

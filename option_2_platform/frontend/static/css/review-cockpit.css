@@ -20,8 +20,8 @@ html {
 /* Main Grid Container */
 .review-container {
     display: grid;
-    /* 60px Fixed Placeholder | Document | Assistant */
-    grid-template-columns: 60px 1fr 1fr;
+    /* 80px Fixed Placeholder | Document | Assistant */
+    grid-template-columns: 80px 1fr 1fr;
     grid-template-rows: 100vh;
     height: 100vh;
     width: 100vw;
@@ -38,7 +38,7 @@ html {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    width: 60px;
+    width: 80px;
     /* Default collapsed width */
     position: fixed;
     /* Fixed to overlay content */

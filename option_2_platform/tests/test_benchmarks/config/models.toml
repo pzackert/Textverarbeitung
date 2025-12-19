@@ -8,18 +8,27 @@ temperature = [0.0, 0.7]
 context_length = [2048, 4096, 8192, 16384, 32768, 65536]
 
 [[models]]
-name = "qwen2.5:0.5b"
-backend = "ollama"
+name = "openai/gpt-oss-20b"
+backend = "lmstudio"
 enabled = true
 
 [[models]]
-name = "qwen2.5:7b"
-backend = "ollama"
+name = "mistralai/ministral-3-3b"
+backend = "lmstudio"
 enabled = true
 
 [[models]]
-# Use available smaller Mistral variant to avoid missing model errors
-name = "ministral-3:3b"
-backend = "ollama"
-enabled = true
+name = "mistralai/ministral-3-14b-reasoning"
+backend = "lmstudio"
+enabled = false
+
+[[models]]
+name = "jinx-gpt-oss-20b"
+backend = "lmstudio"
+enabled = false
+
+[[models]]
+name = "qwen/qwen3-vl-4b"
+backend = "lmstudio"
+enabled = false
 

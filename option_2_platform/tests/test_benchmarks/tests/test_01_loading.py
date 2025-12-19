@@ -30,10 +30,7 @@ class TestModelLoading:
 
     @pytest.mark.parametrize(
         "model_config",
-        [
-            ModelConfig(name="qwen2.5:0.5b", backend="ollama", enabled=True),
-            ModelConfig(name="qwen2.5:7b", backend="ollama", enabled=True),
-        ],
+        ConfigLoader.from_project_root().get_enabled_models(),
     )
     def test_model_loading(self, model_config):
         """

@@ -8,7 +8,14 @@
 
 ## 🎯 GRUNDLEGENDES ZIEL
 
-Wir bauen ein optimales RAG-System (Retrieval-Augmented Generation), das Dokumente der IFB Hamburg intelligent verarbeitet. 
+Wir bauen ein optimales RAG-System (Retrieval-Augmented Generation), das Dokumente der IFB Hamburg intelligent verarbeitet.
+
+> **Docling-Migration (Dez 2025)**
+> - Docling + Docling-Core sind die einzige Parsing-Quelle (PDF, DOCX, XLSX). PyMuPDF/python-docx/openpyxl entfallen.
+> - Jeder Chunk trägt Bounding Box + `page_width`/`page_height` (Frontend kann Zoom-sicher highlighten).
+> - Tabellen bleiben strukturiert (Markdown aus Docling) und werden als eigene Blöcke persistiert.
+> - Hybrid Chunking: Docling-Blöcke zuerst, zu große Blöcke werden sekundär gesplittet; BBox wird geerbt.
+> - ChromaDB wird mit neuem Metadaten-Schema (`schema_version=docling-v1`) frisch angelegt.
 
 ### ✅ OPTION 1 (MVP - Super-Lite):
 Das System extrahiert den **Volltext** aus allen relevanten Dokumenten. Jedes Dokument wird vollständig erfasst und für RAG vorbereitet.
