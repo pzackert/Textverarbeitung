@@ -29,17 +29,29 @@ app.include_router(criteria.router)
 
 
 # Backend API Routers (Prefixed with /api)
-app.include_router(system.router, prefix="/api")
-app.include_router(chat_global.router, prefix="/api")
-app.include_router(knowledge.router, prefix="/api")
-app.include_router(ingest.router, prefix="/api")
-app.include_router(query.router, prefix="/api")
+# Backend API Routers (Prefixed with /api where needed)
+# NOTE: Some routers already define /api prefix internally.
+
+# 1. Routers with internal /api prefix -> Include DIRECTLY
+app.include_router(system.router)          # /api/system
+app.include_router(chat_global.router)     # /api/chats/global
+
+from src.api.routers import chat_project, rag_global, rag_project
+app.include_router(chat_project.router)    # /api/chats/project
+app.include_router(rag_global.router)      # /api/rag/global
+app.include_router(rag_project.router)     # /api/rag/project
+
+# 2. Routers without /api prefix -> Include with prefix="/api"
+app.include_router(knowledge.router, prefix="/api") # /api/knowledge
+app.include_router(ingest.router, prefix="/api")    # /api/ingest
+app.include_router(query.router, prefix="/api")     # /api/query
 
 from src.api.routers import criteria as api_criteria
-app.include_router(api_criteria.router, prefix="/api")
+app.include_router(api_criteria.router, prefix="/api")      # /api/criteria
+app.include_router(api_criteria.eval_router, prefix="/api") # /api/projects (evaluation endpoints)
 
 from src.api.routers import projects as api_projects
-app.include_router(api_projects.router, prefix="/api")
+app.include_router(api_projects.router, prefix="/api")      # /api/projects
 
 @app.get("/health")
 async def health_check():

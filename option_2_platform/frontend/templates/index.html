@@ -5,51 +5,15 @@
 {% block content %}
 <div x-data="systemDashboard()" x-init="initDashboard()" class="relative min-h-[calc(100vh-6rem)]">
 
-    <!-- Loading Overlay -->
-    <div x-show="!systemReady"
-        class="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="mb-8 relative">
-            <!-- Spinner -->
-            <div class="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-        </div>
-
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">System wird gestartet...</h2>
-        <p class="text-gray-500 mb-8" x-text="loadingStatusText"></p>
-
-        <!-- Startup Progress Bar -->
-        <div class="w-full max-w-md bg-gray-100 rounded-full h-2.5 overflow-hidden">
-            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-                :style="`width: ${globalProgress}%`"></div>
-        </div>
-
-        <!-- Detailed Component Status List (for transparency) -->
-        <div class="mt-8 grid grid-cols-2 gap-4 text-sm w-full max-w-2xl">
-            <template x-for="(comp, key) in components" :key="key">
-                <div class="flex items-center justify-between p-3 rounded-lg border"
-                    :class="getComponentBorder(comp.status)">
-                    <span class="font-medium text-gray-700 capitalize" x-text="formatName(key)"></span>
-                    <span class="text-xs font-mono" :class="getStatusColor(comp.status)" x-text="comp.status"></span>
-                </div>
-            </template>
-        </div>
-
-        <!-- Error Actions -->
-        <div x-show="globalStatus === 'error'" class="mt-8 text-center" x-cloak>
-            <p class="text-red-600 font-medium mb-4">Ein Fehler ist aufgetreten.</p>
-            <button @click="triggerStartup()"
-                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Wiederholen</button>
-        </div>
-    </div>
-
-    <!-- Main Dashboard Application (Visible when Ready) -->
-    <div class="px-4 py-8 opacity-0 transition-opacity duration-500" :class="{'opacity-100': systemReady}">
+    <!-- Main Dashboard Application (Always Visible) -->
+    <div class="px-4 py-8">
 
         <div class="flex items-center justify-between mb-8">
             <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
             <span
                 class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                System Gereit
+                System Bereit
             </span>
         </div>
 
@@ -82,7 +46,7 @@
             </template>
         </div>
 
-        <!-- Mode Selection (Placeholders for Phase 2) -->
+        <!-- Mode Selection -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
             <h3 class="text-lg font-medium text-gray-900 mb-2">Sachbearbeiter Ansicht</h3>
             <p class="text-gray-500 mb-6">Wählen Sie einen Bereich um fortzufahren.</p>
@@ -104,84 +68,28 @@
 <script>
     function systemDashboard() {
         return {
-            systemReady: false, // Start false, but we check fast
-            globalStatus: 'initializing',
-            globalProgress: 0,
-            loadingStatusText: 'Status wird geprüft...',
             components: {},
             pollInterval: null,
-            startTime: null,
-            timeoutSecs: 30,
 
             async initDashboard() {
-                this.startTime = Date.now();
-
-                // 1. Immediate Status Check (Fast Path)
-                const isReady = await this.checkQuickStatus();
-                if (isReady) {
-                    this.systemReady = true;
-                    return; // Skip trigger loop if already ready
-                }
-
-                // 2. If not ready, trigger startup and start polling
-                this.loadingStatusText = 'System wird gestartet...';
-                this.triggerStartup();
-                this.pollInterval = setInterval(() => this.pollStatus(), 1000); // Faster polling (1s)
-            },
-
-            async checkQuickStatus() {
-                try {
-                    const res = await fetch('/api/system/status');
-                    if (res.ok) {
-                        const data = await res.json();
-                        this.updateState(data);
-                        return data.status === 'ready';
-                    }
-                } catch (e) { return false; }
-                return false;
-            },
-
-            async triggerStartup() {
-                try { await fetch('/api/system/startup', { method: 'POST' }); }
-                catch (e) { console.error("Startup trigger failed", e); }
+                // Initial fetch
+                await this.pollStatus();
+                // Check status periodically for updates (monitoring)
+                this.pollInterval = setInterval(() => this.pollStatus(), 5000);
             },
 
             async pollStatus() {
                 try {
                     const res = await fetch('/api/system/status');
-                    const data = await res.json();
-                    this.updateState(data);
-
-                    // Timeout Check
-                    if (!this.systemReady && (Date.now() - this.startTime) > (this.timeoutSecs * 1000)) {
-                        this.globalStatus = 'error';
-                        this.loadingStatusText = 'Zeitüberschreitung beim Starten (Timeout).';
-                        clearInterval(this.pollInterval);
+                    if (res.ok) {
+                        const data = await res.json();
+                        // Backend returns list now, but UI expects dict-like access?
+                        // Actually SystemStateManager now returns "components" as list, AND "components_dict"
+                        // I added "components_dict" to the state manager for this reason!
+                        this.components = data.components_dict || {};
                     }
                 } catch (e) {
-                    console.error("Polling connection failed", e);
-                }
-            },
-
-            updateState(data) {
-                this.globalStatus = data.status;
-                this.components = data.components;
-
-                const values = Object.values(this.components || {});
-                if (values.length > 0) {
-                    const total = values.reduce((acc, curr) => acc + (curr.progress || 0), 0);
-                    this.globalProgress = Math.round(total / values.length);
-                }
-
-                if (this.globalStatus === 'ready') {
-                    this.systemReady = true;
-                    if (this.pollInterval) clearInterval(this.pollInterval);
-                } else if (this.globalStatus === 'error') {
-                    this.loadingStatusText = 'Fehler beim Starten.';
-                    if (this.pollInterval) clearInterval(this.pollInterval);
-                } else {
-                    const activeComp = values.find(c => c.status === 'loading' || c.status === 'connecting');
-                    this.loadingStatusText = activeComp ? activeComp.message : 'Initialisiere...';
+                    console.error("Monitoring failed", e);
                 }
             },
 
@@ -189,7 +97,7 @@
                 const map = {
                     'ollama': 'AI Engine (Ollama)',
                     'chromadb': 'Vektor DB',
-                    'rag_pipeline': 'RAG Pipeline',
+                    'rag': 'RAG Pipeline',
                     'llm_model': 'LLM Modell',
                     'embedding_model': 'Embedding Modell',
                     'lm_studio': 'LM Studio'
@@ -199,7 +107,7 @@
 
             getIcon(key) {
                 const icons = {
-                    'ollama': '🦙', 'chromadb': '💾', 'rag_pipeline': '⚙️',
+                    'ollama': '🦙', 'chromadb': '💾', 'rag': '⚙️',
                     'llm_model': '🧠', 'embedding_model': '🔢', 'lm_studio': '🖥️'
                 };
                 return icons[key] || '📦';
@@ -207,22 +115,10 @@
 
             getIconBg(key) { return 'bg-blue-50 text-blue-600'; },
 
-            getStatusColor(status) {
-                if (status === 'ready') return 'text-green-600';
-                if (status === 'error') return 'text-red-600';
-                return 'text-orange-600';
-            },
-
             getStatusBg(status) {
                 if (status === 'ready') return 'bg-green-500';
                 if (status === 'error') return 'bg-red-500';
                 return 'bg-blue-500';
-            },
-
-            getComponentBorder(status) {
-                if (status === 'ready') return 'border-green-100 bg-green-50';
-                if (status === 'error') return 'border-red-100 bg-red-50';
-                return 'border-gray-100 bg-gray-50';
             }
         }
     }

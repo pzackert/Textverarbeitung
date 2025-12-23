@@ -64,6 +64,34 @@
                     <div class="max-w-[80%] rounded-2xl px-5 py-3 shadow-sm"
                         :class="msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'">
                         <p class="whitespace-pre-wrap leading-relaxed" x-text="msg.content"></p>
+
+                        <!-- Sources (Use Case A3) -->
+                        <template x-if="msg.sources && msg.sources.length > 0">
+                            <div class="mt-2 pt-2 border-t border-gray-200/50">
+                                <p class="text-xs font-semibold mb-1 opacity-70">Quellen:</p>
+                                <div class="flex flex-wrap gap-1">
+                                    <template x-for="source in msg.sources">
+                                        <a href="#"
+                                            class="text-xs bg-white/50 px-2 py-1 rounded border border-gray-200 hover:bg-white hover:shadow-sm transition-all"
+                                            :title="source.document || 'Quelle'">
+                                            <span
+                                                x-text="(source.document || 'Dokument') + (source.page ? ' (S. ' + source.page + ')' : '')"></span>
+                                        </a>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Metrics (Use Case A3) -->
+                        <template x-if="msg.metrics">
+                            <div class="mt-1 pt-1 border-t border-white/10 opacity-60 text-[10px] font-mono flex gap-2">
+                                <span x-text="msg.metrics.tokens_per_second + ' tok/s'"></span>
+                                <span>•</span>
+                                <span x-text="msg.metrics.total_tokens + ' tokens'"></span>
+                                <span>•</span>
+                                <span x-text="msg.metrics.time_to_first_token_sec + 's TTFT'"></span>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </template>
@@ -111,23 +139,37 @@
 
             async initChat() {
                 await this.refreshList();
+                if (this.chatList.length === 0) {
+                    await this.createChat();
+                }
             },
 
             async refreshList() {
-                const res = await fetch('/api/chat/global/list');
-                this.chatList = await res.json();
+                try {
+                    const res = await fetch('/api/chats/global');
+                    if (!res.ok) throw new Error("Failed to load chats");
+                    const data = await res.json();
+                    this.chatList = data.chats || [];
+                } catch (e) {
+                    console.error("Error loading chat list:", e);
+                }
             },
 
             async createChat() {
-                const res = await fetch('/api/chat/global/create', { method: 'POST' });
-                const chat = await res.json();
-                await this.refreshList();
-                this.loadChat(chat.chat_id);
+                try {
+                    const res = await fetch('/api/chats/global/create', { method: 'POST' });
+                    if (!res.ok) throw new Error("Failed to create chat");
+                    const chat = await res.json();
+                    await this.refreshList();
+                    this.loadChat(chat.chat_id);
+                } catch (e) {
+                    console.error("Error creating chat:", e);
+                }
             },
 
             async deleteChat(chatId) {
                 if (!confirm("Chat löschen?")) return;
-                await fetch(`/api/chat/global/${chatId}`, { method: 'DELETE' });
+                await fetch(`/api/chats/global/${chatId}`, { method: 'DELETE' });
                 if (this.activeChatId === chatId) {
                     this.activeChatId = null;
                     this.messages = [];
@@ -137,12 +179,19 @@
 
             async loadChat(chatId) {
                 this.activeChatId = chatId;
-                this.activeChatTitle = this.chatList.find(c => c.chat_id === chatId)?.title || 'Chat';
+                const chat = this.chatList.find(c => c.chat_id === chatId);
+                // Use nice formatting or fallback
+                this.activeChatTitle = chat ? (chat.created_at || chatId) : 'Chat';
 
-                const res = await fetch(`/api/chat/global/${chatId}/history`);
-                const data = await res.json();
-                this.messages = data.messages;
-                this.scrollToBottom();
+                try {
+                    const res = await fetch(`/api/chats/global/${chatId}`);
+                    if (!res.ok) throw new Error("Failed to load chat history");
+                    const data = await res.json();
+                    this.messages = data.messages || [];
+                    this.scrollToBottom();
+                } catch (e) {
+                    console.error("Error loading chat:", e);
+                }
             },
 
             async sendMessage() {
@@ -151,24 +200,32 @@
                 const text = this.userInput;
                 this.userInput = '';
 
-                // Optimistic UI update
                 this.messages.push({ role: 'user', content: text, timestamp: new Date().toISOString() });
                 this.scrollToBottom();
                 this.isTyping = true;
 
                 try {
-                    const res = await fetch(`/api/chat/global/${this.activeChatId}/message`, {
+                    const res = await fetch(`/api/chats/global/${this.activeChatId}/message`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: text, use_base_documents: true })
+                        body: JSON.stringify({
+                            message: text,
+                            include_rag: true
+                        })
                     });
 
+                    if (!res.ok) throw new Error("Message failed");
+
                     const data = await res.json();
-                    this.messages.push({ role: 'assistant', content: data.response, timestamp: data.timestamp });
-                    await this.refreshList(); // Update previews
+                    this.messages.push(data.assistant_message);
+                    await this.refreshList();
                 } catch (e) {
                     console.error("Msg failed", e);
-                    this.messages.push({ role: 'assistant', content: "Fehler beim Senden der Nachricht.", timestamp: new Date().toISOString() });
+                    this.messages.push({
+                        role: 'assistant',
+                        content: "Fehler beim Senden der Nachricht: " + e.message,
+                        timestamp: new Date().toISOString()
+                    });
                 } finally {
                     this.isTyping = false;
                     this.scrollToBottom();

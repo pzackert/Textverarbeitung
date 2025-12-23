@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFB PROFI - System Start</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/startup.css">
+</head>
+
+<body>
+
+    <div class="startup-header">
+        <h1>IFB PROFI wird gestartet...</h1>
+        <p>Initialisiere Systemkomponenten</p>
+    </div>
+
+    <div class="scene">
+        <div class="carousel">
+
+            <!-- 1. LM Studio -->
+            <div class="card" id="card-lm_studio">
+                <div class="card-icon">🖥️</div>
+                <div class="card-content">
+                    <div class="card-title">LM Studio</div>
+                    <div class="card-status">
+                        <span class="status-text">Wartet...</span>
+                        <span class="timestamp"></span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="status-indicator pending"></div>
+            </div>
+
+            <!-- 2. Ollama -->
+            <div class="card" id="card-ollama">
+                <div class="card-icon">🦙</div>
+                <div class="card-content">
+                    <div class="card-title">Ollama</div>
+                    <div class="card-status">
+                        <span class="status-text">Wartet...</span>
+                        <span class="timestamp"></span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="status-indicator pending"></div>
+            </div>
+
+            <!-- 3. ChromaDB -->
+            <div class="card" id="card-chromadb">
+                <div class="card-icon">💾</div>
+                <div class="card-content">
+                    <div class="card-title">Vector Store</div>
+                    <div class="card-status">
+                        <span class="status-text">Wartet...</span>
+                        <span class="timestamp"></span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="status-indicator pending"></div>
+            </div>
+
+            <!-- 4. LLM Model -->
+            <div class="card" id="card-llm_model">
+                <div class="card-icon">🧠</div>
+                <div class="card-content">
+                    <div class="card-title">LLM Modell</div>
+                    <div class="card-status">
+                        <span class="status-text">Wartet...</span>
+                        <span class="timestamp"></span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="status-indicator pending"></div>
+            </div>
+
+            <!-- 5. RAG System -->
+            <div class="card" id="card-rag">
+                <div class="card-icon">📚</div>
+                <div class="card-content">
+                    <div class="card-title">Global Knowledge</div>
+                    <div class="card-status">
+                        <span class="status-text">Wartet...</span>
+                        <span class="timestamp"></span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="status-indicator pending"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="/static/js/startup.js"></script>
+</body>
+
+</html>

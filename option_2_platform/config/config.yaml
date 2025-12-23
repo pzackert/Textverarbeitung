@@ -3,12 +3,12 @@
 
 # Ollama Settings (Direct GGUF Loading)
 llm:
-  provider: "ollama"
-  base_url: "http://localhost:11434"
+  provider: "lm_studio"
+  base_url: "http://127.0.0.1:1234"
   models_dir: "~/.ollama/models"
-  model: "ministral-3b-lmshare"  # Ollama tag using shared GGUF
-  temperature: 0.1
-  max_tokens: 2048
+  model: "ministral-3b-lmshare:latest"
+  temperature: 0.7
+  max_tokens: 2000
   timeout: 120
 
 # RAG Settings
@@ -23,9 +23,9 @@ rag:
   collection_name: "ifb_documents"
 
   # LLM Settings
-  llm_provider: "ollama"
-  llm_model: "ministral-3b-lmshare"
-  llm_base_url: "http://localhost:11434"
+  llm_provider: "lm_studio"
+  llm_model: "ministral-3b-lmshare:latest"
+  llm_base_url: "http://127.0.0.1:1234"
   llm_temperature: 0.7
   llm_max_tokens: 2000
 
@@ -80,3 +80,9 @@ criteria:
     - "projektlaufzeit"
     - "projektkosten"
     - "rechtsform"
+
+# Startup Configuration
+startup:
+  auto_load_rag: true
+  timeout_per_step_sec: 90
+  fallback_to_ollama: true

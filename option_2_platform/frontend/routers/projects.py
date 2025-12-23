@@ -6,8 +6,7 @@ from typing import Optional
 from pathlib import Path
 import logging
 from src.services.project_service import project_service
-from src.services.chat_service import chat_service
-from src.services.settings_service import settings_service
+from src.services.chat_store import load_or_create_project_chat
 from src.services.settings_service import settings_service
 
 # Try import ValidationService, mock if fails (e.g. no torch installed or crashing)
@@ -29,7 +28,7 @@ from src.api.dependencies import get_llm_chain
 from src.rag.llm_chain import LLMChain
 from fastapi import Depends
 from src.services.criteria_service import criteria_service
-from src.services.pdf_annotation_service import pdf_annotation_service
+from src.services.annotation_service import annotation_service
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +125,9 @@ async def project_review(project_id: str, request: Request):
     # Prepare project display fields
     project.status_display = get_status_display(project.status)
     
-    # Load Chat History
-    chat_session = chat_service.get_chat_session(project_id)
+    # Load Chat History via unified ChatStore
+    chat_data = load_or_create_project_chat(project_id)
+    chat_history = chat_data.get("messages", [])
     
     # Load Settings
     settings = settings_service.get_settings()
@@ -138,7 +138,7 @@ async def project_review(project_id: str, request: Request):
         context={
             "project": project, 
             "current_page": "projects",
-            "chat_history": chat_session.messages,
+            "chat_history": chat_history,
             "greeting_message": settings.greeting_message,
             "model_name": "Qwen 2.5 (7B)" # Issue 8: Model Display
         }
@@ -244,21 +244,27 @@ async def get_project_file(project_id: str, filename: str):
              file_path = f"data/input/{project_id}/{filename}"
 
     if not os.path.exists(file_path):
-        # Try new input path as primary fallback
-        new_path = f"data/input/{project_id}/{filename}"
-        if os.path.exists(new_path):
-            file_path = new_path
+        # Fallback Order:
+        # 1. uploads/ (Standard)
+        # 2. data/input root (Legacy)
+        # 3. annotated/ (If annotated)
+
+        uploads_path = f"data/input/{project_id}/uploads/{original_filename}"
+        legacy_path = f"data/input/{project_id}/{original_filename}"
+        annotated_path = f"data/input/{project_id}/annotated/{filename}"
+
+        if os.path.exists(uploads_path):
+            file_path = uploads_path
+        elif os.path.exists(legacy_path):
+            file_path = legacy_path
+        elif os.path.exists(annotated_path):
+            file_path = annotated_path
         else:
-            # Check subfolders in input
-            uploads_path = f"data/input/{project_id}/uploads/{filename}"
-            if os.path.exists(uploads_path):
-                 file_path = uploads_path
-            else:
-                annotated_path = f"data/input/{project_id}/annotated/{filename}"
-                if os.path.exists(annotated_path):
-                    file_path = annotated_path
-                else:
-                    raise HTTPException(404, "File not found")
+             # Try absolute path from DB if it exists (might be outside input)
+             if target_doc and os.path.exists(target_doc.path):
+                 file_path = target_doc.path
+             else:
+                 raise HTTPException(404, "File not found")
         
     return FileResponse(file_path)
 
@@ -365,7 +371,7 @@ Explanation: [Your German explanation]
                 # Find PDF to annotate
                 pdf_docs = [d for d in project.documents if d.filename.lower().endswith('.pdf')]
                 if pdf_docs:
-                    pdf_annotation_service.annotate_from_rag_results(
+                    annotation_service.annotate_from_rag_results(
                         project_id=project_id,
                         original_filename=pdf_docs[0].filename,
                         rag_sources=sources,

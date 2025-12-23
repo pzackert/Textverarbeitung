@@ -74,7 +74,12 @@ class IngestionPipeline:
         )
         self.vector_store.ensure_schema(self.config.metadata_schema_version)
     
-    def ingest_file(self, file_path: str, project_id: Optional[str] = None) -> Dict[str, Any]:
+    def ingest_file(
+        self,
+        file_path: str,
+        project_id: Optional[str] = None,
+        extra_metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """
         Ingest a single file through complete pipeline.
         
@@ -90,8 +95,20 @@ class IngestionPipeline:
         if not path.exists():
             raise FileNotFoundError(f"File not found: {path}")
 
-        # 1. Parse document
-        documents = self._parse_document(path)
+        # 1. Parse document (support lightweight TXT ingestion)
+        if path.suffix.lower() == ".txt":
+            text_content = path.read_text(encoding="utf-8")
+            documents = [
+                Document(
+                    content=text_content,
+                    metadata={"page_count": 1, "page_number": 1},
+                    source_file=str(path),
+                    file_type="txt",
+                    blocks=[],
+                )
+            ]
+        else:
+            documents = self._parse_document(path)
         
         # 2. Chunk document
         chunks = self._chunk_document(documents)
@@ -103,6 +120,8 @@ class IngestionPipeline:
             
             chunk.metadata["doc_id"] = path.stem
             chunk.metadata["doc_name"] = path.name
+            if extra_metadata:
+                chunk.metadata.update(extra_metadata)
             # Ensure page_number is present (PDFParser adds it)
             # If not present (e.g. other parsers), default to 1
             if "page_number" not in chunk.metadata:

@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
@@ -214,51 +215,92 @@ Antwort:
             metadata_filter=metadata_filter
         )
         
-        if not results:
-            logger.warning("No relevant documents found.")
-            return {
-                "answer": "Ich konnte leider keine relevanten Informationen in den Dokumenten finden.",
-                "sources": [],
-                "citations": [],
-                "metadata": {"duration": time.time() - start_time}
-            }
-            
-        # 2. Prompt Building
+        # 2. Build prompt context (metadata filter aware)
         logger.info(f"Step 2: Building prompt with {len(results)} chunks...")
         prompt = self.prompt_builder.build_query_prompt(
             query=question,
-            template_type=template_type
+            template_type=template_type,
+            metadata_filter=metadata_filter,
+            results=results
         )
-        
-        # Prepend system prompt if provided
-        if system_prompt:
-            prompt = f"{system_prompt}\n\n{prompt}"
-        
-        # 3. LLM Generation
-        logger.info("Step 3: Generating response from LLM...")
+
+        # 3. Generate Answer via LLM Provider
+        logger.info("Step 3: Generating response via LLM...")
         try:
-            response_text = self.llm_provider.generate(
+            answer = self.llm_provider.generate(
                 prompt=prompt,
                 max_tokens=self.config.llm_max_tokens,
                 temperature=self.config.llm_temperature
             )
         except Exception as e:
             logger.error(f"LLM Generation failed: {e}")
-            raise
-            
-        # 4. Response Parsing
-        logger.info("Step 4: Parsing response...")
-        parsed_result = self.response_parser.parse(response_text, results)
+            answer = "Entschuldigung, ich konnte keine Antwort generieren. Bitte prüfen Sie die Verbindung zum LLM."
+
+        parsed_result = self.response_parser.parse(answer, results)
         
-        # 5. Result Assembly
+        # --- Source Filtering (Bugfix: Ghost Sources) ---
+        # Only include sources that were explicitly cited in the answer (e.g., [1], [2])
+        # If no citations are present, we assume the answer came from general knowledge.
+        
+        import re
+        # Find all [digit] patterns
+        citation_indices = set()
+        matches = re.findall(r'\[\s*(\d+)\s*\]', answer)
+        for m in matches:
+            try:
+                # User-facing index is 1-based, list is 0-based
+                idx = int(m) - 1
+                if 0 <= idx < len(results):
+                    citation_indices.add(idx)
+            except ValueError:
+                continue
+
+        # If valid citations found, filter results and parsed sources/citations
+        filtered_sources = []
+        filtered_citations = []
+        
+        if citation_indices:
+            # We have citations, so we trust the LLM used these docs
+            for idx in sorted(citation_indices):
+                # Add to sources
+                res = results[idx]
+                source_meta = res.get("metadata", {})
+                filtered_sources.append(source_meta)
+                
+                # Check if this index corresponds to any parsed citations 
+                # (ResponseParser might have done its own thing, but we sync it here)
+                # Actually, ResponseParser tries to match text snippets. 
+                # Let's just rely on our index checking for simplicity and correctness.
+                
+                # Create a Citation object for this result
+                c = Citation(
+                    doc_id=source_meta.get("doc_id", "unknown"),
+                    doc_name=source_meta.get("doc_name", "unknown"),
+                    page=source_meta.get("page", 1),
+                    text_snippet=res.get("content", "")[:100],
+                    chunk_id=res.get("id", ""),
+                    score=res.get("score", 0.0)
+                )
+                filtered_citations.append(c)
+                
+            parsed_result["sources"] = filtered_sources
+            parsed_result["citations"] = filtered_citations
+        else:
+            # No citations found -> Assume General Knowledge -> Clear sources
+            # Exception: If the prompt didn't strictly enforce [x], we might miss some.
+            # But we updated the prompt to be strict about citing [Nummer].
+            parsed_result["sources"] = []
+            parsed_result["citations"] = []
+
         duration = time.time() - start_time
         parsed_result["metadata"] = {
             "duration": duration,
             "model": self.llm_provider.model_name,
-            "chunks_retrieved": len(results)
+            "chunks_retrieved": len(results),
+            "sources_displayed": len(filtered_sources)
         }
         
-        logger.info(f"Query completed in {duration:.2f}s")
+        logger.info(f"Query completed in {duration:.2f}s. Sources shown: {len(filtered_sources)}")
         return parsed_result
 
     def query_with_context(self, question: str) -> str:

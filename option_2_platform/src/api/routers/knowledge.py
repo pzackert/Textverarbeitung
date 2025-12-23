@@ -31,7 +31,10 @@ async def upload_global_knowledge(
         # without looking at `src/rag/ingestion.py`, we will assume standard ingestion for now.
         # TODO: Update IngestPipeline to accept metadata
         
-        pipeline.ingest_file(str(file_path)) 
+        pipeline.ingest_file(
+            str(file_path),
+            extra_metadata={"type": "global_knowledge", "document": file.filename},
+        )
         
         return {"filename": file.filename, "status": "ingested"}
     except Exception as e:

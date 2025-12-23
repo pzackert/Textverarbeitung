@@ -37,12 +37,43 @@ uv venv && uv sync
 uv run pytest tests/ -v
 ```
 
+### Setup LLM Model (Required!)
+
+**Before starting the frontend**, you must have a compatible LLM model:
+
+**Option A: Install the default model (qwen2.5:7b)**
+```bash
+ollama pull qwen2.5:7b
+```
+
+**Option B: Use an existing model**
+If you already have a different model installed (e.g., `ministral-3b-lmshare`), update the config:
+```bash
+# Check which models you have
+ollama list
+
+# Edit config/ollama.toml and change line 22:
+# default_model = "your-installed-model-name"
+```
+
 ### Start Frontend
-The platform includes a web interface.
+
+**Prerequisites:**
+1. **Ollama must be running** (start with `ollama serve`)
+2. **Required model is installed and configured** (see Setup LLM Model above)
+
+Start the web interface:
 ```bash
 uv run uvicorn frontend.main:app --reload --port 8000
 ```
-Open [http://localhost:8000](http://localhost:8000)
+
+Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+**Expected Startup:**
+- The page will show the **3D Startup Screen** (Apple-Style Cover Flow)
+- Components initialize sequentially (LM Studio/Ollama, Vector DB, RAG)
+- If all components are ready (✓), you'll be automatically redirected to the dashboard
+- If "LLM Modell" fails, the system will attempt to fallback to Ollama automatically
 
 ### RAG Demo
 To test the complete RAG system (requires Ollama):
@@ -244,6 +275,40 @@ git checkout feature/document-parser
 ---
 
 ## 🔍 Troubleshooting
+
+### Frontend Stuck at "System wird gestartet..."
+
+If the browser shows a loading screen with "System wird gestartet..." and doesn't proceed:
+
+**1. Check Ollama is running:**
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+
+# If not running, start Ollama:
+ollama serve
+```
+
+**2. Verify the model is available:**
+```bash
+# List installed models
+ollama list
+
+# If qwen2.5:7b is missing, pull it:
+ollama pull qwen2.5:7b
+```
+
+**3. Check which component failed:**
+- Open browser DevTools (F12) → Network tab
+- Look for failed requests to `/api/system/status`
+- The "LLM Modell" component most commonly fails when Ollama is not running
+
+**4. Restart the frontend server:**
+```bash
+# Stop the server (Ctrl+C)
+# Then restart:
+uv run uvicorn frontend.main:app --reload --port 8000
+```
 
 ### Import Errors
 

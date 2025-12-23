@@ -1,185 +1,256 @@
-from pathlib import Path
-from typing import Dict, Any, List
 import logging
-from dataclasses import dataclass
+import re
+from datetime import datetime
+from time import perf_counter
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import fitz
+from docx import Document
+from openpyxl import load_workbook
 
 from src.core.models import Project
-from src.services.pdf_annotation_service import PDFAnnotationService
-from src.rag.llm_chain import LLMChain, RAGResponse
-from src.rag.config import RAGConfig
-from src.rag.retrieval import RetrievalEngine
-from src.rag.llm_provider import OllamaProvider
-from src.rag.prompt_builder import PromptBuilder
-from src.rag.vector_store import VectorStore
-from src.rag.embeddings import EmbeddingGenerator
+from src.services.annotation_service import annotation_service
+from src.services.criteria_service import criteria_service
 from src.services.project_service import project_service
+from src.services.criteria_results_store import save_criterion_result
 
 logger = logging.getLogger(__name__)
 
-@dataclass
-class Criterion:
-    id: str
-    name: str
-    description: str
 
 class ValidationService:
     def __init__(self):
-        self.annotation_service = PDFAnnotationService()
-        self._init_llm_chain()
-        
-    def _init_llm_chain(self):
-        try:
-            config = RAGConfig.from_yaml()
-            embedder = EmbeddingGenerator(model_name=config.embedding_model)
-            vector_store = VectorStore(
-                collection_name=config.collection_name,
-                persist_directory=config.vector_store_path,
-                embedding_function=embedder
+        self.annotation_service = annotation_service
+
+    def evaluate_criterion(self, project_id: str, criterion_id: str) -> Dict[str, Any]:
+        project = project_service.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        criterion = criteria_service.get_by_id(criterion_id)
+        if not criterion:
+            raise ValueError(f"Criterion {criterion_id} not found")
+
+        start = perf_counter()
+        evidence_list = self._collect_evidence(project, criterion)
+        status_raw = "green" if evidence_list else "red"
+        status = self._normalize_status(status_raw)
+        score = 1.0 if evidence_list else 0.0
+        reason = "Nachweis gefunden" if evidence_list else "Kein Nachweis gefunden"
+
+        output_dir = Path("data/input") / project_id / "annotated"
+        annotations: List[Dict[str, Any]] = []
+        evidence_records: List[Dict[str, Any]] = []
+        for evidence in evidence_list:
+            annotated = self.annotation_service.annotate_document(
+                file_path=Path(evidence["path"]),
+                evidence=evidence,
+                criterion_id=criterion.id,
+                output_dir=output_dir,
+                status=status,
             )
-            retrieval_engine = RetrievalEngine(vector_store=vector_store, config=config)
-            llm_provider = OllamaProvider(
-                model_name=config.llm_model,
-                base_url=config.llm_base_url
-            )
-            prompt_builder = PromptBuilder(retrieval_engine=retrieval_engine)
-            
-            self.llm_chain = LLMChain(
-                retrieval_engine=retrieval_engine,
-                llm_provider=llm_provider,
-                prompt_builder=prompt_builder,
-                config=config
-            )
-        except Exception as e:
-            logger.error(f"Failed to initialize LLM Chain: {e}")
-            self.llm_chain = None
+            if annotated:
+                annotated["document_id"] = evidence.get("document_id")
+                annotated["document"] = evidence.get("filename")
+                annotated["criterion_id"] = criterion.id
+                annotated["status"] = status
+                annotations.append(annotated)
+                evidence_records.append(self._build_evidence_entry(evidence, annotated))
 
-    def _load_criteria(self) -> List[Criterion]:
-        """Load criteria catalog (Mock for now)."""
-        return [
-            Criterion(id="K001", name="Innovationsgehalt", description="Ist das Projekt innovativ und geht über den Stand der Technik hinaus?"),
-            Criterion(id="K002", name="Marktpotenzial", description="Gibt es einen klaren Markt und Verwertungspotenzial?"),
-            Criterion(id="K003", name="Arbeitsplan", description="Ist der Arbeitsplan realistisch und nachvollziehbar?"),
-            Criterion(id="K004", name="Finanzierung", description="Ist die Finanzierung gesichert und angemessen?")
-        ]
+        annotated_file = annotations[0].get("annotated_file") if annotations else None
+        evaluated_at = datetime.utcnow().isoformat() + "Z"
+        duration_sec = round(perf_counter() - start, 3)
 
-    async def validate_project(self, project: Project) -> Dict[str, Any]:
-        """
-        Run validation on a project's documents using LLM/RAG.
-        """
-        if not self.llm_chain:
-            logger.error("LLM Chain not initialized. Cannot validate.")
-            return {"status": "error", "message": "LLM Service unavailable"}
-
-        logger.info(f"Starting validation for project {project.id}")
-        
-        criteria = self._load_criteria()
-        results = []
-        all_citations = []
-        
-        for criterion in criteria:
-            question = f"Erfüllt das Projekt das Kriterium: {criterion.description}?"
-            
-            try:
-                rag_response: RAGResponse = self.llm_chain.query_with_citations(
-                    question=question,
-                    project_id=project.id
-                )
-                
-                # Simple status parsing
-                answer_lower = rag_response.answer.lower()
-                if "ja" in answer_lower[:20] or "erfüllt" in answer_lower:
-                    status = "pass"
-                elif "nein" in answer_lower[:20] or "nicht" in answer_lower:
-                    status = "fail"
-                else:
-                    status = "unclear"
-                
-                result = {
-                    "id": criterion.id,
-                    "name": criterion.name,
-                    "question": question,
-                    "answer": rag_response.answer,
-                    "status": status,
-                    "citations": [
-                        {
-                            "doc_id": c.doc_id,
-                            "doc_name": c.doc_name,
-                            "page": c.page,
-                            "text_snippet": c.text_snippet,
-                            "score": c.score
-                        }
-                        for c in rag_response.citations
-                    ]
-                }
-                results.append(result)
-                all_citations.extend(rag_response.citations)
-                
-            except Exception as e:
-                logger.error(f"Error validating criterion {criterion.id}: {e}")
-                results.append({
-                    "id": criterion.id,
-                    "name": criterion.name,
-                    "status": "error",
-                    "answer": f"Fehler bei der Analyse: {str(e)}",
-                    "citations": []
-                })
-
-        # Annotate documents
-        annotated_docs = await self._annotate_documents(project, all_citations)
-        
-        # Save results to project (in memory or persist if needed)
-        # For now, we just return them, but ideally we should save them to the project object
-        # project.validation_results = results
-        # project_service.update_project(project) # Assuming update exists
-        
-        return {
-            "project_id": project.id,
-            "status": "completed",
-            "criteria": results,
-            "annotated_documents": annotated_docs,
-            "total_citations": len(all_citations)
+        result = {
+            "criterion_id": criterion.id,
+            "criterion_name": criterion.name,
+            "status": status,
+            "score": score,
+            "reason": reason,
+            "annotations": annotations,
+            "annotated_file": annotated_file,
+            "evaluated_at": evaluated_at,
+            "evaluated_by": "system",
+            "evaluation_duration_sec": duration_sec,
+            "evidence": evidence_records,
         }
 
-    async def _annotate_documents(self, project: Project, citations: List) -> Dict[str, str]:
-        """
-        Create annotated copies of documents based on citations.
-        """
-        annotated_docs = {}
-        
-        # Group citations by document
-        citations_by_doc = {}
-        for cit in citations:
-            # cit is either Citation object or dict if we serialized it? 
-            # It is Citation object from RAGResponse
-            doc_id = cit.doc_id
-            if doc_id not in citations_by_doc:
-                citations_by_doc[doc_id] = []
-            
-            citations_by_doc[doc_id].append({
-                "page": cit.page,
-                "quote": cit.text_snippet,
-                "comment": "RAG Citation"
-            })
-            
+        project.validation_results = project.validation_results or {}
+        project.validation_results[criterion.id] = result
+        project.annotated_documents = project.annotated_documents or {}
+        for ann in annotations:
+            if ann.get("annotated_file"):
+                project.annotated_documents[ann["document"]] = ann["annotated_file"]
+        project_service.update_project(project)
+
+        save_criterion_result(project_id, self._criterion_result_for_store(result))
+
+        return result
+
+    def evaluate_all(self, project_id: str) -> Dict[str, Any]:
+        project = project_service.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        criteria = criteria_service.get_all()
+        results = [self.evaluate_criterion(project_id, c.id) for c in criteria]
+        return {
+            "project_id": project_id,
+            "status": "completed",
+            "criteria": results,
+        }
+
+    def _collect_evidence(self, project: Project, criterion) -> List[Dict[str, Any]]:
+        matches: List[Dict[str, Any]] = []
         for doc in project.documents:
-            input_path = Path(doc.path)
-            # Use document ID for matching if possible, otherwise filename
-            doc_id = doc.id
-            
-            if doc_id in citations_by_doc:
-                output_dir = input_path.parent
-                output_filename = f"annotated_{input_path.name}"
-                output_path = output_dir / output_filename
-                
-                success = self.annotation_service.create_annotated_pdf(
-                    input_path=input_path,
-                    output_path=output_path,
-                    citations=citations_by_doc[doc_id]
-                )
-                
-                if success:
-                    annotated_docs[doc_id] = str(output_path)
-                    # Also map by filename for easier lookup in frontend
-                    annotated_docs[doc.filename] = str(output_path)
-                    
-        return annotated_docs
+            path = Path(doc.path)
+            if not path.exists():
+                continue
+
+            suffix = path.suffix.lower()
+            evidence: Optional[Dict[str, Any]] = None
+            if suffix == ".pdf":
+                evidence = self._scan_pdf(path, criterion)
+            elif suffix == ".docx":
+                evidence = self._scan_docx(path, criterion)
+            elif suffix == ".xlsx":
+                evidence = self._scan_xlsx(path, criterion)
+            elif suffix == ".txt":
+                evidence = self._scan_txt(path, criterion)
+
+            if evidence:
+                evidence.update({
+                    "path": str(path),
+                    "document_id": doc.id,
+                    "filename": doc.filename,
+                })
+                matches.append(evidence)
+
+        return matches
+
+    def _normalize_status(self, status: str) -> str:
+        value = (status or "").lower()
+        if value in {"green", "gruen", "grün", "ok", "success"}:
+            return "grün"
+        if value in {"yellow", "warn", "warning", "amber"}:
+            return "gelb"
+        return "rot"
+
+    def _build_evidence_entry(self, evidence: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
+        annotated_file = annotated.get("annotated_file") or annotated.get("meta_file")
+        annotated_name = Path(annotated_file).name if annotated_file else None
+        text_snippet = (evidence.get("text") or evidence.get("reference") or "")[:200]
+        reference = annotated.get("reference") or evidence.get("reference")
+        if not reference:
+            if evidence.get("page"):
+                reference = f"Seite {evidence['page']}"
+            elif evidence.get("cell"):
+                reference = f"Zelle {evidence['cell']}"
+            elif evidence.get("line"):
+                reference = f"Zeile {evidence['line']}"
+
+        return {
+            "dokument": evidence.get("filename"),
+            "dokument_original_path": f"/uploads/{evidence.get('filename')}",
+            "referenz": reference,
+            "text_snippet": text_snippet,
+            "annotated_file": annotated_name,
+            "annotated_file_path": f"/annotated/{annotated_name}" if annotated_name else None,
+        }
+
+    def _criterion_result_for_store(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        allowed_keys = {
+            "criterion_id",
+            "criterion_name",
+            "status",
+            "score",
+            "reason",
+            "annotated_file",
+            "evaluated_at",
+            "evaluated_by",
+            "evaluation_duration_sec",
+            "evidence",
+        }
+        return {k: v for k, v in result.items() if k in allowed_keys}
+
+    def _criterion_mentions_hamburg(self, criterion) -> bool:
+        text = " ".join(
+            [
+                criterion.id,
+                getattr(criterion, "name", ""),
+                getattr(criterion, "kurz", ""),
+                getattr(criterion, "lang", ""),
+                getattr(criterion, "prompt", "") or "",
+            ]
+        ).lower()
+        return "hamburg" in text or "plz" in text or criterion.id.lower() in {"k001", "k_test_auto"}
+
+    def _extract_hamburg_match(self, text: str) -> Optional[re.Match]:
+        return re.search(r"\b2[01]\d{3}\b", text)
+
+    def _scan_pdf(self, path: Path, criterion) -> Optional[Dict[str, Any]]:
+        if not self._criterion_mentions_hamburg(criterion):
+            return None
+        try:
+            doc = fitz.open(path)
+            for idx, page in enumerate(doc):
+                content = page.get_text("text")
+                match = self._extract_hamburg_match(content)
+                if match:
+                    doc.close()
+                    return {"text": match.group(0), "page": idx + 1}
+            doc.close()
+        except Exception as exc:
+            logger.warning(f"PDF scan failed for {path}: {exc}")
+        return None
+
+    def _scan_docx(self, path: Path, criterion) -> Optional[Dict[str, Any]]:
+        if not self._criterion_mentions_hamburg(criterion):
+            return None
+        try:
+            doc = Document(path)
+            for paragraph in doc.paragraphs:
+                match = self._extract_hamburg_match(paragraph.text)
+                if match:
+                    return {"text": match.group(0), "reference": paragraph.text}
+        except Exception as exc:
+            logger.warning(f"DOCX scan failed for {path}: {exc}")
+        return None
+
+    def _scan_xlsx(self, path: Path, criterion) -> Optional[Dict[str, Any]]:
+        if not self._criterion_mentions_hamburg(criterion):
+            return None
+        try:
+            wb = load_workbook(path)
+            ws = wb.active
+            for row in ws.iter_rows():
+                for cell in row:
+                    value = cell.value
+                    if value and isinstance(value, str):
+                        match = self._extract_hamburg_match(value)
+                        if match:
+                            return {
+                                "text": match.group(0),
+                                "cell": cell.coordinate,
+                                "reference": value,
+                            }
+            wb.close()
+        except Exception as exc:
+            logger.warning(f"XLSX scan failed for {path}: {exc}")
+        return None
+
+    def _scan_txt(self, path: Path, criterion) -> Optional[Dict[str, Any]]:
+        if not self._criterion_mentions_hamburg(criterion):
+            return None
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                for idx, line in enumerate(handle, start=1):
+                    match = self._extract_hamburg_match(line)
+                    if match:
+                        return {"text": match.group(0), "line": idx}
+        except Exception as exc:
+            logger.warning(f"TXT scan failed for {path}: {exc}")
+        return None
+
+
+validation_service = ValidationService()

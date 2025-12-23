@@ -1,25 +1,41 @@
 import json
 import logging
+import os
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends
+import fitz
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Response
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from src.services.project_service import project_service
 from src.rag.llm_chain import LLMChain
 from src.api.dependencies import get_llm_chain
+from src.services.validation_service import validation_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["projects_api"])
+DATA_DIR = Path(__file__).resolve().parents[3] / "data"
 
 # --- Schemas ---
 
 class DocumentInfo(BaseModel):
     filename: str
-    size_bytes: int
-    type: str  # "original" or "annotated"
-    path: str  # relative path for loading
+    format: str  # e.g. "pdf", "docx"
+    path: str
+    original_url: str
+    size_mb: float
+    pages: Optional[int] = None
+    uploaded_at: Optional[str] = None
+    has_annotated: bool = False
+    annotated_file: Optional[str] = None
+    annotated_path: Optional[str] = None
+    annotated_url: Optional[str] = None
+    annotated_at: Optional[str] = None
+    used_in_criteria: List[str] = []
+
 
 class DocumentListResponse(BaseModel):
     documents: List[DocumentInfo]
@@ -41,66 +57,112 @@ class ChatMessageResponse(BaseModel):
 class EvaluationRequest(BaseModel):
     criterion_id: str
 
+class AnnotationResult(BaseModel):
+    document: Optional[str] = None
+    format: Optional[str] = None
+    reference: Optional[str] = None
+    annotated_file: Optional[str] = None
+    meta_file: Optional[str] = None
+    original: Optional[str] = None
+    original: Optional[str] = None
+
 class EvaluationResponse(BaseModel):
+    criterion_id: str
     status: str
     score: Optional[float] = None
     annotated_file: Optional[str] = None
+    annotations: List[AnnotationResult] = []
     message: str
+
+
+class AnnotatedDocument(BaseModel):
+    original: str
+    annotated: str
+    file_path: str
+    size_mb: float
+    created_at: str
+    criteria: List[str] = []
+    highlights_count: int = 0
+
+
+class AnnotatedListResponse(BaseModel):
+    project_id: str
+    annotated_documents: List[AnnotatedDocument]
+    total_annotated: int
 
 # --- Endpoints ---
 
 @router.get("/{project_id}/documents", response_model=DocumentListResponse)
-async def list_documents(project_id: str, view: str = "original"):
-    """
-    List documents for a project.
-    
-    Args:
-        project_id: The project ID
-        view: Either 'original' or 'annotated'
-    
-    Returns:
-        List of documents with metadata
-    """
+async def list_documents(project_id: str):
     project = project_service.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
-    documents = []
-    
-    # Determine base path - Unified structure
-    # Data is now located in /data/input/{project_id}
+
     base_path = Path("data/input") / project_id
-    
-    if view == "original":
-        # Original files are in 'uploads' subfolder
-        input_dir = base_path / "uploads"
-        
-        if input_dir.exists():
-            for file_path in input_dir.iterdir():
-                if file_path.is_file() and not file_path.name.startswith('.'):
-                    documents.append(DocumentInfo(
-                        filename=file_path.name,
-                        size_bytes=file_path.stat().st_size,
-                        type="original",
-                        path=str(file_path)
-                    ))
-    
-    elif view == "annotated":
-        # Annotated files are in 'annotated' subfolder
-        output_dir = base_path / "annotated"
-        
-        if output_dir.exists():
-            for file_path in output_dir.iterdir():
-                if file_path.is_file() and not file_path.name.startswith('.'):
-                    # Only include files with _annotated suffix
-                    if "_annotated" in file_path.stem:
-                        documents.append(DocumentInfo(
-                            filename=file_path.name,
-                            size_bytes=file_path.stat().st_size,
-                            type="annotated",
-                            path=str(file_path)
-                        ))
-    
+    uploads_dir = base_path / "uploads"
+    annotated_dir = base_path / "annotated"
+
+    # Load criteria usage
+    try:
+        from src.services.criteria_results_store import load_criteria_results
+        results = load_criteria_results(project_id)
+        criteria_results = results.get("criteria_results", {})
+    except Exception:
+        criteria_results = {}
+
+    documents: List[DocumentInfo] = []
+    if uploads_dir.exists():
+        for file_path in uploads_dir.iterdir():
+            if not file_path.is_file() or file_path.name.startswith("."):
+                continue
+
+            annotated_name = f"{file_path.stem}_annotated{file_path.suffix}"
+            annotated_path = annotated_dir / annotated_name
+            has_annotated = annotated_path.exists()
+            annotated_at = None
+            if has_annotated:
+                annotated_at = datetime.utcfromtimestamp(annotated_path.stat().st_mtime).isoformat() + "Z"
+
+            used_in: List[str] = []
+            for cid, res in criteria_results.items():
+                for ev in res.get("evidence", []) or []:
+                    if ev.get("dokument") == file_path.name:
+                        used_in.append(cid)
+
+            pages = None
+            if file_path.suffix.lower() == ".pdf":
+                try:
+                    doc = fitz.open(file_path)
+                    pages = len(doc)
+                    doc.close()
+                except Exception:
+                    pages = None
+
+            uploaded_at = datetime.utcfromtimestamp(file_path.stat().st_mtime).isoformat() + "Z"
+            
+            # Construct URLs
+            original_url = f"/api/projects/{project_id}/documents/uploads/{file_path.name}"
+            annotated_url = f"/api/projects/{project_id}/documents/annotated/{annotated_name}" if has_annotated else None
+            fmt = file_path.suffix.lower().lstrip(".")
+
+            documents.append(
+                DocumentInfo(
+                    filename=file_path.name,
+                    format=fmt,
+                    path=f"/uploads/{file_path.name}",
+                    original_url=original_url,
+                    size_mb=round(file_path.stat().st_size / (1024 * 1024), 2),
+                    pages=pages,
+                    uploaded_at=uploaded_at,
+                    has_annotated=has_annotated,
+                    annotated_file=annotated_name if has_annotated else None,
+                    annotated_path=f"/annotated/{annotated_name}" if has_annotated else None,
+                    annotated_url=annotated_url,
+                    annotated_at=annotated_at,
+                    used_in_criteria=used_in,
+                )
+            )
+
     return DocumentListResponse(documents=documents, total=len(documents))
 
 
@@ -302,137 +364,313 @@ async def clear_project_rag(project_id: str):
 
 
 @router.post("/{project_id}/criteria/{criterion_id}/evaluate", response_model=EvaluationResponse)
-async def evaluate_criterion(
-    project_id: str,
-    criterion_id: str,
-    llm_chain: LLMChain = Depends(get_llm_chain)
-):
-    """
-    Evaluate a specific criterion and generate annotated PDF.
-    
-    Args:
-        project_id: The project ID
-        criterion_id: The criterion to evaluate
-    
-    Returns:
-        Evaluation result with annotated file info
-    """
-    from src.services.pdf_annotation_service import pdf_annotation_service
-    from src.services.criteria_service import criteria_service
-    
+async def evaluate_criterion(project_id: str, criterion_id: str):
+    """Evaluate a single criterion using the validation service and return annotations."""
     project = project_service.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     try:
-        # Get criterion details
-        try:
-            criterion = criteria_service.get_criterion(criterion_id)
-            if not criterion:
-                raise HTTPException(status_code=404, detail=f"Criterion {criterion_id} not found")
-            criterion_name = criterion.title
-        except:
-            criterion_name = criterion_id
-        
-        # Build evaluation query
-        eval_query = f"Evaluate criterion '{criterion_name}' for this funding application. Provide assessment and evidence."
-        
-        # Get RAG context
-        sources = []
-        context = ""
-        eval_status = "warning"  # Default
-        
-        if hasattr(llm_chain, 'retrieval_engine') and llm_chain.retrieval_engine:
-            try:
-                # Retrieve relevant documents
-                filter_dict = {"app_id": project_id}
-                results = llm_chain.retrieval_engine.vector_store.similarity_search(
-                    eval_query,
-                    k=10,
-                    filter=filter_dict
-                )
-                
-                for doc in results:
-                    context += f"\n\n{doc.page_content}"
-                    sources.append({
-                        'document': doc.metadata.get("source", "unknown"),
-                        'page': doc.metadata.get("page", 1),
-                        'text': doc.page_content
-                    })
-            except Exception as e:
-                logger.warning(f"RAG retrieval for evaluation failed: {e}")
-        
-        # Generate evaluation with LLM
-        if context:
-            prompt = f"""Evaluate the following criterion for a funding application:
-
-Criterion: {criterion_name}
-
-Based on the following evidence from the application documents:
-{context}
-
-Provide:
-1. A clear assessment (PASS, WARNING, or FAIL)
-2. A brief explanation
-3. A confidence score (0-1)
-
-Format your response as:
-Status: [PASS/WARNING/FAIL]
-Score: [0.0-1.0]
-Explanation: [Your explanation]
-"""
-            
-            try:
-                response = llm_chain.generate(prompt)
-                
-                # Parse response
-                if "PASS" in response.upper():
-                    eval_status = "pass"
-                elif "FAIL" in response.upper():
-                    eval_status = "fail"
-                else:
-                    eval_status = "warning"
-                    
-                # Extract score
-                score = 0.5
-                for line in response.split('\n'):
-                    if 'score' in line.lower() and ':' in line:
-                        try:
-                            score = float(line.split(':')[1].strip())
-                        except:
-                            pass
-                            
-            except Exception as e:
-                logger.error(f"LLM evaluation failed: {e}")
-                response = f"Evaluation could not be completed: {e}"
-                score = 0.0
-        else:
-            response = "No relevant documents found for evaluation."
-            score = 0.0
-        
-        # Generate annotated PDF if we have sources and a PDF document
-        annotated_file = None
-        if sources:
-            # Find the first PDF document
-            pdf_docs = [doc for doc in project.documents if doc.filename.lower().endswith('.pdf')]
-            if pdf_docs:
-                annotated_file = pdf_annotation_service.annotate_from_rag_results(
-                    project_id=project_id,
-                    original_filename=pdf_docs[0].filename,
-                    rag_sources=sources,
-                    status=eval_status
-                )
-        
+        result = validation_service.evaluate_criterion(project_id, criterion_id)
+        annotations = [AnnotationResult(**ann) for ann in result.get("annotations", [])]
         return EvaluationResponse(
-            status=eval_status,
-            score=score if 'score' in locals() else None,
-            annotated_file=annotated_file,
-            message=response if 'response' in locals() else f"Evaluation completed with status: {eval_status}"
+            criterion_id=result.get("criterion_id", criterion_id),
+            status=result.get("status", "unknown"),
+            score=result.get("score"),
+            annotated_file=result.get("annotated_file"),
+            annotations=annotations,
+            message=result.get("reason", ""),
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"Evaluation error: {exc}")
+        raise HTTPException(status_code=500, detail=f"Failed to evaluate: {exc}")
+
+
+def _safe_filename(filename: str) -> str:
+    if ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    return filename
+
+
+@router.get("/{project_id}/documents/uploads/{filename:path}")
+async def download_upload_document(project_id: str, filename: str):
+    _safe_filename(filename)
+    uploads_dir = DATA_DIR / "input" / project_id / "uploads"
+    file_path = uploads_dir / filename
     
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Evaluation error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to evaluate: {str(e)}")
+    logger.info(f"Attempting to serve: {file_path}")
+    
+    if not file_path.exists() or not file_path.is_file():
+        # Fallback to root input if needed (legacy)
+        legacy_path = DATA_DIR / "input" / project_id / filename
+        logger.info(f"Checking legacy path: {legacy_path}")
+        if legacy_path.exists() and legacy_path.is_file():
+            file_path = legacy_path
+        else:
+             logger.error(f"File not found: {filename} in {project_id}")
+             raise HTTPException(status_code=404, detail=f"File not found: {filename}")
+
+    logger.info(f"Serving: {file_path}")
+    
+    media_type = None
+    if str(file_path).lower().endswith(".pdf"):
+        media_type = "application/pdf"
+    
+    return FileResponse(
+        file_path, 
+        media_type=media_type, 
+        headers={"Content-Disposition": "inline"}
+    )
+
+
+def _count_pdf_highlights(path: Path) -> int:
+    try:
+        doc = fitz.open(path)
+        count = 0
+        for page in doc:
+            annot = page.first_annot
+            while annot:
+                if annot.type[0] == 8:  # highlight
+                    count += 1
+                annot = annot.next
+        doc.close()
+        return count
+    except Exception:
+        return 0
+
+
+def _count_docx_highlights(path: Path) -> int:
+    try:
+        from docx import Document
+        from docx.enum.text import WD_COLOR_INDEX
+
+        doc = Document(path)
+        count = 0
+        for paragraph in doc.paragraphs:
+            for run in paragraph.runs:
+                if run.font.highlight_color == WD_COLOR_INDEX.YELLOW:
+                    count += 1
+        return count
+    except Exception:
+        return 0
+
+
+def _count_xlsx_highlights(path: Path) -> int:
+    try:
+        from openpyxl import load_workbook
+
+        wb = load_workbook(path)
+        ws = wb.active
+        count = 0
+        for row in ws.iter_rows():
+            for cell in row:
+                fill = cell.fill
+                if fill and fill.fill_type == "solid" and (fill.start_color.rgb in {"00FFFF00", "FFFFFF00", "FFFF00"}):
+                    count += 1
+        wb.close()
+        return count
+    except Exception:
+        return 0
+
+
+def _count_txt_highlights(meta_path: Path) -> int:
+    try:
+        with open(meta_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+            return len(data.get("references", []))
+    except Exception:
+        return 0
+
+
+def _criteria_for_file(project, annotated_name: str) -> List[str]:
+    criteria = []
+    if not project or not project.validation_results:
+        return criteria
+    for crit_id, result in project.validation_results.items():
+        for ann in result.get("annotations", []):
+            if ann.get("annotated_file") and Path(ann.get("annotated_file")).name == annotated_name:
+                if crit_id not in criteria:
+                    criteria.append(crit_id)
+    return criteria
+
+
+@router.get("/{project_id}/documents/annotated", response_model=AnnotatedListResponse)
+async def list_annotated_documents(project_id: str):
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    annotated_dir = DATA_DIR / "input" / project_id / "annotated"
+    if not annotated_dir.exists():
+        return AnnotatedListResponse(project_id=project_id, annotated_documents=[], total_annotated=0)
+
+    annotated_documents: List[AnnotatedDocument] = []
+    for file_path in annotated_dir.iterdir():
+        if not file_path.is_file() or file_path.name.startswith("."):
+            continue
+
+        suffix = file_path.suffix.lower()
+        size_mb = round(file_path.stat().st_size / (1024 * 1024), 2)
+        created_at = datetime.utcfromtimestamp(file_path.stat().st_mtime).isoformat() + "Z"
+        annotated_name = file_path.name
+        if annotated_name.endswith(".txt.meta.json"):
+            base_name = annotated_name.replace("_annotated.txt.meta.json", "")
+            original_name = f"{base_name}.txt"
+        else:
+            original_name = annotated_name.replace("_annotated", "", 1)
+
+        if suffix == ".pdf":
+            highlights_count = _count_pdf_highlights(file_path)
+        elif suffix == ".docx":
+            highlights_count = _count_docx_highlights(file_path)
+        elif suffix == ".xlsx":
+            highlights_count = _count_xlsx_highlights(file_path)
+        elif suffix == ".json" and annotated_name.endswith(".txt.meta.json"):
+            highlights_count = _count_txt_highlights(file_path)
+        else:
+            highlights_count = 0
+
+        criteria = _criteria_for_file(project, annotated_name)
+
+        annotated_documents.append(
+            AnnotatedDocument(
+                original=original_name,
+                annotated=annotated_name,
+                file_path=str(file_path),
+                size_mb=size_mb,
+                created_at=created_at,
+                criteria=criteria,
+                highlights_count=highlights_count,
+            )
+        )
+
+    return AnnotatedListResponse(
+        project_id=project_id,
+        annotated_documents=annotated_documents,
+        total_annotated=len(annotated_documents),
+    )
+
+
+@router.get("/{project_id}/documents/annotated/{filename}/highlights")
+async def get_pdf_highlights(project_id: str, filename: str):
+    _safe_filename(filename)
+    annotated_dir = DATA_DIR / "input" / project_id / "annotated"
+    file_path = annotated_dir / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Annotated file not found: {file_path}")
+    if file_path.suffix.lower() != ".pdf":
+        raise HTTPException(status_code=400, detail="Highlight extraction supported for PDF only")
+
+    highlights = []
+    try:
+        doc = fitz.open(file_path)
+        for page in doc:
+            annot = page.first_annot
+            while annot:
+                if annot.type[0] == 8:  # highlight
+                    rect = annot.rect
+                    text = page.get_text("text", clip=rect)
+                    colors = annot.colors or {}
+                    stroke = colors.get("stroke", (1, 1, 0))
+                    highlights.append(
+                        {
+                            "criterion_id": None,
+                            "page": page.number + 1,
+                            "bbox": {
+                                "x": rect.x0,
+                                "y": rect.y0,
+                                "width": rect.width,
+                                "height": rect.height,
+                            },
+                            "text": text.strip(),
+                            "color": "yellow" if stroke == (1, 1, 0) else "green" if stroke == (0, 1, 0) else "red",
+                        }
+                    )
+                annot = annot.next
+        doc.close()
+    except Exception as exc:
+        logger.error(f"Failed to parse highlights: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to parse highlights")
+
+    # attach criterion ids from project results if possible
+    project = project_service.get_project(project_id)
+    if project and project.validation_results:
+        criteria = _criteria_for_file(project, filename)
+        if len(criteria) == 1:
+            for h in highlights:
+                h["criterion_id"] = criteria[0]
+
+    return {"document": filename, "highlights": highlights}
+
+
+@router.get("/{project_id}/documents/annotated/{filename:path}")
+async def download_annotated_document(project_id: str, filename: str):
+    _safe_filename(filename)
+    annotated_dir = DATA_DIR / "input" / project_id / "annotated"
+    file_path = annotated_dir / filename
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail=f"Annotated file not found: {file_path}")
+
+    media_type = None
+    if filename.lower().endswith(".pdf"):
+        media_type = "application/pdf"
+    elif filename.lower().endswith(".docx"):
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    elif filename.lower().endswith(".xlsx"):
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif filename.lower().endswith(".json"):
+        media_type = "application/json"
+    else:
+        media_type = "application/octet-stream"
+
+    return FileResponse(file_path, media_type=media_type, filename=filename)
+
+
+@router.get("/{project_id}/documents/compare")
+async def compare_documents(project_id: str, original: str, annotated: str):
+    _safe_filename(original)
+    _safe_filename(annotated)
+
+    base = DATA_DIR / "input" / project_id
+    original_path = base / "uploads" / original
+    annotated_path = base / "annotated" / annotated
+
+    if not original_path.exists() or not annotated_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    def size_mb(path: Path) -> float:
+        return round(path.stat().st_size / (1024 * 1024), 2)
+
+    def page_count(path: Path) -> int:
+        if path.suffix.lower() == ".pdf":
+            try:
+                doc = fitz.open(path)
+                count = len(doc)
+                doc.close()
+                return count
+            except Exception:
+                return 0
+        return 0
+
+    highlights_count = _count_pdf_highlights(annotated_path) if annotated_path.suffix.lower() == ".pdf" else 0
+    criteria = _criteria_for_file(project_service.get_project(project_id), annotated_path.name)
+
+    return {
+        "original": {
+            "filename": original,
+            "size_mb": size_mb(original_path),
+            "pages": page_count(original_path),
+            "download_url": f"/api/projects/{project_id}/documents/uploads/{original}",
+        },
+        "annotated": {
+            "filename": annotated,
+            "size_mb": size_mb(annotated_path),
+            "pages": page_count(annotated_path),
+            "download_url": f"/api/projects/{project_id}/documents/annotated/{annotated}",
+            "highlights_count": highlights_count,
+            "criteria": criteria,
+        },
+    }
 

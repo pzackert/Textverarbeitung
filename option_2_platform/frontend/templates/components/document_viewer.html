@@ -1,20 +1,20 @@
 <div class="h-full flex flex-col bg-gray-100">
-    <!-- Simple Header -->
-    <div class="bg-white border-b px-4 py-2 flex justify-between items-center shadow-sm">
+    <!-- Header -->
+    <div class="bg-white border-b px-4 py-2 flex justify-between items-center shadow-sm z-10 relative">
         <span class="text-sm font-medium text-gray-700" id="current-doc-name">Kein Dokument ausgewählt</span>
 
         <div class="flex items-center gap-3">
             <!-- View Toggle -->
-            <div id="view-toggle-container" class="hidden flex bg-gray-100 rounded-lg p-1">
+            <div id="view-toggle-container" class="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
                 <button onclick="toggleView('original')" id="btn-original"
-                    class="px-3 py-1 text-xs font-medium rounded-md bg-white shadow-sm text-gray-800 transition-all">Original</button>
-                <button onclick="toggleView('annotated')" id="btn-annotated"
-                    class="px-3 py-1 text-xs font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all">Annotiert</button>
+                    class="px-3 py-1 text-xs font-semibold rounded bg-white shadow text-gray-900 border">Original</button>
+                <button onclick="toggleView('annotated')" id="btn-annotated" disabled
+                    class="px-3 py-1 text-xs font-medium rounded text-gray-300 cursor-not-allowed">Annotiert</button>
             </div>
 
             <a id="download-link" href="#" target="_blank"
-                class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 hidden">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 hidden">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
@@ -24,25 +24,46 @@
     </div>
 
     <!-- Viewer Container -->
-    <div class="flex-1 relative bg-gray-200 p-4 overflow-hidden" id="viewer-container">
-        <!-- Iframe for PDF -->
-        <iframe id="doc-viewer-frame" src="about:blank" class="w-full h-full rounded shadow-lg bg-white hidden"
-            frameborder="0">
-        </iframe>
+    <div class="flex-1 relative bg-gray-200 overflow-hidden flex flex-col" id="viewer-container">
 
-        <!-- Div for HTML Content (XLSX, DOCX, Text) -->
-        <div id="doc-viewer-content"
-            class="w-full h-full rounded shadow-lg bg-white p-8 overflow-auto hidden prose max-w-none"></div>
+        <!-- PDF Viewer -->
+        <div id="pdf-viewer-container" class="w-full h-full flex flex-col hidden bg-gray-500 overflow-hidden relative">
+            <!-- Toolbar -->
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800/90 backdrop-blur text-white px-4 py-1.5 rounded-full flex items-center gap-4 shadow-lg z-20 transition-all opacity-0 hover:opacity-100 group-hover:opacity-100"
+                id="pdf-toolbar">
+                <button onclick="changePdfPage(-1)"
+                    class="hover:text-blue-300 disabled:opacity-50 text-xs uppercase font-bold"
+                    id="pdf-prev">Prev</button>
+                <span class="text-xs font-mono">
+                    <span id="pdf-page-num">1</span> / <span id="pdf-page-count">?</span>
+                </span>
+                <button onclick="changePdfPage(1)"
+                    class="hover:text-blue-300 disabled:opacity-50 text-xs uppercase font-bold"
+                    id="pdf-next">Next</button>
+            </div>
+
+            <!-- Canvas is appended here by JS -->
+            <div class="flex-1 overflow-auto flex justify-center bg-gray-500 p-8 group" id="pdf-scroll-container">
+                <!-- PDFRenderer appends canvas -->
+            </div>
+        </div>
+
+        <!-- Generic Content Viewer (DOCX, XLSX, TXT) -->
+        <div id="doc-viewer-content" class="w-full h-full bg-white hidden overflow-auto relative">
+        </div>
 
         <!-- Placeholder State -->
         <div id="viewer-placeholder" class="absolute inset-0 flex items-center justify-center bg-gray-50">
             <div class="text-center">
-                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                    </path>
-                </svg>
-                <p class="text-gray-500">Wähle ein Dokument aus der Liste</p>
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+                </div>
+                <p class="text-gray-500 font-medium">Wähle ein Dokument aus der Liste</p>
+                <p class="text-xs text-gray-400 mt-1">Unterstützt: PDF, Word, Excel, Text</p>
             </div>
         </div>
     </div>

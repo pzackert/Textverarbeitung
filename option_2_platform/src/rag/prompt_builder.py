@@ -21,16 +21,18 @@ class PromptBuilder:
         self,
         query: str,
         template_type: str = "standard",
-        metadata_filter: Optional[Dict[str, Any]] = None
+        metadata_filter: Optional[Dict[str, Any]] = None,
+        results: Optional[List[Dict[str, Any]]] = None
     ) -> str:
         """
         Build complete prompt for query.
-        Retrieves context and formats prompt.
+        Retrieves context (if not provided) and formats prompt.
         
         Args:
             query: User query or criteria
-            template_type: Type of template to use ("standard", "evaluation", "summary")
+            template_type: Type of template to use
             metadata_filter: Optional filters for retrieval
+            results: Pre-retrieved results (optional optimization)
             
         Returns:
             Formatted prompt string ready for LLM
@@ -47,13 +49,12 @@ class PromptBuilder:
             template = PromptTemplate.standard_query()
             
         # 2. Retrieve Context
-        # For summary, we might want to retrieve differently (e.g. all chunks of a doc),
-        # but for now we use standard retrieval.
-        results = self.retrieval_engine.retrieve(
-            query=query,
-            top_k=self.config.top_k, # Use config top_k
-            metadata_filter=metadata_filter
-        )
+        if results is None:
+            results = self.retrieval_engine.retrieve(
+                query=query,
+                top_k=self.config.top_k, 
+                metadata_filter=metadata_filter
+            )
         
         # 3. Format Context
         context_str = format_context(results, include_scores=False) # Config could be used here

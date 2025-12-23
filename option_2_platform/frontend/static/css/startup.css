@@ -1,0 +1,222 @@
+/* 3D Container Setup - Apple Style Light Theme */
+body {
+    background-color: #F5F5F7;
+    /* Apple Light Gray */
+    color: #1D1D1F;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
+    margin: 0;
+    overflow: hidden;
+}
+
+.scene {
+    width: 100vw;
+    height: 100vh;
+    perspective: 2000px;
+    /* Deep perspective for giant wheel */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0;
+    overflow: hidden;
+}
+
+/* Header - Centered & Larger */
+.startup-header {
+    position: absolute;
+    top: 5vh;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    z-index: 1000;
+    /* Above wheel */
+    transition: all 0.5s ease;
+}
+
+.startup-header h1 {
+    font-size: 2.5rem;
+    /* Larger */
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: #1D1D1F;
+    margin: 0 0 8px 0;
+}
+
+.startup-header p {
+    color: #86868B;
+    font-size: 1.0625rem;
+    font-weight: 400;
+    margin: 0;
+}
+
+/* 3D Carousel */
+.carousel {
+    width: 600px;
+    height: 0px;
+    /* Virtual center for the wheel */
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    margin-top: 50px;
+    /* Shift down slightly */
+}
+
+.card {
+    position: absolute;
+    width: 500px;
+    /* Slightly narrower */
+    height: 100px;
+    /* Sleeker height */
+    left: 50px;
+    /* Center in 600px container */
+    top: -50px;
+    /* Center on axis */
+
+    /* Glassmorphism / Apple Card Style */
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    /* Subtle border */
+    border-radius: 18px;
+
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    transform-style: preserve-3d;
+    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+
+    /* Soft Shadow suitable for light mode */
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08),
+        0 4px 12px -2px rgba(0, 0, 0, 0.04);
+
+    backface-visibility: hidden;
+}
+
+/* Typography & Layout inside Card */
+.card-icon {
+    font-size: 2rem;
+    margin-right: 20px;
+    width: 50px;
+    text-align: center;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.card-content {
+    flex: 1;
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #1D1D1F;
+}
+
+.card-status {
+    font-size: 0.8125rem;
+    /* Smaller, cleaner */
+    color: #86868B;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 500;
+}
+
+.timestamp {
+    font-family: -apple-system, monospace;
+    color: #86868B;
+    opacity: 0.8;
+}
+
+/* Status Indicators */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 16px;
+    /* Right aligned */
+    background-color: #D1D1D6;
+    /* System Gray 4 */
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-indicator.loading {
+    background-color: #0071e3;
+    /* SF Blue */
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.status-indicator.ready {
+    background-color: #34C759;
+    /* SF Green */
+    box-shadow: none;
+}
+
+.status-indicator.error {
+    background-color: #FF3B30;
+    /* SF Red */
+}
+
+/* Progress Bar - Minimalist */
+.progress-container {
+    height: 3px;
+    background: #E5E5EA;
+    /* System Gray 5 */
+    border-radius: 1.5px;
+    margin-top: 10px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #0071e3;
+    width: 0%;
+    transition: width 0.4s ease-out;
+    border-radius: 1.5px;
+}
+
+/* Animations & States */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Card States handled by JS logic */
+/* Active: Front and center */
+.card.active {
+    background: #FFFFFF;
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.12),
+        0 8px 24px -4px rgba(0, 0, 0, 0.06);
+    z-index: 100;
+}
+
+/* Done: Moved back/up, slightly faded but visible */
+.card.done {
+    background: rgba(255, 255, 255, 0.6);
+    opacity: 0.8;
+    filter: grayscale(0.2);
+}
+
+/* Pending/Upcoming: Faded */
+.card:not(.active):not(.done) {
+    opacity: 0.4;
+    transform: translateY(150px) translateZ(-200px) rotateX(-20deg);
+    /* Initial state override if needed */
+}

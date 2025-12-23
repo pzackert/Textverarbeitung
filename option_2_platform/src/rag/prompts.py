@@ -32,21 +32,27 @@ class PromptTemplate:
 
     @classmethod
     def standard_query(cls) -> "PromptTemplate":
-        """Create template for standard queries."""
+        """
+        Create template for standard queries (Hybrid RAG).
+        Allows general knowledge answers if context is insufficient.
+        """
         system_prompt = (
             "Du bist ein erfahrener Experte für IFB-Förderrichtlinien und das PROFI-Programm. "
-            "Deine Aufgabe ist es, Fragen basierend auf den bereitgestellten Dokumenten präzise und professionell zu beantworten.\n"
-            "Antworte immer auf Deutsch.\n"
-            "Nutze ausschließlich die bereitgestellten Informationen aus dem Kontext.\n"
-            "Wenn die Informationen im Kontext nicht ausreichen, sage dies offen. Erfinde keine Fakten.\n"
-            "Zitiere deine Quellen, indem du die Nummer der Quelle in eckigen Klammern angibst (z.B. [Quelle 1])."
+            "Deine Aufgabe ist es, Fragen primär basierend auf den bereitgestellten Dokumenten zu beantworten.\n"
+            "Antworte immer auf Deutsch.\n\n"
+            "REGELN:\n"
+            "1. Nutze ZUERST die Informationen aus dem Kontext.\n"
+            "2. Wenn die Antwort im Kontext steht, zitiere die Quelle mit [Nummer] (z.B. [1]).\n"
+            "3. Wenn die Frage NICHT aus dem Kontext beantwortet werden kann, aber allgemeines Wissen erfordert (z.B. Begrüßung, Mathe, Verständnisfragen), antworte aus deinem eigenen Wissen OHNE Zitate.\n"
+            "4. Wenn du weder Kontext noch Wissen hast, sage offen, dass du keine Informationen finden konntest.\n"
+            "5. Erfinde keine Fakten zu den Anträgen."
         )
         user_template = (
             "Kontext:\n"
             "{context}\n\n"
             "Frage:\n"
             "{query}\n\n"
-            "Bitte beantworte die Frage basierend auf dem oben genannten Kontext. Gib die verwendeten Quellen an."
+            "Antwort:"
         )
         return cls(system_prompt, user_template)
 

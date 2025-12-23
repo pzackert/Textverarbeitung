@@ -48,6 +48,10 @@ class CriteriaService:
                 return c
         return None
 
+    def get_criterion(self, criterion_id: str) -> Optional[Criterion]:
+        """Backward-compatible alias for get_by_id."""
+        return self.get_by_id(criterion_id)
+
     def create(self, request: CreateCriterionRequest) -> Criterion:
         criteria = self.get_all()
         if any(c.id == request.id for c in criteria):

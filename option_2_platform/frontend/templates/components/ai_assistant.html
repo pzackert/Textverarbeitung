@@ -1,28 +1,4 @@
-<div class="review-assistant h-full flex flex-col bg-gray-50" x-data="{ 
-    activeView: 'chat', 
-    showConfirmation: false,
-    criteria: [
-        { id: 'K001', title: 'Betriebsstätte Hamburg', desc: 'Der Antragsteller muss eine Betriebsstätte in Hamburg nachweisen.', status: 'success', statusText: 'Erfüllt', checked: true },
-        { id: 'K002', title: 'KMU-Status', desc: 'Unternehmen muss KMU-Kriterien erfüllen (Mitarbeiter, Umsatz).', status: 'success', statusText: 'Erfüllt', checked: true },
-        { id: 'K003', title: 'Innovationsgehalt', desc: 'Das Vorhaben muss einen deutlichen Innovationsgehalt aufweisen.', status: 'warning', statusText: 'Prüfung', checked: false },
-        { id: 'K004', title: 'Finanzielle Machbarkeit', desc: 'Gesamtfinanzierung muss gesichert sein.', status: 'pending', statusText: 'Offen', checked: false },
-        { id: 'K005', title: 'Marktpotenzial', desc: 'Verwertungschancen und Zielmarkt müssen plausibel sein.', status: 'pending', statusText: 'Offen', checked: false },
-        { id: 'K006', title: 'Qualifikation', desc: 'Das Team muss über notwendige Qualifikationen verfügen.', status: 'pending', statusText: 'Offen', checked: false }
-    ],
-    confirmReview() {
-        // Logic to update project status would go here (HTMX request likely)
-        // For visual feedback:
-        htmx.ajax('POST', '/projects/{{ project.id }}/complete_review', {swap: 'none'});
-        this.showConfirmation = false;
-        // Optional: show toast
-        const toast = document.createElement('div');
-        toast.className = 'fixed bottom-5 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-bounce';
-        toast.innerText = 'Prüfung erfolgreich abgeschlossen!';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-}">
-
+<div class="review-assistant h-full flex flex-col bg-gray-50" x-data="assistantOne">
     <!-- Header Bar: Toggle Switch -->
     <div
         class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 flex-none z-10 transition-all duration-300">
@@ -64,65 +40,49 @@
         <!-- Quick Action Bar -->
         <div
             class="px-4 py-3 bg-white border-b border-gray-200 flex gap-2 overflow-x-auto flex-none shadow-sm z-10 scrollbar-hide">
-            <button
-                class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-full hover:bg-primary-700 whitespace-nowrap transition-colors flex-shrink-0"
-                hx-post="/projects/{{ project.id }}/analyze" hx-target="#chat-messages" hx-swap="beforeend"
-                hx-indicator="#thinking-indicator"
-                hx-on::after-request="document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;">
+            <button @click="checkAllCriteria()"
+                class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-full hover:bg-primary-700 whitespace-nowrap transition-colors flex-shrink-0">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
                 Alle Kriterien prüfen
             </button>
+            <!-- Other actions can be hooked similarly or left as dummy for now -->
             <button
                 class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 whitespace-nowrap transition-colors flex-shrink-0 border border-gray-200">Förderwürdig</button>
             <button
                 class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 whitespace-nowrap transition-colors flex-shrink-0 border border-gray-200">Förderfähig</button>
-            <button
-                class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 whitespace-nowrap transition-colors flex-shrink-0 border border-gray-200">Option
-                1</button>
-            <button
-                class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 whitespace-nowrap transition-colors flex-shrink-0 border border-gray-200">Option
-                2</button>
+        </div>
+
+        <!-- Status Message for RAG (Use Case B1) -->
+        <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 text-xs text-gray-500 text-center"
+            id="rag-status-msg">
+            Wissensbasis wird geladen...
         </div>
 
         <!-- Chat Messages -->
         <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-            {% if chat_history %}
-            {% for msg in chat_history %}
-            {% include "partials/chat_message.html" with context %}
-            {% endfor %}
-            {% else %}
-            <div class="flex w-full justify-start">
-                <div
-                    class="max-w-[85%] rounded-lg px-4 py-2 shadow-sm bg-white border border-gray-200 text-gray-800 rounded-bl-none prose prose-sm">
-                    {{ greeting_message }}
-                </div>
-            </div>
-            {% endif %}
+            <!-- Messages will be injected here by chat.js via DOM manipulation and loadHistory -->
+        </div>
 
-            <!-- Thinking Indicator -->
-            <div id="thinking-indicator" class="htmx-indicator flex w-full justify-start">
-                <div
-                    class="max-w-[85%] rounded-lg px-4 py-2 shadow-sm bg-white border border-gray-200 text-gray-500 rounded-bl-none flex items-center gap-2">
-                    <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none"
-                        viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                        </circle>
-                        <path class="opacity-75" fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                    </svg>
-                    <span class="text-sm">Analysiere...</span>
+        <!-- Thinking Indicator (Managed by chat.js) -->
+        <!-- Thinking Indicator (Managed by chat.js) -->
+        <div id="thinking-indicator" class="hidden" style="display: none;">
+            <div class="flex w-full justify-start px-4 pb-4">
+                <div class="bg-gray-100 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm border border-gray-100">
+                    <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Chat Input -->
         <div class="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-10">
-            <form hx-post="/projects/{{ project.id }}/chat" hx-target="#chat-messages" hx-swap="beforeend"
-                hx-indicator="#thinking-indicator"
-                hx-on::after-request="this.reset(); document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;">
+            <!-- Standard Form - Caught by chat.js -->
+            <form>
                 <div class="relative rounded-md shadow-sm">
                     <input type="text" name="message"
                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-3 pl-4 pr-12"
@@ -149,14 +109,29 @@
         x-transition:enter-end="opacity-100 transform translate-x-0" style="display: none;">
 
         <!-- Catalog Action Bar -->
-        <div class="px-6 py-4 bg-white border-b border-gray-200 flex justify-end">
+        <div class="px-6 py-4 bg-white border-b border-gray-200 flex justify-between items-center">
+            <div>
+                <template x-if="isBulkEvaluating">
+                    <div class="flex items-center gap-2 text-primary-600 text-sm">
+                        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span x-text="bulkStatusText">Prüfe Kriterien...</span>
+                    </div>
+                </template>
+            </div>
+
             <button
                 class="text-sm text-primary-600 font-medium hover:text-primary-700 flex items-center gap-1 transition-colors"
-                @click="criteria.forEach(c => c.checked = true)">
+                @click="checkAllCriteria()" :disabled="isBulkEvaluating" :class="isBulkEvaluating ? 'opacity-50' : ''">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                Alle Kriterien bestätigen
+                Alle prüfen
             </button>
         </div>
 
@@ -168,8 +143,9 @@
                     <div class="bg-white rounded-lg border p-4 transition-all duration-200 hover:shadow-md relative group flex flex-col"
                         :class="{
                             'border-green-200 bg-green-50/20': item.status === 'success',
+                            'border-red-200 bg-red-50/20': item.status === 'fail',
                             'border-yellow-200 bg-yellow-50/20': item.status === 'warning',
-                            'border-gray-200 bg-white': item.status === 'pending'
+                            'border-gray-200 bg-white': item.status === 'pending' || !item.status
                          }">
 
                         <!-- Header Line -->
@@ -178,8 +154,9 @@
                                 class="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset"
                                 :class="{
                                     'bg-green-100 text-green-700 ring-green-600/20': item.status === 'success',
+                                    'bg-red-100 text-red-700 ring-red-600/20': item.status === 'fail',
                                     'bg-yellow-100 text-yellow-800 ring-yellow-600/20': item.status === 'warning',
-                                    'bg-gray-100 text-gray-600 ring-gray-500/10': item.status === 'pending'
+                                    'bg-gray-100 text-gray-600 ring-gray-500/10': item.status === 'pending' || !item.status
                                   }" x-text="item.id">
                             </span>
 
@@ -187,21 +164,31 @@
                                 <!-- Status Text -->
                                 <span class="text-xs font-semibold flex items-center gap-1" :class="{
                                         'text-green-700': item.status === 'success',
+                                        'text-red-700': item.status === 'fail',
                                         'text-yellow-800': item.status === 'warning',
-                                        'text-gray-500': item.status === 'pending'
+                                        'text-gray-500': item.status === 'pending' || !item.status
                                       }">
                                     <span x-show="item.status === 'success'">✓</span>
+                                    <span x-show="item.status === 'fail'">✕</span>
                                     <span x-show="item.status === 'warning'">⚠</span>
-                                    <span x-text="item.statusText"></span>
+                                    <span x-show="!item.status || item.status === 'pending'">?</span>
+                                    <span x-text="statusLabel(item.status)"></span>
                                 </span>
 
                                 <!-- Restart Button -->
-                                <button
+                                <button @click="checkSingle(item.id)"
                                     class="p-1 text-gray-400 hover:text-primary-600 hover:bg-gray-100 rounded-full transition-colors"
                                     title="Neu prüfen">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    <svg class="w-4 h-4" :class="item.isLoading ? 'animate-spin text-primary-600' : ''"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path x-show="!item.isLoading" stroke-linecap="round" stroke-linejoin="round"
+                                            stroke-width="2"
                                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                        </path>
+                                        <circle x-show="item.isLoading" class="opacity-25" cx="12" cy="12" r="10"
+                                            stroke="currentColor" stroke-width="4"></circle>
+                                        <path x-show="item.isLoading" class="opacity-75" fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                                         </path>
                                     </svg>
                                 </button>
@@ -209,15 +196,32 @@
                         </div>
 
                         <!-- Content -->
-                        <h4 class="font-semibold text-gray-900 text-sm mb-1" x-text="item.title"></h4>
-                        <p class="text-xs text-gray-600 leading-relaxed mb-4 flex-1" x-text="item.desc"></p>
+                        <h4 class="font-semibold text-gray-900 text-sm mb-1"
+                            x-text="item.title || ('Kriterium ' + item.id)"></h4>
+                        <p class="text-xs text-gray-600 leading-relaxed mb-4 flex-1"
+                            x-text="item.reason || item.desc || 'Noch nicht geprüft.'"></p>
+
+                        <!-- Sources/Evidence -->
+                        <template x-if="item.evidence && item.evidence.length > 0">
+                            <div class="mt-2 pt-2 border-t border-gray-100 text-xs">
+                                <span class="text-gray-500 font-medium">Evidenz:</span>
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    <template x-for="ev in item.evidence">
+                                        <span
+                                            class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 truncate max-w-[150px]"
+                                            x-text="ev.dokument || 'Dokument'"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
 
                         <!-- Manual Confirmation Checkbox -->
                         <div class="mt-2 pt-3 border-t border-gray-100/50 flex items-center gap-2">
+                            <!-- Only checking visual state here, actual verification is via API -->
                             <input type="checkbox" :id="'check-' + item.id" x-model="item.checked"
                                 class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 h-4 w-4 cursor-pointer">
                             <label :for="'check-' + item.id"
-                                class="text-xs text-gray-600 select-none cursor-pointer">Manuell geprüft</label>
+                                class="text-xs text-gray-600 select-none cursor-pointer">Gesehen / Bestätigt</label>
                         </div>
                     </div>
                 </template>
@@ -266,6 +270,7 @@
 
                     <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
+                            <!-- Icon -->
                             <div
                                 class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
                                 <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -281,16 +286,6 @@
                                     <p class="text-sm text-gray-500 mb-4">
                                         Achtung: Dies ist eine verbindliche Bestätigung der Antragsbearbeitung.
                                     </p>
-                                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
-                                        <div class="flex">
-                                            <div class="ml-1">
-                                                <p class="text-xs text-yellow-700 font-medium">
-                                                    Bitte bestätigen Sie, dass alle Kriterien sorgfältig geprüft wurden
-                                                    und der Antrag zur finalen Entscheidung freigegeben werden kann.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -306,10 +301,9 @@
                                 class="text-sm text-gray-700 font-medium cursor-pointer select-none">Ich bestätige die
                                 vollständige Prüfung</label>
                         </div>
-
                         <div class="flex flex-row-reverse gap-2 w-full mt-2">
                             <button type="button" @click="confirmReview()" id="btn-finish"
-                                class="inline-flex w-full justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 sm:ml-3 sm:w-auto transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                class="inline-flex w-full justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 sm:ml-3 sm:w-auto transition-colors">
                                 Ja, Prüfung abschließen
                             </button>
                             <button type="button" @click="showConfirmation = false"
@@ -323,3 +317,146 @@
         </div>
     </template>
 </div>
+
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('assistantOne', () => ({
+            activeView: 'chat',
+            showConfirmation: false,
+            isBulkEvaluating: false,
+            bulkStatusText: '',
+            criteria: [],
+
+            async init() {
+                // Load criteria definitions + Any existing results
+                // Use Case C3
+                if (window.fetchCriteriaResults) {
+                    const results = await window.fetchCriteriaResults();
+                    // results = { criteria_results: { 'ID': { status, reason, ...} } }
+                    // We also need definitions. We assume definitions are hardcoded or fetched?
+                    // backend criteria.py list_criteria -> GET /api/criteria
+                    await this.loadDefinitions(results);
+                }
+            },
+
+            async loadDefinitions(results) {
+                try {
+                    // Fetch definitions
+                    const res = await fetch('/api/criteria');
+                    if (!res.ok) throw new Error('Failed to load criteria defs');
+                    const defs = await res.json(); // Array of criteria objects
+
+                    // Merge with results
+                    this.criteria = defs.map(def => {
+                        const resData = results && results.criteria_results ? results.criteria_results[def.id] : null;
+                        return {
+                            id: def.id,
+                            title: def.name || def.title,
+                            desc: def.question || def.description,
+                            status: resData ? resData.status : 'pending',
+                            reason: resData ? resData.reason : null,
+                            evidence: resData ? resData.evidence : [],
+                            checked: false,
+                            isLoading: false
+                        };
+                    });
+                } catch (e) {
+                    console.error(e);
+                    // Fallback / Error state
+                }
+            },
+
+            statusLabel(status) {
+                const labels = {
+                    'success': 'Erfüllt',
+                    'fail': 'Nicht erfüllt',
+                    'warning': 'Warnung',
+                    'pending': 'Offen',
+                    'unknown': 'Unbekannt'
+                };
+                return labels[status] || 'Offen';
+            },
+
+            async checkSingle(id) {
+                const item = this.criteria.find(c => c.id === id);
+                if (!item || item.isLoading) return;
+
+                item.isLoading = true;
+                try {
+                    // Use Case C1
+                    if (window.evaluateCriterion) {
+                        const res = await window.evaluateCriterion(id);
+                        // Update item
+                        item.status = res.status; // 'success' | 'fail' | 'warning'
+                        item.reason = res.message;
+                        item.evidence = (res.annotations || []).map(a => ({ dokument: a.annotated_file || 'Dokument' }));
+                    }
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    item.isLoading = false;
+                }
+            },
+
+            async checkAllCriteria() {
+                if (this.isBulkEvaluating) return;
+                this.isBulkEvaluating = true;
+                this.activeView = 'catalog'; // Switch view to show progress
+                this.bulkStatusText = 'Starte Prüfung...';
+
+                try {
+                    // Use Case C2
+                    if (window.evaluateAllCriteria) {
+                        const job = await window.evaluateAllCriteria();
+                        this.pollJob(job.job_id);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    this.isBulkEvaluating = false;
+                }
+            },
+
+            async pollJob(jobId) {
+                const interval = setInterval(async () => {
+                    try {
+                        const status = await window.pollBulkStatus(jobId);
+
+                        // Update UI based on progress
+                        const completed = status.progress.completed;
+                        const total = status.progress.total;
+                        this.bulkStatusText = `Prüfung: ${completed} / ${total}`;
+
+                        // Update individual items if possible
+                        if (status.progress.results) {
+                            status.progress.results.forEach(r => {
+                                const item = this.criteria.find(c => c.id === r.criterion_id);
+                                if (item) {
+                                    item.status = r.status === 'error' ? 'fail' : r.status; /* map status? */
+                                    // We don't get reason in poll status usually, only final status.
+                                    // Maybe we need final refresh
+                                }
+                            });
+                        }
+
+                        if (status.status === 'completed' || status.status === 'failed') {
+                            clearInterval(interval);
+                            this.isBulkEvaluating = false;
+                            // Refresh all to get details (reasons, evidence)
+                            const results = await window.fetchCriteriaResults();
+                            await this.loadDefinitions(results);
+                        }
+                    } catch (e) {
+                        clearInterval(interval);
+                        this.isBulkEvaluating = false;
+                    }
+                }, 1000);
+            },
+
+            confirmReview() {
+                // Placeholder logic
+                this.showConfirmation = false;
+                alert('Prüfung abgeschlossen (Demo)');
+            }
+        }));
+    });
+</script>

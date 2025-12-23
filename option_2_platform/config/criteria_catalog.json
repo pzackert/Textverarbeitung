@@ -1,6 +1,5 @@
 {
   "version": "1.0",
-  "last_updated": "2025-12-16",
   "kriterien": [
     {
       "id": "K001",
@@ -145,6 +144,15 @@
       "lang": "Die technische Lösung muss bei steigender Nachfrage oder Nutzerzahl erweiterbar sein.",
       "prompt": "Bewerte die Skalierbarkeit der technischen Lösung.\n\nPrüfungsschritte:\n1. Architektur: Ist die Systemarchitektur modular/erweiterbar?\n2. Lastszenarien: Werden verschiedene Nutzungsszenarien (klein/groß) diskutiert?\n3. Erweiterbarkeit: Können Komponenten hinzugefügt werden ohne komplette Neuimplementierung?\n\nBewertung:\n- GRÜN: Skalierbarkeit explizit geplant und Architektur dafür ausgelegt.\n- GELB: Grundlegende Skalierbarkeit gegeben, aber nicht optimal.\n- ROT: Nicht skalierbar oder Skalierung würde Neuentwicklung erfordern.",
       "recommended": false
+    },
+    {
+      "id": "K_TEST_AUTO",
+      "name": "Hamburg PLZ Suche",
+      "kategorie": "formale_voraussetzung",
+      "kurz": "Hamburger Postleitzahl",
+      "lang": "Suche nach Hamburger PLZ (20xxx oder 21xxx)",
+      "prompt": "Suche nach Hamburger Postleitzahl (20xxx oder 21xxx). Bewerte GRÜN bei Fund.",
+      "recommended": true
     }
   ]
 }

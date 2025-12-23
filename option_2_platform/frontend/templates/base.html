@@ -265,6 +265,67 @@
 
     <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-[200] space-y-2"></div>
+
+    <!-- System Loading Overlay (Use Case A1 & A6) -->
+    <div id="system-loading-overlay"
+        class="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center transition-opacity duration-300"
+        style="display: none;">
+        <div class="text-center p-8 max-w-md">
+            <!-- Loading State -->
+            <div id="loading-content">
+                <div class="mb-6 relative flex justify-center">
+                    <div class="w-16 h-16 border-4 border-gray-100 rounded-full"></div>
+                    <div
+                        class="w-16 h-16 border-primary-600 rounded-full border-4 border-t-transparent animate-spin absolute top-0">
+                    </div>
+                </div>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">System wird gestartet</h2>
+                <p id="loading-text" class="text-gray-500 text-sm mb-4">Initialisiere Komponenten...</p>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
+                    <div id="loading-progress" class="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                        style="width: 0%"></div>
+                </div>
+                <p id="loading-details" class="text-xs text-gray-400 font-mono"></p>
+            </div>
+
+            <!-- Error State -->
+            <div id="error-content" class="hidden">
+                <div
+                    class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-gray-900 mb-2">System nicht verfügbar</h2>
+                <p id="error-text" class="text-gray-500 text-sm mb-6">LLM-Service konnte nicht erreicht werden.</p>
+                <button onclick="window.location.reload()"
+                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+                    Erneut versuchen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Global Toast Notification Handler
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            if (evt.detail.target.id === 'toast-container') {
+                // Auto-remove toasts after 3s
+                const toasts = evt.detail.target.children;
+                for (let toast of toasts) {
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>

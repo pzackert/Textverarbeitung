@@ -54,6 +54,17 @@
     <!-- Custom CSS for Review Cockpit -->
     <link rel="stylesheet" href="{{ url_for('static', path='/css/review-cockpit.css') }}">
 
+    <!-- Core Libs -->
+    <script src="{{ url_for('static', path='/js/libs/pdf.min.js') }}"></script>
+
+    <!-- Viewer Components -->
+    <script src="{{ url_for('static', path='/js/viewer/ReviewState.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/viewer/renderers/PdfRenderer.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/viewer/renderers/DocxRenderer.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/viewer/renderers/XlsxRenderer.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/viewer/renderers/TextRenderer.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/viewer/DocumentViewer.js') }}"></script>
+
     <!-- Review Logic -->
     <script src="{{ url_for('static', path='/js/review.js') }}"></script>
 
@@ -114,12 +125,45 @@
 
                     {% for doc in project.documents %}
                     <button class="file-item {% if loop.first %}active{% endif %}" data-doc-id="{{ doc.id }}"
-                        data-filename="{{ doc.filename }}" onclick="loadDocument('{{ doc.id }}', '{{ doc.filename }}')">
-                        <div class="file-icon-wrapper">
-                            <div class="file-icon">
+                        data-filename="{{ doc.filename }}" onclick="loadDocument('{{ doc.filename }}')">
+                        <div class="file-icon-wrapper relative" id="doc-wrapper-{{ doc.filename | replace('.', '_') }}">
+                            <!-- Default Icon (Static) -->
+                            <div class="file-icon status-icon-static transition-opacity duration-300">
                                 {% if doc.filename.lower().endswith('.pdf') %}📕{% elif
                                 doc.filename.lower().endswith('.docx') %}📄{% elif
                                 doc.filename.lower().endswith('.xlsx') %}📊{% else %}📎{% endif %}
+                            </div>
+
+                            <!-- Loading Spinner (Absolute Overlay) -->
+                            <div
+                                class="status-icon-loading absolute inset-0 flex items-center justify-center bg-white/80 rounded-full opacity-0 transition-opacity duration-300 pointer-events-none">
+                                <svg class="animate-spin h-5 w-5 text-primary-500" xmlns="http://www.w3.org/2000/svg"
+                                    fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                            </div>
+
+                            <!-- Success Check (Absolute Overlay) -->
+                            <div
+                                class="status-icon-success absolute inset-0 flex items-center justify-center bg-white rounded-full opacity-0 transition-opacity duration-300 pointer-events-none">
+                                <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+
+                            <!-- Error X (Absolute Overlay) -->
+                            <div
+                                class="status-icon-error absolute inset-0 flex items-center justify-center bg-white rounded-full opacity-0 transition-opacity duration-300 pointer-events-none">
+                                <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
                             </div>
                         </div>
                         <div
@@ -154,35 +198,7 @@
         </aside>
     </div>
 
-    <script>
-        // Available documents for checking existence of annotated versions
-        window.projectFiles = {{ project.documents | map(attribute = 'filename') | list | tojson }};
 
-        // Simple document loader stub - will be replaced by full implementation
-        function loadDocument(docId, filename) {
-            // Update active state in sidebar
-            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
-            } else {
-                // Find button by docId if called programmatically
-                const btn = document.querySelector(`button[onclick*="${docId}"]`);
-                if (btn) btn.classList.add('active');
-            }
-
-            // Load PDF in viewer
-            if (window.renderDocument) {
-                window.renderDocument(filename);
-            }
-        }
-
-        // Auto-load first document if available
-        {% if project.documents %}
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDocument('{{ project.documents[0].id }}', '{{ project.documents[0].filename }}');
-        });
-        {% endif %}
-    </script>
 </body>
 
 </html>

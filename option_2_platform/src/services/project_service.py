@@ -138,8 +138,8 @@ class ProjectService:
             return None
             
         # Save file physically
-        # User requested path: data/input/<project_id>
-        project_dir = Path("data/input") / project_id
+        # User requested path: data/input/<project_id>/uploads
+        project_dir = Path("data/input") / project_id / "uploads"
         project_dir.mkdir(parents=True, exist_ok=True)
         file_path = project_dir / filename
         

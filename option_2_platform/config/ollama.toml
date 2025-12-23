@@ -19,7 +19,8 @@ base_url = "http://localhost:11434"
 # Available Ollama models:
 # - qwen2.5:7b (7.6B params, best quality, 4.6 GiB VRAM, ~0.47s response)
 # - qwen2.5:0.5b (494M params, fast, 0.5 GiB VRAM, ~0.19s response)
-default_model = "qwen2.5:7b"
+# - ministral-3b-lmshare:latest (3B params, currently installed)
+default_model = "ministral-3b-lmshare:latest"
 
 # Timeout: Maximum seconds to wait for LLM response
 timeout = 30
