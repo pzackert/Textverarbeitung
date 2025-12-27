@@ -110,11 +110,27 @@ window.toggleView = function (mode) {
     if (viewer) viewer.toggleView(mode);
 };
 
+// Global: Open Document & Jump to Page (Deep Linking)
+window.openDocumentSource = function (filename, page) {
+    // 1. Check if document exists in list
+    const doc = projectDocuments.find(d => d.filename === filename);
+    if (!doc) {
+        console.error("Deep link failed: File not found", filename);
+        // Try fallback if partial match? For now strict.
+        return;
+    }
+
+    // 2. Load Document (logic handles if already loaded, but we force page update)
+    // We reuse loadDocument but ensure page is passed
+    // If it's already loaded, DocumentViewer can optimize, but for safety we re-call it.
+    console.log(`Deep linking request: ${filename} -> Page ${page}`);
+    loadDocument(filename, 'original', page);
+};
+
 // Global: PDF Page Change
 window.changePdfPage = function (offset) {
     if (viewer && viewer.activeRenderer && viewer.activeRenderer instanceof PdfRenderer) {
-        if (offset === 1) viewer.activeRenderer.onNextPage();
-        else viewer.activeRenderer.onPrevPage();
+        viewer.activeRenderer.changePage(offset);
     }
 };
 
@@ -180,3 +196,42 @@ window.cleanupAndExit = async function (event) {
     window.location.href = '/projects';
 };
 
+
+// --- Criteria Catalog API (Restored) ---
+
+window.fetchCriteriaResults = async function () {
+    if (!ReviewState.projectId) return {};
+    try {
+        const res = await fetch(`/api/projects/${ReviewState.projectId}/criteria/results`);
+        if (!res.ok) throw new Error("Failed to fetch results");
+        return await res.json();
+    } catch (e) {
+        console.error("fetchCriteriaResults error:", e);
+        return {};
+    }
+};
+
+window.evaluateCriterion = async function (criterionId) {
+    if (!ReviewState.projectId) return;
+    const res = await fetch(`/api/projects/${ReviewState.projectId}/criteria/${criterionId}/evaluate`, {
+        method: 'POST'
+    });
+    if (!res.ok) throw new Error("Evaluation failed");
+    return await res.json();
+};
+
+window.evaluateAllCriteria = async function () {
+    if (!ReviewState.projectId) return;
+    const res = await fetch(`/api/projects/${ReviewState.projectId}/criteria/evaluate-all`, {
+        method: 'POST'
+    });
+    if (!res.ok) throw new Error("Bulk evaluation failed");
+    return await res.json();
+};
+
+window.pollBulkStatus = async function (jobId) {
+    if (!ReviewState.projectId) return;
+    const res = await fetch(`/api/projects/${ReviewState.projectId}/criteria/evaluate-all/${jobId}/status`);
+    if (!res.ok) throw new Error("Polling failed");
+    return await res.json();
+};

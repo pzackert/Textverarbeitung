@@ -48,7 +48,7 @@ class ProjectService:
         """Save all projects to JSON file."""
         with open(self.storage_path, 'w') as f:
             # Use model_dump for Pydantic v2
-            data = {pid: p.model_dump(mode='json') for pid, p in projects.items()}
+            data = {pid: p.model_dump(mode='json', exclude={'documents'}) for pid, p in projects.items()}
             json.dump(data, f, indent=2, ensure_ascii=False)
     
     def create_project(self, name: str, description: Optional[str] = None, applicant: Optional[str] = None, funding_amount: Optional[float] = None) -> Project:
@@ -128,7 +128,21 @@ class ProjectService:
         projects = self._load_projects()
         project = projects.get(project_id)
         if project:
-            return self._validate_documents(project)
+            # Dynamically populate documents from filesystem
+            uploads_dir = Path("data/input") / project_id / "uploads"
+            docs = []
+            if uploads_dir.exists():
+                for f in uploads_dir.iterdir():
+                    if f.is_file() and not f.name.startswith('.'):
+                        docs.append(Document(
+                            filename=f.name, 
+                            path=str(f), 
+                            size=f.stat().st_size,
+                            uploaded_at=datetime.fromtimestamp(f.stat().st_mtime)
+                        ))
+            project.documents = docs
+            project.doc_count = len(docs)
+            return project
         return None
 
     def save_document(self, project_id: str, filename: str, content: bytes) -> Optional[Document]:

@@ -20,7 +20,7 @@ class DocumentViewer {
         if (this.placeholder) this.placeholder.style.display = 'flex';
     }
 
-    async loadDocument(filename, format, originalUrl, annotatedUrl, hasAnnotated, initialView = 'original') {
+    async loadDocument(filename, format, originalUrl, annotatedUrl, hasAnnotated, initialView = 'original', initialPage = 1) {
         await this.stop();
         if (this.placeholder) this.placeholder.style.display = 'none';
 
@@ -44,7 +44,7 @@ class DocumentViewer {
 
         console.log(`Viewer loading: ${filename} (${ext}) -> ${urlToCheck}`);
 
-        await renderer.load(urlToCheck);
+        await renderer.load(urlToCheck, initialPage);
 
         // Update Header UI
         this.updateHeaderUI();

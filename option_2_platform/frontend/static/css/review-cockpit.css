@@ -623,3 +623,59 @@ html {
 ::-webkit-scrollbar-thumb:hover {
     background: #9CA3AF;
 }
+
+/* PDF Sidebar & Thumbnails */
+.pdf-sidebar {
+    width: 140px;
+    /* Reduced width */
+    background-color: #262626;
+    /* Dark sidebar */
+    border-right: 1px solid #404040;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+    flex-shrink: 0;
+    box-shadow: inset -5px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.pdf-thumbnail {
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    opacity: 0.7;
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.pdf-thumbnail canvas {
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    background-color: white;
+}
+
+.pdf-thumbnail:hover {
+    opacity: 1;
+    transform: scale(1.02);
+}
+
+.pdf-thumbnail.active {
+    opacity: 1;
+    border-color: #3B82F6;
+    /* Blue border */
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.pdf-thumbnail-number {
+    color: #9CA3AF;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    font-weight: 500;
+}

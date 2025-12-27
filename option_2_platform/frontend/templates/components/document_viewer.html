@@ -27,24 +27,34 @@
     <div class="flex-1 relative bg-gray-200 overflow-hidden flex flex-col" id="viewer-container">
 
         <!-- PDF Viewer -->
-        <div id="pdf-viewer-container" class="w-full h-full flex flex-col hidden bg-gray-500 overflow-hidden relative">
-            <!-- Toolbar -->
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800/90 backdrop-blur text-white px-4 py-1.5 rounded-full flex items-center gap-4 shadow-lg z-20 transition-all opacity-0 hover:opacity-100 group-hover:opacity-100"
-                id="pdf-toolbar">
-                <button onclick="changePdfPage(-1)"
-                    class="hover:text-blue-300 disabled:opacity-50 text-xs uppercase font-bold"
-                    id="pdf-prev">Prev</button>
-                <span class="text-xs font-mono">
-                    <span id="pdf-page-num">1</span> / <span id="pdf-page-count">?</span>
-                </span>
-                <button onclick="changePdfPage(1)"
-                    class="hover:text-blue-300 disabled:opacity-50 text-xs uppercase font-bold"
-                    id="pdf-next">Next</button>
+        <div id="pdf-viewer-container" class="w-full h-full flex flex-row hidden bg-gray-500 overflow-hidden relative">
+
+            <!-- Sidebar (Thumbnails) -->
+            <div id="pdf-sidebar" class="pdf-sidebar hidden md:flex">
+                <!-- Thumbnails injected here -->
             </div>
 
-            <!-- Canvas is appended here by JS -->
-            <div class="flex-1 overflow-auto flex justify-center bg-gray-500 p-8 group" id="pdf-scroll-container">
-                <!-- PDFRenderer appends canvas -->
+            <!-- Main Content Area -->
+            <div class="flex-1 relative h-full flex flex-col overflow-hidden">
+                <!-- Toolbar (Floating) -->
+                <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800/90 backdrop-blur text-white px-4 py-1.5 rounded-full flex items-center gap-4 shadow-lg z-20 transition-all opacity-0 hover:opacity-100 group-hover:opacity-100"
+                    id="pdf-toolbar">
+                    <button onclick="changePdfPage(-1)"
+                        class="hover:text-blue-300 disabled:opacity-50 text-xs uppercase font-bold"
+                        id="pdf-prev">Prev</button>
+                    <span class="text-xs font-mono">
+                        <span id="pdf-page-num">1</span> / <span id="pdf-page-count">?</span>
+                    </span>
+                    <button onclick="changePdfPage(1)"
+                        class="hover:text-blue-300 disabled:opacity-50 text-xs uppercase font-bold"
+                        id="pdf-next">Next</button>
+                </div>
+
+                <!-- Canvas Scroll Container -->
+                <div class="flex-1 overflow-auto flex flex-col items-center bg-gray-500 p-8 group"
+                    id="pdf-scroll-container">
+                    <!-- PDFRenderer appends canvas -->
+                </div>
             </div>
         </div>
 
