@@ -35,6 +35,12 @@ venv.bak/
 *~
 .DS_Store
 
+# Workspace-local artifacts
+.cursor/
+/data/
+/config/
+*.pid
+
 # Streamlit
 .streamlit/secrets.toml
 .streamlit/config.toml
