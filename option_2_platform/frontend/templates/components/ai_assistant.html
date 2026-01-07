@@ -368,6 +368,24 @@
                 window.addEventListener('criteria-updated', () => this.loadData());
             },
 
+            normalizeStatus(backendStatus) {
+                if (!backendStatus) return 'pending';
+                const map = {
+                    'grün': 'success',
+                    'green': 'success',
+                    'success': 'success',
+                    'rot': 'fail',
+                    'red': 'fail',
+                    'fail': 'fail',
+                    'gelb': 'warning',
+                    'yellow': 'warning',
+                    'warning': 'warning',
+                    'offen': 'pending',
+                    'pending': 'pending'
+                };
+                return map[backendStatus.toLowerCase()] || 'pending';
+            },
+
             async loadData() {
                 if (!this.projectId) return;
                 try {
@@ -387,7 +405,7 @@
                             id: def.id,
                             title: def.name || def.title,
                             desc: def.question || def.description,
-                            status: res ? res.status : 'pending',
+                            status: res ? this.normalizeStatus(res.status) : 'pending',
                             reason: res ? res.reason : null,
                             evidence: res ? res.evidence : [],
                             checked: false,
@@ -506,7 +524,7 @@
                     // Update local state
                     const item = this.criteria.find(c => c.id === id);
                     if (item && newRes) {
-                        item.status = newRes.status;
+                        item.status = this.normalizeStatus(newRes.status);
                         item.reason = newRes.reason;
                         item.evidence = newRes.evidence;
                     }

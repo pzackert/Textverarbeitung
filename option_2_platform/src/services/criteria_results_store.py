@@ -47,6 +47,7 @@ def _base_structure(project_id: str) -> Dict[str, Any]:
         "last_evaluation": None,
         "total_criteria": total_criteria,
         "criteria_results": {},
+        "pruefungen": [],
         "summary": {
             "total": total_criteria,
             "evaluated": 0,
@@ -68,6 +69,7 @@ def _recompute_summary(data: Dict[str, Any]) -> None:
         status = item.get("status")
         if status:
             status_counts[status] = status_counts.get(status, 0) + 1
+    data.setdefault("pruefungen", [])
     data["total_criteria"] = total
     data.setdefault("summary", {})
     data["summary"].update(
@@ -110,6 +112,23 @@ def save_criterion_result(project_id: str, criterion_result: Dict[str, Any]) -> 
     data.setdefault("criteria_results", {})
     data["criteria_results"][crit_id] = criterion_result
     data["last_evaluation"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    # Maintain array-based view for UI and docs
+    data.setdefault("pruefungen", [])
+    data["pruefungen"] = [p for p in data["pruefungen"] if p.get("criterion_id") != crit_id]
+    data["pruefungen"].append(
+        {
+            "criterion_id": criterion_result.get("criterion_id"),
+            "kriterium_id": criterion_result.get("criterion_id"),
+            "kriterium_name": criterion_result.get("criterion_name"),
+            "status": criterion_result.get("status"),
+            "begruendung": criterion_result.get("begruendung") or criterion_result.get("reason"),
+            "dokument": criterion_result.get("dokument"),
+            "referenz": criterion_result.get("referenz"),
+            "geprueft_am": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "evidence": criterion_result.get("evidence", []),
+        }
+    )
 
     _recompute_summary(data)
 

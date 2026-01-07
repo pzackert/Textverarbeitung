@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Auto-Open Logic (Deep Linking or First)
         const urlParams = new URLSearchParams(window.location.search);
         const docParam = urlParams.get('doc');
-        const viewParam = urlParams.get('view') || 'original'; // 'original' or 'annotated'
+        const viewParam = urlParams.get('view') || null; // 'original', 'annotated' or null (auto)
         const pageParam = parseInt(urlParams.get('page')) || 1;
 
         if (docParam) {
@@ -77,7 +77,7 @@ async function loadProjectDocuments(projectId) {
 }
 
 // Global: Load Document by Filename (Called from Sidebar or Deep Link)
-window.loadDocument = async function (filename, initialView = 'original', initialPage = 1) {
+window.loadDocument = async function (filename, initialView = null, initialPage = 1) {
     if (!viewer) return;
 
     // Find metadata
@@ -93,6 +93,13 @@ window.loadDocument = async function (filename, initialView = 'original', initia
     const btn = document.querySelector(`button[data-filename="${filename}"]`);
     if (btn) btn.classList.add('active');
 
+    // Determine View Mode
+    let viewMode = initialView;
+    if (!viewMode) {
+        // Auto-select: Prioritize Annotated if available
+        viewMode = doc.has_annotated ? 'annotated' : 'original';
+    }
+
     // Load in Viewer
     await viewer.loadDocument(
         doc.filename,
@@ -100,7 +107,7 @@ window.loadDocument = async function (filename, initialView = 'original', initia
         doc.original_url,
         doc.annotated_url,
         doc.has_annotated,
-        initialView,
+        viewMode,
         initialPage
     );
 };
@@ -302,9 +309,25 @@ async function evaluateCriterionSequential(criterionId) {
         // Let's manually fetch the result of that criterion and update UI?
         // Or simpler: Trigger HTMX update of the results block?
 
-        // Actually, simply reloading the "validation-results" partial is easiest.
         // Refresh the results block (server-side rendered partial)
         htmx.ajax('GET', `/projects/${ReviewState.projectId}/validation-status`, { target: '#validation-results', swap: 'innerHTML' });
+
+        // IMPORTANT: Refresh document list metadata because new annotated files might have been created!
+        await loadProjectDocuments(ReviewState.projectId);
+
+        // If currently viewing the relevant document, we might want to update the viewer UI?
+        // But for now, just updating metadata ensures next click is correct.
+        // If the current open document IS the one being evaluated, we could check and reload?
+        if (viewer && ReviewState.currentDocument) {
+            const doc = projectDocuments.find(d => d.filename === ReviewState.currentDocument.filename);
+            if (doc && doc.has_annotated && !ReviewState.currentDocument.hasAnnotated) {
+                // It just got annotated!
+                console.log("Current document became annotated, refreshing viewer state...");
+                // Reload the same document to pick up new state
+                loadDocument(doc.filename, 'annotated', ReviewState.currentPage);
+                // Note: passing 'annotated' forces switch to new view
+            }
+        }
 
     } catch (e) {
         console.error(e);
@@ -394,7 +417,7 @@ window.handleUpload = async function (event) {
 // Alias for chat.js deep linking
 window.renderDocument = function (filename, page) {
     if (window.loadDocument) {
-        window.loadDocument(filename, 'original', page || 1);
+        window.loadDocument(filename, null, page || 1);
     }
 };
 

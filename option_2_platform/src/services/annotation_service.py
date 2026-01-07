@@ -22,13 +22,20 @@ class AnnotationService:
     COLORS = {
         "success": (0, 1, 0),
         "pass": (0, 1, 0),
+        "grün": (0, 1, 0),
+        "gruen": (0, 1, 0),
+        "ok": (0, 1, 0),
         "warning": (1, 1, 0),
+        "gelb": (1, 1, 0),
         "fail": (1, 0, 0),
+        "rot": (1, 0, 0),
         "default": (1, 1, 0),
     }
 
     def _color(self, status: str) -> tuple:
-        return self.COLORS.get(status.lower(), self.COLORS["default"]) if status else self.COLORS["default"]
+        if not status:
+            return self.COLORS["default"]
+        return self.COLORS.get(status.lower(), self.COLORS["default"])
 
     def annotate_pdf(
         self,

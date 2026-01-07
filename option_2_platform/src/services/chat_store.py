@@ -66,7 +66,10 @@ def list_global_chats() -> List[Dict[str, Any]]:
 
 def load_global_chat(chat_id: str) -> Dict[str, Any]:
     for path in CHAT_DIR.glob(f"chat_*_{chat_id}.json"):
-        return _read_json(path)
+        data = _read_json(path)
+        data["file_path"] = str(path)
+        data["total_messages"] = len(data.get("messages", []))
+        return data
     raise FileNotFoundError(f"Chat {chat_id} not found")
 
 

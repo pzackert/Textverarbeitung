@@ -11,6 +11,7 @@ from src.services.criteria_results_store import (
 )
 from src.services.criteria_results_store import save_criterion_result  # for typing only
 from src.services.project_service import project_service
+from src.api.routers.queue import _load_project_into_rag
 
 router = APIRouter(prefix="/criteria", tags=["criteria"])
 eval_router = APIRouter(prefix="/projects", tags=["criteria_evaluation"])
@@ -52,6 +53,12 @@ async def delete_criterion(criterion_id: str):
 async def evaluate_criterion(project_id: str, criterion_id: str):
     """Trigger evaluation of a single criterion for a project."""
     try:
+        # Ensure RAG has the project docs before evaluation (UC1 expectation)
+        try:
+            _load_project_into_rag(project_id)
+        except Exception:
+            # soft fail: continue even if ingest fails (keeps behavior tolerant for demo)
+            pass
         return validation_service.evaluate_criterion(project_id, criterion_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))

@@ -7,7 +7,7 @@
       "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Betriebsstätte oder Sitz in Hamburg",
       "lang": "Das antragstellende Unternehmen muss seinen Sitz oder eine substanzielle Betriebsstätte in der Freien und Hansestadt Hamburg haben. Das Projekt muss überwiegend in Hamburg durchgeführt werden.",
-      "prompt": "Extrahiere aus den Unternehmensdaten (Handelsregisterauszug, Briefkopf, Impressum) die offizielle Anschrift.\r\n\r\nPrüfungsschritte:\r\n1. Suche nach der Postleitzahl (PLZ).\r\n2. Prüfe, ob die PLZ im Bereich 20000 bis 21149, 22xxx oder 21xxx (sofern Hamburger Stadtgebiet) liegt.\r\n3. Falls der Hauptsitz NICHT in Hamburg ist: Suche explizit nach Erwähnungen einer 'Zweigniederlassung', 'Betriebsstätte' oder dem 'Durchführungsort' in Hamburg.\r\n\r\nBewertung:\r\n- GRÜN: Sitz oder Betriebsstätte eindeutig in Hamburg.\r\n- GELB: Adresse im Hamburger Umland (z.B. Norderstedt, Ahrensburg) oder unklarer Durchführungsort.\r\n- ROT: Sitz eindeutig außerhalb Hamburgs ohne Zweigstelle.",
+      "prompt": "Extrahiere aus den Daten vom Unternehmen des Antrages (Handelsregisterauszug, Briefkopf, Impressum) die offizielle Anschrift.\r\nZiel ist es, hier einmal zu prüfen, ob die Betriebsstätte in Hamburg liegt. Bitte gucke, ob das wahr oder falsch ist.\r\n\r\nPrüfungsschritte:\r\n1. Suche nach der Postleitzahl (PLZ).\r\n2. Prüfe, ob die PLZ im Bereich 20000 bis 21149, 22xxx oder 21xxx (sofern Hamburger Stadtgebiet) liegt.\r\n3. Falls der Hauptsitz NICHT in Hamburg ist: Suche explizit nach Erwähnungen einer 'Zweigniederlassung', 'Betriebsstätte' oder dem 'Durchführungsort' in Hamburg.\r\n\r\n",
       "recommended": true
     },
     {
@@ -92,15 +92,6 @@
       "recommended": true
     },
     {
-      "id": "K011",
-      "name": "Cashflow-Prognose",
-      "kategorie": "wirtschaftliche_bewertung",
-      "kurz": "Positive Cashflow-Entwicklung",
-      "lang": "Die Cashflow-Prognose für die nächsten 3 Jahre muss eine positive Entwicklung aufzeigen und plausibel hergeleitet sein.",
-      "prompt": "Analysiere die Cashflow-Prognose im Finanzplan.\n\nPrüfungsschritte:\n1. Suche nach Cashflow-Planung oder Liquiditätsplan.\n2. Prüfe die Entwicklung über 3 Jahre: Wird der Cashflow positiv?\n3. Plausibilität: Sind Annahmen (Zahlungsziele, Investitionen) realistisch?\n\nBewertung:\n- GRÜN: Positiver Cashflow ab Jahr 2, plausible Herleitung.\n- GELB: Cashflow wird positiv, aber erst ab Jahr 3 oder Annahmen optimistisch.\n- ROT: Durchgehend negativer Cashflow oder unrealistische Annahmen.",
-      "recommended": false
-    },
-    {
       "id": "K012",
       "name": "Technische Machbarkeit",
       "kategorie": "inhaltliche_bewertung",
@@ -128,15 +119,6 @@
       "recommended": false
     },
     {
-      "id": "K015",
-      "name": "Nachhaltigkeit",
-      "kategorie": "andere",
-      "kurz": "Nachhaltigkeitsaspekte des Vorhabens",
-      "lang": "Das Vorhaben sollte Nachhaltigkeitsaspekte berücksichtigen: Energieeffizienz, Ressourcenschonung, Umweltauswirkungen.",
-      "prompt": "Bewerte die Nachhaltigkeitsaspekte des Vorhabens.\n\nPrüfungsschritte:\n1. Energieeffizienz: Wird Energieverbrauch minimiert oder erneuerbare Energie genutzt?\n2. Ressourcenschonung: Werden Materialien sparsam eingesetzt, Recycling berücksichtigt?\n3. Umweltauswirkungen: Werden negative Umwelteffekte minimiert?\n\nBewertung:\n- GRÜN: Alle drei Aspekte aktiv berücksichtigt und dokumentiert.\n- GELB: Ein oder zwei Aspekte berücksichtigt, andere nicht erwähnt.\n- ROT: Keine Berücksichtigung von Nachhaltigkeit oder negative Umweltauswirkungen.",
-      "recommended": false
-    },
-    {
       "id": "K016",
       "name": "Skalierbarkeit",
       "kategorie": "inhaltliche_bewertung",
@@ -155,13 +137,22 @@
       "recommended": false
     },
     {
-      "id": "TK_001",
-      "name": "Test Krit",
-      "kategorie": "wirtschaftliche_bewertung",
-      "kurz": "Testing",
-      "lang": "",
-      "prompt": "Testing prompt",
+      "id": "K015",
+      "name": "Umweltrelevanz",
+      "kategorie": "inhaltliche_bewertung",
+      "kurz": "Bewertung der ökologischen Auswirkungen entlang des Lebenszyklus ",
+      "lang": "Das Vorhaben weist eine besondere Umweltrelevanz im Sinne der Förderrichtlinie PROFI (IFB Hamburg 2023, Seiten 3–4) auf.",
+      "prompt": "„Das Vorhaben weist eine besondere Umweltrelevanz im Sinne der Förderrichtlinie PROFI (IFB Hamburg 2023, Seiten 3–4) auf.“\r\n\r\nEine besondere Umweltrelevanz liegt insbesondere vor, wenn das Projekt:\r\n\t•\teine Umweltinnovation darstellt und\r\n\t•\teinen klaren Beitrag zum Klima- und Umweltschutz leistet und\r\n\t•\tvorrangig zur\r\n\t•\tRessourcen- und Materialeffizienz und/oder\r\n\t•\tVerbesserung der Kreislaufwirtschaft\r\nbeiträgt. Optional positiv zu berücksichtigen ist:\r\n\t•\tdie Darstellung oder Erstellung einer Bewertung der ökologischen Auswirkungen entlang des Lebenszyklus (z. B. Ökobilanz).Bewertungsvorgabe:\r\n\t•\tgrün → Die Umweltrelevanz ist klar, schlüssig und entspricht eindeutig den Anforderungen der Module PROFI Umwelt / PROFI Umwelt Transfer.\r\n\t•\tgelb → Ein Umweltbezug ist erkennbar, aber unzureichend konkretisiert, nicht vorrangig oder nicht ausreichend belegt.\r\n\t•\trot → Es ist keine besondere Umweltrelevanz im Sinne der Förderrichtlinie erkennbar.\r\n\r\nDie Prüfung bezieht sich nicht auf DNSH (Art. 17 EU 2020/852), sondern ausschließlich auf die IFB-spezifische Definition der Umweltrelevanz.",
       "recommended": false
+    },
+    {
+      "id": "K100",
+      "name": "Test Meileinstein 2",
+      "kategorie": "wirtschaftliche_bewertung",
+      "kurz": "Das ist ein positiver Test",
+      "lang": "Anlage eines Kriteriums das immer positiv ist",
+      "prompt": "Bitte bestätigen diesen Test als positiv. \r\nAusgabe sollte dann sein:\r\n  \"status\": \"grün\",\r\n  \"begründung\": \"Alles super IFB\",\r\n",
+      "recommended": true
     }
   ]
 }

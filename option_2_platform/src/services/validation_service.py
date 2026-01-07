@@ -39,6 +39,7 @@ class ValidationService:
         status = rag_evidence["status"]
         reason = rag_evidence["reason"]
         evidence_list = rag_evidence.get("evidence_raw", [])
+        parsed_payload = rag_evidence.get("parsed", {})
 
         output_dir = Path("data/input") / project_id / "annotated"
         annotations: List[Dict[str, Any]] = []
@@ -101,6 +102,9 @@ class ValidationService:
             "status": status,
             "score": rag_evidence.get("score", 0.0),
             "reason": reason,
+            "begruendung": reason,
+            "dokument": parsed_payload.get("dokument"),
+            "referenz": parsed_payload.get("referenz"),
             "annotations": annotations,
             "annotated_file": annotated_file,
             "evaluated_at": evaluated_at,
@@ -173,44 +177,69 @@ class ValidationService:
     def _llm_eval(self, project_id: str, criterion, llm_chain) -> Dict[str, Any]:
         cfg = get_config()
         system_prompt = getattr(cfg.prompts, "kriterien_pruefung", None)
+        answer_guideline = getattr(cfg.prompts, "antwort_richtlinie", None)
         user_prompt = criterion.prompt or criterion.lang or criterion.kurz or criterion.name
 
         def _parse_json(txt: str) -> Optional[Dict[str, Any]]:
             try:
                 return json.loads(txt)
             except Exception:
-                # Try to extract between braces
                 if "{" in txt and "}" in txt:
-                    candidate = txt[txt.find("{"): txt.rfind("}")+1]
+                    candidate = txt[txt.find("{"): txt.rfind("}") + 1]
                     try:
                         return json.loads(candidate)
                     except Exception:
                         return None
                 return None
 
-        # first attempt
-        res = llm_chain.query(
-            question=user_prompt,
-            metadata_filter={"project_id": project_id},
-            system_prompt=system_prompt,
+        # Build strict instruction for JSON output
+        json_schema_hint = (
+            "Antworte NUR mit einem JSON-Objekt im Format: "
+            '{"status": "rot|gelb|grün", "begruendung": "max 160 Zeichen", '
+            '"dokument": "Dateiname", "referenz": "Seite X, Absatz Y"}'
         )
+        combined_prompt = f"{user_prompt}\n\n{json_schema_hint}"
+
+        try:
+            res = llm_chain.query(
+                question=combined_prompt,
+                metadata_filter={"project_id": project_id, "include_global": True},
+                system_prompt=system_prompt,
+                answer_guideline=answer_guideline,
+            )
+        except TypeError:
+            # Fallback for DummyLLM in tests without answer_guideline signature
+            res = llm_chain.query(
+                question=combined_prompt,
+                metadata_filter={"project_id": project_id, "include_global": True},
+                system_prompt=system_prompt,
+            )
         answer = res.get("answer", "")
         parsed = _parse_json(answer)
         retry = False
+
         if not parsed:
             retry = True
             retry_prompt = (
                 f"{user_prompt}\n\n"
-                "ACHTUNG: Deine vorherige Antwort war kein gültiges JSON.\n"
-                "Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt.\n"
-                "Kein Markdown, keine Erklärungen außerhalb des JSONs.\n"
-                "Format: {\"status\": \"grün/gelb/rot\", \"begründung\": \"...\", \"dokument\": \"...\", \"referenz\": \"...\"}"
+                "ACHTUNG: Vorherige Antwort war nicht valides JSON."
+                " Antworte ausschließlich mit JSON ohne Markdown oder Erklärungen.\n"
+                '{"status": "rot|gelb|grün", "begruendung": "max 160 Zeichen", '
+                '"dokument": "Dateiname", "referenz": "Seite X, Absatz Y"}'
             )
-            res = llm_chain.query(
-                question=retry_prompt,
-                metadata_filter={"project_id": project_id},
-                system_prompt=system_prompt,
-            )
+            try:
+                res = llm_chain.query(
+                    question=retry_prompt,
+                    metadata_filter={"project_id": project_id, "include_global": True},
+                    system_prompt=system_prompt,
+                    answer_guideline=answer_guideline,
+                )
+            except TypeError:
+                res = llm_chain.query(
+                    question=retry_prompt,
+                    metadata_filter={"project_id": project_id, "include_global": True},
+                    system_prompt=system_prompt,
+                )
             answer = res.get("answer", "")
             parsed = _parse_json(answer)
 
@@ -220,13 +249,12 @@ class ValidationService:
         referenz = None
         if parsed:
             status_raw = parsed.get("status")
-            reason = parsed.get("begründung") or parsed.get("begruendung") or parsed.get("begruen dung")
+            reason = parsed.get("begruendung") or parsed.get("begründung") or parsed.get("begruen dung")
             dokument = parsed.get("dokument")
             referenz = parsed.get("referenz")
 
         status = self._normalize_status(status_raw or "gelb")
 
-        # Validate required fields
         errors: List[str] = []
         if not parsed:
             errors.append("Antwort nicht parsebar")
@@ -238,36 +266,61 @@ class ValidationService:
         if not reason:
             reason = "Keine gültige JSON-Antwort vom LLM" if parsed is None else "Keine Begründung geliefert"
 
-        # If parse failed even after retry, mark warning
         if errors and retry and not parsed:
             status = "gelb"
             reason = "Keine gültige JSON-Antwort vom LLM"
 
-        # Build evidence from citations
         evidence_raw: List[Dict[str, Any]] = []
         for cit in res.get("citations", []):
             if hasattr(cit, "doc_name"):
-                evidence_raw.append({
-                    "dokument": cit.doc_name,
-                    "referenz": f"Seite {cit.page}" if getattr(cit, "page", None) else None,
-                    "text_snippet": cit.text_snippet,
-                    "page": getattr(cit, "page", None),
-                })
+                evidence_raw.append(
+                    {
+                        "dokument": cit.doc_name,
+                        "referenz": f"Seite {cit.page}" if getattr(cit, "page", None) else None,
+                        "text_snippet": cit.text_snippet,
+                        "page": getattr(cit, "page", None),
+                        "cell": getattr(cit, "cell", None),
+                        "chunk_id": getattr(cit, "chunk_id", None),
+                        "score": getattr(cit, "score", None),
+                    }
+                )
             elif isinstance(cit, dict):
-                evidence_raw.append({
-                    "dokument": cit.get("doc_name") or cit.get("document"),
-                    "referenz": f"Seite {cit.get('page')}" if cit.get("page") else None,
-                    "text_snippet": cit.get("text_snippet") or cit.get("content"),
-                    "page": cit.get("page"),
-                })
+                meta = cit.get("metadata", {}) if isinstance(cit.get("metadata", {}), dict) else {}
+                doc_name = (
+                    cit.get("doc_name")
+                    or cit.get("document")
+                    or cit.get("source")
+                    or meta.get("doc_name")
+                    or meta.get("source")
+                )
+                page_val = cit.get("page") or meta.get("page") or meta.get("page_number")
+                cell_val = cit.get("cell") or meta.get("cell")
+                reference = cit.get("referenz") or meta.get("referenz")
+                if not reference:
+                    if page_val:
+                        reference = f"Seite {page_val}"
+                    elif cell_val:
+                        reference = f"Zelle {cell_val}"
+                evidence_raw.append(
+                    {
+                        "dokument": doc_name,
+                        "referenz": reference,
+                        "text_snippet": cit.get("text_snippet") or cit.get("content") or meta.get("text"),
+                        "page": page_val,
+                        "cell": cell_val,
+                        "chunk_id": cit.get("chunk_id") or meta.get("chunk_id"),
+                        "score": cit.get("score") or meta.get("score"),
+                    }
+                )
 
-        # If none from citations but LLM provided dokument/referenz, create one minimal
         if not evidence_raw and dokument:
-            evidence_raw.append({
-                "dokument": dokument,
-                "referenz": referenz,
-                "text_snippet": reason or "",
-            })
+            evidence_raw.append(
+                {
+                    "dokument": dokument,
+                    "referenz": referenz,
+                    "text_snippet": reason or "",
+                }
+            )
 
         score = 1.0 if status == "grün" else 0.5 if status == "gelb" else 0.0
 
@@ -276,6 +329,7 @@ class ValidationService:
             "reason": reason or "",
             "evidence_raw": evidence_raw,
             "score": score,
+            "parsed": parsed or {},
         }
 
     def _build_evidence_entry(self, evidence: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
@@ -311,6 +365,9 @@ class ValidationService:
             "status",
             "score",
             "reason",
+            "begruendung",
+            "dokument",
+            "referenz",
             "annotated_file",
             "evaluated_at",
             "evaluated_by",

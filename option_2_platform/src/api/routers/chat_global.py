@@ -153,7 +153,7 @@ async def list_chats_root():
     return await list_chats()
 
 
-@router.post("/create")
+@router.post("/create", status_code=201)
 async def create_chat():
     chat = create_global_chat()
     prompts = RAGConfig.from_yaml().prompts

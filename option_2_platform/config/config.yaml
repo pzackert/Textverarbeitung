@@ -23,11 +23,13 @@ rag:
   include_scores: false
   max_context_chunks: 8
 prompts:
-  begruessung: Willkommen beim IFB PROFI-Assistenzsystem. Wie kann ich Sie bei der
-    Antragsprüfung unterstützen?
+  begruessung: 'Willkommen beim IFB PROFI-Assistenzsystem. Wie kann ich Sie bei der
+    Antragsprüfung unterstützen? '
   global_chat_initial: Sie sind ein erfahrener Fördermittel-Experte der IFB Hamburg.
     Nutzen Sie ausschließlich das bereitgestellte Wissen aus der Datenbank, um die
-    Fragen zu beantworten. Zitieren Sie Quellen.
+    Fragen zu beantworten. Zitieren Sie Quellen wenn möglich. Ansonsten mache eine
+    Anmerkung, dass du die Frage nicht beantworten kannst und dir unsicher bist bei
+    der Beantwortung.
   antrags_chat_initial: Sie sind ein Analyst für Förderanträge. Prüfen Sie die vorliegenden
     Dokumente auf formale Korrektheit, Plausibilität und Übereinstimmung mit den Förderkriterien.
     Seien Sie präzise.

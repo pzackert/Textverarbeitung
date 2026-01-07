@@ -25,6 +25,68 @@ class ProjectMessageRequest(BaseModel):
     include_rag: bool = True
 
 
+def _format_sources(raw_sources: list[Any], citations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Map raw retrieval results/citations to a frontend-friendly structure."""
+    if not raw_sources and citations:
+        formatted: list[dict[str, Any]] = []
+        for cit in citations:
+            ref = None
+            if cit.get("page"):
+                ref = f"Seite {cit['page']}"
+            formatted.append({
+                "dokument": cit.get("source"),
+                "referenz": ref,
+                "score": cit.get("score"),
+            })
+        return formatted
+
+    used_indexes = {
+        (c.get("number") - 1)
+        for c in citations
+        if isinstance(c, dict) and isinstance(c.get("number"), int)
+    }
+
+    formatted_sources: list[dict[str, Any]] = []
+    for idx, src in enumerate(raw_sources or []):
+        if used_indexes and idx not in used_indexes:
+            continue
+        meta = src.get("metadata", {}) if isinstance(src, dict) else {}
+        doc_name = (
+            meta.get("doc_name")
+            or meta.get("document")
+            or meta.get("source")
+            or src.get("doc_name")
+            or src.get("document")
+            or src.get("source")
+        )
+        page = meta.get("page") or meta.get("page_number")
+        cell = meta.get("cell")
+        paragraph = meta.get("paragraph")
+        reference = meta.get("referenz") or meta.get("reference")
+        if not reference:
+            if page:
+                reference = f"Seite {page}"
+            elif cell:
+                reference = f"Zelle {cell}"
+            elif paragraph:
+                reference = f"Absatz {paragraph}"
+
+        snippet = src.get("content") or meta.get("text") or meta.get("text_snippet")
+        formatted_sources.append(
+            {
+                "dokument": doc_name,
+                "referenz": reference,
+                "page": page,
+                "cell": cell,
+                "paragraph": paragraph,
+                "chunk_id": meta.get("chunk_id") or src.get("id"),
+                "score": src.get("score"),
+                "text_snippet": snippet[:240] if isinstance(snippet, str) else None,
+            }
+        )
+    return formatted_sources
+
+
 def _build_metrics(answer: str, model: str, duration: float, usage: Dict[str, Any] | None = None, stop_reason: str | None = None) -> Dict[str, Any]:
     usage = usage or {}
     completion_tokens = usage.get("completion_tokens") or usage.get("eval_count")
@@ -48,12 +110,18 @@ def _build_metrics(answer: str, model: str, duration: float, usage: Dict[str, An
 def _assistant_with_rag(message: str, project_id: str, llm_chain: LLMChain) -> Dict[str, Any]:
     started = time.perf_counter()
     prompts = RAGConfig.from_yaml().prompts
+    combined_system = []
+    if getattr(prompts, "global_chat_initial", None):
+        combined_system.append(prompts.global_chat_initial)
+    if getattr(prompts, "antrags_chat_initial", None):
+        combined_system.append(prompts.antrags_chat_initial)
+    system_prompt = "\n\n".join(combined_system) if combined_system else getattr(prompts, "global_chat_initial", None)
     # metadata_filter with include_global=True to allow current project + global knowledge
     # The RetrievalEngine handles the security logic (filtering out other projects)
     result = llm_chain.query(
         question=message,
         metadata_filter={"project_id": project_id, "include_global": True},
-        system_prompt=getattr(prompts, "global_chat_initial", None),
+        system_prompt=system_prompt,
         answer_guideline=getattr(prompts, "antwort_richtlinie", None),
     )
     meta = result.get("metadata", {}) or {}
@@ -61,15 +129,10 @@ def _assistant_with_rag(message: str, project_id: str, llm_chain: LLMChain) -> D
     usage = getattr(getattr(llm_chain, "llm_provider", None), "last_usage", None)
     sources = result.get("sources", [])
     citations = result.get("citations", [])
-    if not sources and citations:
-        for cit in citations:
-            if hasattr(cit, "source"):
-                sources.append(cit.source.dict())
-            elif isinstance(cit, dict):
-                sources.append(cit)
+    formatted_sources = _format_sources(sources, citations)
     docs_used = []
-    for s in sources:
-        doc_name = s.get("document") or s.get("doc_name") or s.get("source")
+    for s in formatted_sources:
+        doc_name = s.get("dokument")
         if doc_name:
             docs_used.append(doc_name)
     # Enforce sources for project chat (must cite uploads)
@@ -85,7 +148,7 @@ def _assistant_with_rag(message: str, project_id: str, llm_chain: LLMChain) -> D
         "role": "assistant",
         "content": answer_text,
         "timestamp": None,
-        "sources": sources,
+        "sources": formatted_sources,
         "rag_used": True,
         "documents_used": docs_used,
         "metrics": metrics,
@@ -116,8 +179,13 @@ def _seed_handshake(chat: Dict[str, Any], prompts: Any) -> bool:
         return False
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     seeds = []
+    combined_system = []
     if getattr(prompts, "global_chat_initial", None):
-        seeds.append({"role": "system", "content": prompts.global_chat_initial, "timestamp": now})
+        combined_system.append(prompts.global_chat_initial)
+    if getattr(prompts, "antrags_chat_initial", None):
+        combined_system.append(prompts.antrags_chat_initial)
+    if combined_system:
+        seeds.append({"role": "system", "content": "\n\n".join(combined_system), "timestamp": now})
     if getattr(prompts, "begruessung", None):
         seeds.append({"role": "assistant", "content": prompts.begruessung, "timestamp": now})
     if seeds:
@@ -161,6 +229,7 @@ async def send_project_message(project_id: str, request: ProjectMessageRequest, 
         logger.error(f"Project chat LLM failure for {project_id}: {exc}")
         raise HTTPException(status_code=503, detail="LLM nicht erreichbar oder Antwort fehlgeschlagen. Bitte Backend/LLM prüfen.")
 
+    # Persist sources to chat history so the FE can render citations from history
     chat.setdefault("messages", []).extend([user_msg, assistant_msg])
     if not assistant_msg.get("timestamp"):
         assistant_msg["timestamp"] = now
