@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 import logging
 
 from src.parsers.docling_parser import DoclingParser
+from src.parsers.csv_parser import CSVParser
 from src.parsers.models import Document
 from .chunker import Chunker
 from .embeddings import EmbeddingGenerator
@@ -27,12 +28,13 @@ class IngestionPipeline:
     - Vector store insertion
     """
     
-    def __init__(self, config: Optional[RAGConfig] = None):
+    def __init__(self, config: Optional[RAGConfig] = None, vector_store: Optional[VectorStore] = None):
         """
         Initialize ingestion pipeline with configuration.
         
         Args:
             config: RAG configuration (uses default if None)
+            vector_store: Optional shared VectorStore instance
         """
         self.config = config or RAGConfig.from_yaml()
         
@@ -40,7 +42,11 @@ class IngestionPipeline:
         self._init_parsers()
         self._init_chunker()
         self._init_embedder()
-        self._init_vector_store()
+        
+        if vector_store:
+            self.vector_store = vector_store
+        else:
+            self._init_vector_store()
     
     def _init_parsers(self):
         """Initialize document parsers."""
@@ -48,7 +54,11 @@ class IngestionPipeline:
             '.pdf': DoclingParser(),
             '.docx': DoclingParser(),
             '.xlsx': DoclingParser(),
+            '.csv': CSVParser(),
         }
+        # Text files are handled inline in ingest_file, but we keep them in the map
+        # so directory ingestion can pick them up.
+        self.parsers['.txt'] = None
     
     def _init_chunker(self):
         """Initialize chunker with config."""
@@ -126,6 +136,10 @@ class IngestionPipeline:
             # If not present (e.g. other parsers), default to 1
             if "page_number" not in chunk.metadata:
                 chunk.metadata["page_number"] = 1
+            
+            # Ensure 'source' key is present for VectorStore and Citations
+            if "source" not in chunk.metadata:
+                chunk.metadata["source"] = path.name
         
         # 3. Store chunks (embeddings generated automatically)
         chunk_ids = self._store_chunks(chunks)
@@ -157,7 +171,8 @@ class IngestionPipeline:
         results = []
         
         for file_path in directory.glob('**/*'):
-            if file_path.suffix.lower() in self.parsers:
+            suffix = file_path.suffix.lower()
+            if suffix in self.parsers or suffix == '.txt':
                 try:
                     result = self.ingest_file(str(file_path))
                     results.append(result)
@@ -175,11 +190,36 @@ class IngestionPipeline:
         """Parse document based on file extension."""
         suffix = file_path.suffix.lower()
         parser = self.parsers.get(suffix)
-        
+
+        if suffix == '.txt':  # handled earlier, guard for safety
+            raise ValueError("TXT parsing should be handled before _parse_document")
+
         if not parser:
             raise ValueError(f"Unsupported file type: {suffix}")
         
-        return parser.parse(str(file_path))
+        # Try primary parser (Docling)
+        try:
+            documents = parser.parse(str(file_path))
+            # Heuristic validation: If PDF is > 10KB but we got < 200 chars, it likely failed/OCRed poorly
+            is_pdf = suffix == ".pdf"
+            if is_pdf and file_path.stat().st_size > 10000:
+                total_text = sum(len(d.content) for d in documents)
+                if total_text < 200:
+                    logger.warning(f"Docling returned only {total_text} chars for {file_path.name}. Falling back to PyMuPDF.")
+                    raise ValueError("Insufficient content from Docling")
+            return documents
+            
+        except Exception as e:
+            if suffix == ".pdf":
+                logger.warning(f"Primary parser failed for {file_path.name}: {e}. Trying fallback (PyMuPDF)...")
+                try:
+                    from src.parsers.pymupdf_parser import PyMuPDFParser
+                    fallback_parser = PyMuPDFParser()
+                    return fallback_parser.parse(str(file_path))
+                except Exception as fallback_error:
+                    logger.error(f"Fallback parser also failed: {fallback_error}")
+                    raise e # Raise original logic error if both fail
+            raise e
     
     def _chunk_document(self, documents: List[Document]) -> List:
         """Chunk documents into smaller pieces."""

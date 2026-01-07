@@ -1,105 +1,478 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-8">
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Einstellungen</h1>
-        <p class="text-gray-500">Konfigurieren Sie das System und verwalten Sie globales Wissen.</p>
-    </div>
+<div class="flex flex-col h-full" x-data="settingsApp()" x-init="init()">
 
-    <!-- Global Knowledge Section -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-            <h2 class="text-lg font-semibold text-gray-700">🧠 Globales Wissen (System-Kontext)</h2>
-            <p class="text-sm text-gray-500 mt-1">
-                Laden Sie Dokumente hoch, die das "Wissen" des Agenten definieren (z.B. Richtlinien, Handbücher).
-                Diese Dokumente werden bei <strong>jeder</strong> Prüfung als Kontext herangezogen.
-            </p>
-        </div>
+    <!-- Header & Info -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Einstellungen</h1>
+        <p class="text-gray-600">Systemkonfiguration.</p>
 
-        <div class="p-6 space-y-6">
-            <!-- Upload Form -->
-            <form action="/settings/knowledge/upload" method="POST" enctype="multipart/form-data"
-                class="flex gap-4 items-center">
-                <input type="file" name="file" required class="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100
-                " />
-                <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                    </svg>
-                    Hochladen
-                </button>
-            </form>
-
-            <!-- File List -->
-            <div class="border rounded-lg overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Dateiname</th>
-                            <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Größe</th>
-                            <th scope="col"
-                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Aktion</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for file in knowledge_files %}
-                        <tr>
-                            <td
-                                class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">
-                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                    </path>
-                                </svg>
-                                {{ file.filename }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ (file.size_bytes / 1024) | round(1) }} KB
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <form action="/settings/knowledge/delete" method="POST"
-                                    onsubmit="return confirm('Datei wirklich löschen?');">
-                                    <input type="hidden" name="filename" value="{{ file.filename }}">
-                                    <button type="submit"
-                                        class="text-red-600 hover:text-red-900 font-medium hover:underline">Löschen</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="3" class="px-6 py-8 text-center text-gray-500 text-sm italic">
-                                Noch kein globales Wissen vorhanden.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <!-- Info Box -->
+        <div class="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r shadow-sm flex items-start gap-3">
+            <span class="text-blue-500 text-xl">ℹ️</span>
+            <div>
+                <p class="text-blue-900 font-bold">Hinweis zur Konfiguration</p>
+                <p class="text-blue-800 text-sm mt-1">
+                    System-Parameter (LLM/RAG) werden aus <code class="bg-blue-100 px-1 rounded">config.yaml</code>
+                    geladen.
+                    Prompts und Globales Wissen können hier direkt bearbeitet werden.
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- System Configuration (Existing placeholders) -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden opacity-50">
-        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-            <h2 class="text-lg font-semibold text-gray-700">⚙️ System-Einstellungen (Kommend)</h2>
-        </div>
-        <div class="p-6">
-            <p class="text-gray-500">LLM Modell Auswahl und Prompt-Templates folgen in Phase 6.</p>
-        </div>
+    <!-- Tabs Navigation -->
+    <div class="flex gap-4 border-b border-gray-200 mb-6">
+        <button @click="activeTab = 'system'" class="px-4 py-2 font-medium text-sm transition-colors relative"
+            :class="activeTab === 'system' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'">
+            Systemkonfiguration
+        </button>
+        <button @click="activeTab = 'agent'" class="px-4 py-2 font-medium text-sm transition-colors relative"
+            :class="activeTab === 'agent' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'">
+            Agenten & Prompts
+        </button>
     </div>
+
+    <!-- Tab 1: System Configuration -->
+    <div x-show="activeTab === 'system'" class="space-y-8 animate-fade-in">
+
+        <!-- 1.1 LLM & KI Engine -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">1. LLM & KI Engine</h3>
+            </div>
+            <div class="p-0">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Parameter</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Aktueller Wert</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Config-Pfad</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Aktiver Provider
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700" x-text="config.llm.provider">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-500">llm.provider</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Aktives Modell
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-bold"
+                                x-text="config.llm.model"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-500">llm.model</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">LM Studio Endpoint
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"
+                                x-text="config.llm.lm_studio?.endpoint || '-'"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-500">
+                                llm.lm_studio.endpoint</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Ollama Endpoint
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"
+                                x-text="config.llm.ollama?.endpoint || '-'"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-500">llm.ollama.endpoint
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <p class="text-xs text-gray-500 font-bold uppercase mb-2">Verfügbare Modelle (via /api/settings/models)
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <template x-for="model in availableModels" :key="model.provider + model.name">
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800 border border-gray-300">
+                            <span x-text="model.provider" class="mr-1 opacity-50 uppercase"></span>
+                            <span x-text="model.name"></span>
+                            <span
+                                x-text="'(' + (model.size ? (model.size / 1024 / 1024 / 1024).toFixed(1) + ' GB' : '?') + ')'"
+                                class="ml-1 text-gray-500"></span>
+                        </span>
+                    </template>
+                    <span x-show="availableModels.length === 0" class="text-gray-400 text-sm italic">Keine Modelle
+                        gefunden.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- 1.2 LLM Hyper-Parameters -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-800">2. LLM Hyper-Parameter</h3>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900">Temperature</td>
+                            <td class="px-6 py-3 text-sm text-gray-700" x-text="config.llm.temperature"></td>
+                            <td class="px-6 py-3 text-xs font-mono text-gray-500 text-right">llm.temperature</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900">Max Tokens</td>
+                            <td class="px-6 py-3 text-sm text-gray-700" x-text="config.llm.max_tokens"></td>
+                            <td class="px-6 py-3 text-xs font-mono text-gray-500 text-right">llm.max_tokens</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900">Timeout</td>
+                            <td class="px-6 py-3 text-sm text-gray-700" x-text="config.llm.timeout + 's'"></td>
+                            <td class="px-6 py-3 text-xs font-mono text-gray-500 text-right">llm.timeout</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 1.3 RAG Hyper-Parameters -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-800">3. RAG Parameter</h3>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900">Embedding Modell</td>
+                            <td class="px-6 py-3 text-sm text-gray-700 truncate max-w-[150px]"
+                                :title="config.rag.embedding_model" x-text="config.rag.embedding_model"></td>
+                            <td class="px-6 py-3 text-xs font-mono text-gray-500 text-right">rag.embedding_model</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900">Chunk Size</td>
+                            <td class="px-6 py-3 text-sm text-gray-700" x-text="config.rag.chunk_size"></td>
+                            <td class="px-6 py-3 text-xs font-mono text-gray-500 text-right">rag.chunk_size</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900">Chunk Overlap</td>
+                            <td class="px-6 py-3 text-sm text-gray-700" x-text="config.rag.chunk_overlap"></td>
+                            <td class="px-6 py-3 text-xs font-mono text-gray-500 text-right">rag.chunk_overlap</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900">Top K</td>
+                            <td class="px-6 py-3 text-sm text-gray-700" x-text="config.rag.top_k"></td>
+                            <td class="px-6 py-3 text-xs font-mono text-gray-500 text-right">rag.top_k</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900">Sim. Threshold</td>
+                            <td class="px-6 py-3 text-sm text-gray-700"
+                                x-text="config.rag ? config.rag.similarity_threshold : '-'"></td>
+                            <td class="px-6 py-3 text-xs font-mono text-gray-500 text-right">rag.similarity_threshold
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 1.4 System Info -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div class="text-xs text-gray-500 uppercase font-bold">ChromaDB Status</div>
+                <div class="text-xl font-bold mt-1 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full"
+                        :class="chromaInfo.status === 'ready' ? 'bg-green-500' : 'bg-red-500'"></span>
+                    <span x-text="chromaInfo.status === 'ready' ? 'Bereit' : 'Fehler'"></span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div class="text-xs text-gray-500 uppercase font-bold">Total Chunks</div>
+                <div class="text-xl font-bold mt-1 text-gray-800" x-text="chromaInfo.total_chunks || 0"></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div class="text-xs text-gray-500 uppercase font-bold">Speicher (Disk)</div>
+                <div class="text-xl font-bold mt-1 text-gray-800" x-text="(chromaInfo.storage_mb || 0) + ' MB'"></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div class="text-xs text-gray-500 uppercase font-bold">Backend Version</div>
+                <div class="text-xl font-bold mt-1 text-gray-800 truncate" :title="chromaInfo.version"
+                    x-text="chromaInfo.version || 'Unknown'"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Tab 2: Agent Configuration -->
+    <div x-show="activeTab === 'agent'" class="space-y-8 animate-fade-in" style="display: none;">
+
+        <!-- 2.1 Prompts (Editable) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800">4. System Prompts (Bearbeitbar)</h3>
+                <button @click="savePrompts()" x-show="!savingPrompts"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm">
+                    💾 Prompts Speichern
+                </button>
+                <div x-show="savingPrompts" class="flex items-center gap-2 text-blue-600 text-sm font-bold">
+                    <span class="loading loading-spinner loading-sm"></span> Speichere...
+                </div>
+            </div>
+            <div class="divide-y divide-gray-200">
+
+                <!-- Helper for Prompt Row -->
+                <template x-for="item in promptItems" :key="item.key">
+                    <div class="p-6">
+                        <div class="flex justify-between items-baseline mb-2">
+                            <h4 class="font-bold text-gray-900" x-text="item.label"></h4>
+                            <code class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500" x-text="item.path"></code>
+                        </div>
+                        <div
+                            class="bg-gray-50 p-2 rounded border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+                            <textarea
+                                class="w-full bg-transparent border-0 focus:ring-0 text-sm font-mono text-gray-700 h-32 resize-y"
+                                x-model="config.prompts[item.key]"></textarea>
+                        </div>
+                    </div>
+                </template>
+
+            </div>
+        </div>
+
+        <!-- 2.2 Global Knowledge (Interactive) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 bg-blue-50 border-b border-blue-100 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-bold text-blue-900">📂 Globales Wissen (RAG Kontext)</h3>
+                    <p class="text-xs text-blue-700">Hier können Dokumente hochgeladen und verwaltet werden.
+                        (Interaktiv)</p>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <!-- Upload -->
+                <div
+                    class="mb-8 p-8 bg-dashed border-2 border-dashed border-blue-200 rounded-xl hover:border-blue-400 transition-colors text-center relative group cursor-pointer bg-blue-50/30">
+                    <input type="file" @change="uploadFile"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <div x-show="!uploading">
+                        <div class="text-blue-500 mb-2">
+                            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                </path>
+                            </svg>
+                        </div>
+                        <p class="text-gray-900 font-bold text-lg">Dokument hinzufügen (Hot-Add)</p>
+                        <p class="text-sm text-gray-500 mt-1">PDF, DOCX, TXT - Wird sofort indexiert.</p>
+                    </div>
+                    <div x-show="uploading" class="text-center py-2" style="display: none;">
+                        <span class="loading loading-spinner loading-lg text-blue-600 mb-2"></span>
+                        <p class="text-blue-700 font-medium">Lade hoch & indexiere...</p>
+                    </div>
+                </div>
+
+                <!-- List -->
+                <div class="border rounded-lg overflow-hidden shadow-sm">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Datei</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Größe</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    RAG Status</th>
+                                <th
+                                    class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="file in knowledgeFiles" :key="file.filename">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <span class="text-2xl mr-3">📄</span>
+                                            <span class="text-sm font-medium text-gray-900"
+                                                x-text="file.filename"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                        x-text="(file.size_bytes / 1024).toFixed(1) + ' KB'"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            class="px-2.5 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                            <span
+                                                x-text="file.chunks > 0 ? file.chunks + ' Chunks' : 'Indexiert'"></span>
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                        <button @click="deleteFile(file.filename)"
+                                            class="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1.5 rounded-lg font-bold text-xs border border-transparent hover:border-red-200 transition-all">
+                                            Löschen
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="knowledgeFiles.length === 0">
+                                <td colspan="4" class="px-6 py-12 text-center text-gray-400 italic">Keine Dokumente
+                                    vorhanden.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast -->
+    <div x-show="toast.visible" x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="translate-y-10 opacity-0" style="display: none;"
+        class="fixed bottom-6 right-6 bg-gray-900/90 backdrop-blur text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 z-50 border border-gray-700">
+        <div x-show="toast.type === 'success'" class="text-green-400 text-xl">✅</div>
+        <div x-show="toast.type === 'error'" class="text-red-400 text-xl">❌</div>
+        <div class="font-medium" x-text="toast.message"></div>
+    </div>
+
 </div>
+
+<script>
+    function settingsApp() {
+        return {
+            activeTab: 'system',
+            uploading: false,
+            savingPrompts: false,
+            config: {
+                llm: { lm_studio: {}, ollama: {} },
+                rag: {},
+                prompts: {}
+            },
+            availableModels: [],
+            knowledgeFiles: [],
+            chromaInfo: {},
+            toast: { visible: false, message: '', type: 'success' },
+
+            promptItems: [
+                { key: 'begruessung', label: '1. Begrüßung (Initial)', path: 'prompts.begruessung' },
+                { key: 'global_chat_initial', label: '2. Globaler Chat Prompt', path: 'prompts.global_chat_initial' },
+                { key: 'antrags_chat_initial', label: '3. Antrags-Chat Prompt', path: 'prompts.antrags_chat_initial' },
+                { key: 'antwort_richtlinie', label: '4. Antwort-Richtlinie', path: 'prompts.antwort_richtlinie' },
+                { key: 'kriterien_pruefung', label: '5. Kriterien-Prüfung Logic', path: 'prompts.kriterien_pruefung' }
+            ],
+
+            async init() {
+                await this.refreshAll();
+            },
+
+            async refreshAll() {
+                try {
+                    const [cfgRes, filesRes, chromaRes, modelsRes] = await Promise.all([
+                        fetch('/api/settings'),
+                        fetch('/api/settings/global-knowledge/files'),
+                        fetch('/api/settings/chromadb/info'),
+                        fetch('/api/settings/models')
+                    ]);
+
+                    if (cfgRes.ok) {
+                        const data = await cfgRes.json();
+                        this.config = data;
+                        // Initial fallback for availableModels from config if modelsRes fails or is empty
+                        if (data.available_models) this.availableModels = data.available_models;
+                    }
+                    if (filesRes.ok) {
+                        const data = await filesRes.json();
+                        this.knowledgeFiles = data.files || [];
+                    }
+                    if (chromaRes.ok) {
+                        this.chromaInfo = await chromaRes.json();
+                    }
+                    if (modelsRes.ok) {
+                        const modelData = await modelsRes.json();
+                        if (modelData.models && modelData.models.length > 0) {
+                            this.availableModels = modelData.models;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Load failed", e);
+                    this.showToast("Fehler beim Laden der Konfiguration", 'error');
+                }
+            },
+
+            async savePrompts() {
+                this.savingPrompts = true;
+                try {
+                    const res = await fetch('/api/settings/prompts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.config.prompts)
+                    });
+
+                    if (res.ok) {
+                        this.showToast("Prompts erfolgreich gespeichert", 'success');
+                    } else {
+                        throw new Error("API Save Error");
+                    }
+                } catch (e) {
+                    this.showToast("Fehler beim Speichern der Prompts", 'error');
+                    console.error(e);
+                } finally {
+                    this.savingPrompts = false;
+                }
+            },
+
+            async uploadFile(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                this.uploading = true;
+                const fd = new FormData();
+                fd.append('file', file);
+                try {
+                    const res = await fetch('/api/settings/global-knowledge/upload', { method: 'POST', body: fd });
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.showToast(`Upload erfolgreich: ${data.filename}`, 'success');
+                        await this.refreshAll();
+                    } else { throw new Error("API Fehler"); }
+                } catch (e) {
+                    this.showToast("Upload fehlgeschlagen", 'error');
+                } finally {
+                    this.uploading = false;
+                    e.target.value = '';
+                }
+            },
+
+            async deleteFile(filename) {
+                try {
+                    const encodedName = encodeURIComponent(filename);
+                    const res = await fetch(`/api/settings/global-knowledge/${encodedName}`, { method: 'DELETE' });
+
+                    if (res.ok) {
+                        this.showToast("Datei erfolgreich gelöscht", 'success');
+                        this.knowledgeFiles = this.knowledgeFiles.filter(f => f.filename !== filename);
+                    } else {
+                        const errText = await res.text();
+                        console.error("Delete failed:", errText);
+                        this.showToast(`Fehler beim Löschen: ${res.status} ${res.statusText}`, 'error');
+                    }
+                } catch (e) {
+                    console.error("Delete exception:", e);
+                    this.showToast("Fehler beim Löschen: Netzwerkfehler", 'error');
+                }
+            },
+
+            showToast(msg, type = 'success') {
+                this.toast.message = msg;
+                this.toast.type = type;
+                this.toast.visible = true;
+                setTimeout(() => this.toast.visible = false, 3000);
+            }
+        }
+    }
+</script>
 {% endblock %}

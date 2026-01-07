@@ -59,9 +59,11 @@
 - **Project Chat Message**
   - Endpoint: POST /api/chats/project/{project_id}/message
   - Body: `{ "message": "...", "include_rag": true }`
-  - Response analog global.
+  - Response analog global; Fehler 400, falls keine Quellen im Projektkontext gefunden werden.
 - **Project Chat History**
   - Endpoint: GET /api/chats/project/{project_id}
+  - Verhalten: legt bei leerem Verlauf ein Handshake-Seed an (system `prompts.global_chat_initial` + assistant `prompts.begruessung`).
+  - Persistenz: projektlokal unter `data/input/<id>/chat_history.json`.
   - Response: `{ project_id, messages:[...] }`
 
 ## 5. Dokument-Management APIs

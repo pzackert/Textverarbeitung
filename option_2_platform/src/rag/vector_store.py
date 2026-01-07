@@ -2,7 +2,7 @@
 Vector Store implementation using ChromaDB.
 Handles storage and retrieval of embeddings for RAG system.
 """
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Iterable
 import chromadb
 import json
 from chromadb.config import Settings
@@ -171,7 +171,7 @@ class VectorStore:
 
             embeddings = self.embedding_function.embed_batch(documents)
 
-            self.collection.add(
+            self.collection.upsert(
                 documents=documents,
                 embeddings=embeddings,
                 metadatas=metadatas,
@@ -294,8 +294,68 @@ class VectorStore:
     def delete_by_metadata(self, metadata_filter: Dict[str, Any]):
         """Delete documents matching metadata filter."""
         try:
-            self.collection.delete(where=metadata_filter)
-            logger.info(f"Deleted documents matching: {metadata_filter}")
+            # ChromaDB requires explicit $and for multiple where conditions in delete
+            where_clause = metadata_filter
+            if len(metadata_filter) > 1:
+                where_clause = {"$and": [{k: v} for k, v in metadata_filter.items()]}
+            
+            self.collection.delete(where=where_clause)
+            logger.info(f"Deleted documents matching: {where_clause}")
         except Exception as e:
             logger.error(f"Failed to delete by metadata: {e}")
             raise RAGException(f"Failed to delete by metadata: {e}")
+
+    def count_by_metadata(self, metadata_filter: Dict[str, Any]) -> int:
+        """Count documents matching a metadata filter."""
+        try:
+            result = self.collection.get(where=metadata_filter, include=["metadatas"], limit=None)
+            ids = result.get("ids") or []
+            # Chroma returns list per query; flatten if nested
+            if ids and isinstance(ids[0], list):
+                return len(ids[0])
+            return len(ids)
+        except Exception as e:
+            logger.error(f"Failed to count by metadata: {e}")
+            return 0
+
+    # Isolation helpers
+    def delete_project(self, project_id: str) -> int:
+        """Delete all chunks for a specific project_id; keep globals (no project_id)."""
+        try:
+            result = self.collection.get(where={"project_id": project_id}, limit=None)
+            ids = result.get("ids") or []
+            if ids and isinstance(ids[0], list):
+                ids = ids[0]
+            if ids:
+                self.collection.delete(ids=ids)
+            logger.info(f"Deleted {len(ids)} chunks for project {project_id}")
+            return len(ids)
+        except Exception as e:
+            logger.error(f"Failed to delete project {project_id}: {e}")
+            raise RAGException(f"Failed to delete project {project_id}: {e}")
+
+    def delete_projects_except(self, keep_project_id: str) -> int:
+        """Delete chunks that belong to other projects, preserving globals and the target project."""
+        try:
+            result = self.collection.get(include=["metadatas"], limit=None)
+            ids = result.get("ids") or []
+            metas = result.get("metadatas") or []
+            if ids and isinstance(ids[0], list):
+                ids = ids[0]
+            if metas and isinstance(metas[0], list):
+                metas = metas[0]
+
+            delete_ids: List[str] = []
+            for i, mid in enumerate(ids):
+                meta = metas[i] if i < len(metas) else {}
+                pid = meta.get("project_id") if isinstance(meta, dict) else None
+                if pid and pid != keep_project_id:
+                    delete_ids.append(mid)
+
+            if delete_ids:
+                self.collection.delete(ids=delete_ids)
+            logger.info(f"Deleted {len(delete_ids)} chunks for other projects (kept {keep_project_id} and globals)")
+            return len(delete_ids)
+        except Exception as e:
+            logger.error(f"Failed to delete other projects: {e}")
+            raise RAGException(f"Failed to delete other projects: {e}")

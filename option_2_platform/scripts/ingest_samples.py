@@ -43,8 +43,12 @@ def main():
     success_count = 0
     for file_path in files_to_ingest:
         try:
-            logger.info(f"Processing: {file_path.name}")
-            chunks = pipeline.ingest_file(file_path)
+            # Extract Project ID from parent directory name (e.g. IFB-PROFI-2024-001_Company_Name)
+            parent_dir = file_path.parent.name
+            project_id = parent_dir.split('_')[0] if '_' in parent_dir else None
+            
+            logger.info(f"Processing: {file_path.name} (Project: {project_id})")
+            chunks = pipeline.ingest_file(file_path, project_id=project_id)
             logger.info(f"  ✅ Ingested {len(chunks)} chunks")
             success_count += 1
         except Exception as e:

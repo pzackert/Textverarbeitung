@@ -1,22 +1,35 @@
 """Shared fixtures for benchmark tests."""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 from typing import List
 
 import pytest
 
+# Skip benchmarks unless explicitly enabled (heavy, require local models)
+RUN_BENCH = bool(os.getenv("RUN_BENCHMARK_TESTS"))
+if not RUN_BENCH:
+    pytestmark = pytest.mark.skip(reason="Benchmarks disabled; set RUN_BENCHMARK_TESTS=1 to run")
+
+def pytest_ignore_collect(collection_path, config):
+    if "test_benchmarks" in str(collection_path) and not RUN_BENCH:
+        return True
+
 # Ensure src and benchmark utilities are importable
 ROOT = Path(__file__).parent.parent
 SRC_PATH = ROOT.parent / "src"
+THIS_DIR = Path(__file__).parent
+if str(THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(THIS_DIR))
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from benchmarks.utils.config import ConfigLoader
-from benchmarks.utils.rag_helper import RAGBenchmarkHelper
+from utils.config import ConfigLoader
+from utils.rag_helper import RAGBenchmarkHelper
 
 
 @pytest.fixture(scope="session")

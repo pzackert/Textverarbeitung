@@ -1,0 +1,4 @@
+Projekt B: Tiefseeabenteuer U-Boot.
+Wir bauen ein gelbes U-Boot, um die Titanic zu besuchen.
+Budget: 500 Euro.
+Team: Captain Nemo, Beatles.

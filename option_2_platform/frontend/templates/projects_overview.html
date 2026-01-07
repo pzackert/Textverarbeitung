@@ -7,30 +7,39 @@
 {% endblock %}
 
 {% block content %}
-<div class="p-6">
+<div class="p-6" x-data="projectListApp()" x-init="init()">
   <!-- Header -->
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Förderanträge</h1>
-    <button
-      class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-      onclick="document.getElementById('new-project-modal').showModal()">
-      + Neuer Antrag
-    </button>
+    <div class="flex gap-2">
+      <button onclick="checkAllProjects()"
+        class="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+          </path>
+        </svg>
+        Alle prüfen
+      </button>
+      <button
+        class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+        onclick="document.getElementById('new-project-modal').showModal()">
+        + Neuer Antrag
+      </button>
+    </div>
   </div>
 
   <!-- Filter & Search -->
   <div class="flex gap-4 mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
     <div class="flex-1">
-      <input type="search" name="search"
+      <input type="search" x-model="searchQuery"
         class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 py-3 px-3"
-        placeholder="Anträge durchsuchen..." hx-get="/projects" hx-trigger="keyup changed delay:500ms"
-        hx-target="#projects-table-body" hx-include="[name='status-filter']">
+        placeholder="Anträge durchsuchen...">
     </div>
 
     <div class="w-48">
-      <select name="status-filter"
-        class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 py-3 px-3"
-        hx-get="/projects" hx-trigger="change" hx-target="#projects-table-body" hx-include="[name='search']">
+      <select x-model="statusFilter"
+        class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 py-3 px-3">
         <option value="all">Alle Status</option>
         <option value="draft">Entwurf</option>
         <option value="in_review">In Prüfung</option>
@@ -40,7 +49,7 @@
   </div>
 
   <!-- Projects Table -->
-  <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto">
+  <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-auto min-h-[300px]">
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
@@ -66,32 +75,71 @@
         </tr>
       </thead>
       <tbody id="projects-table-body" class="bg-white divide-y divide-gray-200">
-        {% include 'partials/projects_table_rows.html' %}
+        <template x-if="loading">
+          <tr>
+            <td colspan="8" class="text-center py-12 text-gray-400">
+              <span class="loading loading-dots loading-lg"></span> Lade Anträge...
+            </td>
+          </tr>
+        </template>
+
+        <template x-for="project in filteredProjects" :key="project.id">
+          <tr class="project-row hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+            @click="window.location='/projects/' + project.id + '/review'">
+            <td class="px-6 py-4 whitespace-nowrap"><span class="text-xs text-gray-500 font-mono"
+                x-text="project.id.substring(0,8) + '...'"></span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap project-name">
+              <strong class="text-gray-900" x-text="project.name"></strong>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap hidden lg:table-cell text-sm text-gray-500"
+              x-text="project.applicant || '-'"></td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+              x-text="project.funding_amount ? new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(project.funding_amount) : '-'">
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                :class="statusClass(project.status)" x-text="statusLabel(project.status)">
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+              <span class="doc-count" x-text="(project.documents_count || 0) + ' Dokumente'"></span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden xl:table-cell"
+              x-text="formatDate(project.updated_at)"></td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" @click="event.stopPropagation()">
+              <div class="flex justify-end gap-2 text-gray-400">
+                <a :href="'/projects/' + project.id + '/review'" hx-boost="false"
+                  class="p-1 hover:text-primary-600 transition-colors" title="Öffnen">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                <button class="p-1 hover:text-red-600 transition-colors" @click="deleteProject(project.id)"
+                  title="Löschen">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </template>
       </tbody>
     </table>
 
-    {% if not projects %}
-    <div class="text-center py-12">
+    <div x-show="!loading && filteredProjects.length === 0" class="text-center py-12" style="display: none;">
       <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Anträge vorhanden</h3>
-      <p class="mt-1 text-sm text-gray-500">Erstellen Sie einen neuen Förderantrag um zu beginnen.</p>
-      <div class="mt-6">
-        <button type="button" onclick="document.getElementById('new-project-modal').showModal()"
-          class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-          <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-            aria-hidden="true">
-            <path fill-rule="evenodd"
-              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-              clip-rule="evenodd" />
-          </svg>
-          Neuer Antrag
-        </button>
-      </div>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Anträge gefunden</h3>
+      <p class="mt-1 text-sm text-gray-500">Passen Sie den Filter an oder erstellen Sie einen neuen Antrag.</p>
     </div>
-    {% endif %}
   </div>
 </div>
 
@@ -102,7 +150,7 @@
       <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
         <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Neuen Antrag anlegen</h3>
         <div class="mt-2">
-          <form action="/projects" method="POST" class="space-y-4">
+          <form @submit.prevent="createProject" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700">Projektname</label>
               <input type="text" name="name" required
@@ -135,4 +183,121 @@
     </div>
   </div>
 </dialog>
+
+<script>
+  // Use raw JSON string from backend with 'safe' filter to prevent escaping
+  const initialProjects = {{ initial_projects_json | safe }};
+
+  function projectListApp() {
+    return {
+      projects: initialProjects || [],
+      loading: !initialProjects || initialProjects.length === 0,
+      searchQuery: '',
+      statusFilter: 'all',
+
+      async init() {
+        try {
+          const res = await fetch('/api/projects/');
+          if (res.ok) {
+            this.projects = await res.json();
+          }
+        } catch (e) {
+          console.error("Fetch projects failed", e);
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      get filteredProjects() {
+        return this.projects.filter(p => {
+          if (this.statusFilter !== 'all' && p.status !== this.statusFilter) return false;
+          if (this.searchQuery) {
+            const low = this.searchQuery.toLowerCase();
+            const matchName = p.name && p.name.toLowerCase().includes(low);
+            const matchApp = p.applicant && p.applicant.toLowerCase().includes(low);
+            if (!matchName && !matchApp) return false;
+          }
+          return true;
+        });
+      },
+
+      statusLabel(status) {
+        const map = {
+          'draft': 'Entwurf',
+          'Entwurf': 'Entwurf',
+          'in_review': 'In Prüfung',
+          'In Prüfung': 'In Prüfung',
+          'completed': 'Abgeschlossen',
+          'Abgeschlossen': 'Abgeschlossen',
+          'archived': 'Archiviert',
+          'Archiviert': 'Archiviert',
+          'error': 'Fehler'
+        };
+        return map[status] || status || '-';
+      },
+
+      statusClass(status) {
+        const s = (status || '').toLowerCase();
+        if (s === 'completed' || s === 'abgeschlossen') return 'bg-green-100 text-green-800';
+        if (s === 'in_review' || s === 'in prüfung') return 'bg-yellow-100 text-yellow-800';
+        if (s === 'archived' || s === 'archiviert') return 'bg-gray-200 text-gray-700';
+        return 'bg-gray-100 text-gray-800';
+      },
+
+      formatDate(isoString) {
+        if (!isoString) return '-';
+        try {
+          return new Date(isoString).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return isoString; }
+      },
+
+      async deleteProject(id) {
+        if (!confirm("Antrag wirklich löschen?")) return;
+        try {
+          const res = await fetch('/api/projects/' + id, { method: 'DELETE' });
+          if (res.ok) {
+            this.projects = this.projects.filter(p => p.id !== id);
+          } else {
+            alert("Löschen fehlgeschlagen.");
+          }
+        } catch (e) {
+          alert("Netzwerkfehler");
+        }
+      },
+
+      async createProject(e) {
+        const form = e.target;
+        const formData = new FormData(form);
+        const payload = Object.fromEntries(formData.entries());
+        const btn = form.querySelector('button[type="submit"]');
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "Lege an...";
+
+        try {
+          const res = await fetch('/api/projects/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) {
+            form.reset();
+            document.getElementById('new-project-modal').close();
+            await this.init();
+          } else {
+            const err = await res.text();
+            alert("Fehler beim Erstellen: " + err);
+          }
+        } catch (e) {
+          alert("Netzwerkfehler");
+          console.error(e);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = originalText;
+        }
+      }
+    }
+  }
+</script>
 {% endblock %}
+```

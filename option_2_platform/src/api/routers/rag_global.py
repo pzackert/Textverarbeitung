@@ -9,7 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from src.api.dependencies import get_ingestion_pipeline, get_config
 from src.rag.vector_store import VectorStore
 
-router = APIRouter(prefix="/api/rag/global", tags=["rag_global"])
+router = APIRouter(prefix="/rag/global", tags=["rag_global"])
 logger = logging.getLogger(__name__)
 
 # Job state held in-memory for polling
@@ -73,6 +73,10 @@ def _run_load_job(doc_paths, pipeline):
             chunks = result.get("chunk_count", 0)
             total_chunks += chunks
             duration = round(time.perf_counter() - t0, 2)
+            
+            # Incremental update of job state
+            rag_job["total_chunks"] = total_chunks
+            
             _update_doc(
                 path.name,
                 status="complete",
@@ -90,7 +94,8 @@ def _run_load_job(doc_paths, pipeline):
             )
             rag_job["status"] = "error"
             rag_job["overall_progress_pct"] = _compute_progress()
-            return
+            # Do NOT return, continue to next file
+            continue
         rag_job["overall_progress_pct"] = _compute_progress()
     rag_job["status"] = "ready"
     rag_job["total_chunks"] = total_chunks
@@ -126,6 +131,34 @@ async def load_global(background_tasks: BackgroundTasks, force_reload: bool = Fa
         "total_documents": len(doc_paths),
         "documents": [p.name for p in doc_paths],
     }
+
+def start_background_load():
+    """Helper to trigger loading from system startup."""
+    data_dir = Path("data/global_knowledge")
+    if not data_dir.exists():
+        return
+    doc_paths = sorted([p for p in data_dir.iterdir() if p.is_file()])
+    if not doc_paths:
+        return
+        
+    if rag_job.get("status") == "loading":
+        logger.info("Global RAG load already in progress, skipping auto-load trigger.")
+        return
+
+    logger.info(f"Auto-loading {len(doc_paths)} global documents...")
+    _reset_job(doc_paths)
+    # Note: We don't clean chunks here to avoid wiping persistence if it was partial.
+    # Actually, for auto-load on empty DB, cleaning is fine/noop.
+    
+    pipeline = get_ingestion_pipeline()
+    # Run synchronously in a thread or just call logic? 
+    # Since this is called from asyncio.create_task in main, we can just run it.
+    # But _run_load_job is synchronous blocking IO.
+    # We should run it in a separate thread/task.
+    
+    import threading
+    t = threading.Thread(target=_run_load_job, args=(doc_paths, pipeline))
+    t.start()
 
 
 @router.get("/status")

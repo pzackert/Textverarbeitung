@@ -1,7 +1,7 @@
 import logging
 import time
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel
 
 from src.api.schemas_application import Application
@@ -20,13 +20,13 @@ class EvaluationResult(BaseModel):
     status: str 
     reasoning: str
     citations: List[Any] = []
-    timestamp: datetime = datetime.utcnow()
+        timestamp: datetime = datetime.now(timezone.utc)
 
 class EvaluationReport(BaseModel):
     app_id: str
     results: List[EvaluationResult]
     summary: str
-    created_at: datetime = datetime.utcnow()
+        created_at: datetime = datetime.now(timezone.utc)
 
 class EvaluationService:
     def __init__(self):

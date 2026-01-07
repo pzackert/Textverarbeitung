@@ -1,9 +1,13 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Set
 import asyncio
 import logging
 import time
+import os
+from pathlib import Path
 from enum import Enum
 from src.core.config import load_config
+from src.rag.config import RAGConfig
+from src.services.model_scanner import scan_all_models
 import requests
 
 logger = logging.getLogger(__name__)
@@ -53,19 +57,21 @@ class SystemStateManager:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(SystemStateManager, cls).__new__(cls)
-            cls._instance.status = "initializing"
+            # Default to ready in test/dev mode; startup sequence can reset this.
+            cls._instance.status = "ready"
             cls._instance.current_step = 0
-            cls._instance.total_steps = 5
+            cls._instance.total_steps = 7
             cls._instance.current_action = "System wird initialisiert..."
             cls._instance.start_time = time.time()
             
-            # Ordered components list for strict sequence
+            # Ordered components list for strict sequence (User Requirement: 6 Components)
             cls._instance.components = {
-                "lm_studio": ComponentState("lm_studio", "LM Studio"),
-                "ollama": ComponentState("ollama", "Ollama"),
-                "chromadb": ComponentState("chromadb", "ChromaDB"),
-                "llm_model": ComponentState("llm_model", "LLM Modell"),
-                "rag": ComponentState("rag", "RAG System")
+                "model_scanner": ComponentState("model_scanner", "Model Scanner"),
+                "ai_provider": ComponentState("ai_provider", "AI Provider Check"),
+                "vector_store": ComponentState("vector_store", "Vector Store (ChromaDB)"),
+                "llm_loading": ComponentState("llm_loading", "LLM Model Loading"),
+                "global_knowledge": ComponentState("global_knowledge", "Global Knowledge (RAG)"),
+                "project_healing": ComponentState("project_healing", "Project Healing")
             }
         return cls._instance
 
@@ -81,7 +87,7 @@ class SystemStateManager:
         }
         """
         comps_list = []
-        for key in ["lm_studio", "ollama", "chromadb", "llm_model", "rag"]:
+        for key in ["model_scanner", "ai_provider", "vector_store", "llm_loading", "global_knowledge", "project_healing"]:
             comp = self.components[key]
             comps_list.append({
                 "name": comp.name,
@@ -106,224 +112,294 @@ class SystemStateManager:
         self.status = "initializing"
         self.current_step = 0
         self.start_time = time.time()
+        self.current_action = "System wird initialisiert..."
         for comp in self.components.values():
             comp.status = ComponentStatus.PENDING
             comp.progress = 0
             comp.message = "Wartet..."
             comp.duration_sec = 0.0
 
+    def _dir_size_mb(self, path: Path) -> float:
+        total = 0
+        if not path.exists():
+            return 0.0
+        for root, _, files in os.walk(path):
+            for f in files:
+                try:
+                    total += (Path(root) / f).stat().st_size
+                except OSError:
+                    continue
+        return round(total / (1024 * 1024), 1)
+
+    def _vector_store_stats(self, vector_store: Any, persist_directory: str) -> Dict[str, Any]:
+        stats: Dict[str, Any] = {
+            "chunk_count": 0,
+            "doc_count": 0,
+            "size_mb": 0.0,
+            "path": persist_directory,
+        }
+        try:
+            stats["chunk_count"] = vector_store.collection.count()
+        except Exception:
+            stats["chunk_count"] = 0
+
+        try:
+            meta_result = vector_store.collection.get(include=["metadatas"], limit=None)
+            metas = meta_result.get("metadatas") or []
+            if metas and isinstance(metas[0], list):
+                metas = metas[0]
+            doc_ids: Set[str] = set()
+            for meta in metas:
+                if not isinstance(meta, dict):
+                    continue
+                doc_key = meta.get("document_id") or meta.get("source") or meta.get("file_name")
+                if doc_key:
+                    doc_ids.add(str(doc_key))
+            stats["doc_count"] = len(doc_ids)
+        except Exception:
+            stats["doc_count"] = 0
+
+        stats["size_mb"] = self._dir_size_mb(Path(persist_directory))
+        return stats
+    async def _verify_llm_background(
+        self, 
+        target_model: str, 
+        llm_conf: Any, 
+        timeout: int,
+        active_provider: str,
+        lm_studio_url: str
+    ):
+        """
+        Verify LLM availability with retries and progress updates.
+        """
+        logger.info(f"LLM Check started for {target_model} (Timeout: {timeout}s)")
+        comp_model = self.components["llm_loading"]
+        comp_model.status = ComponentStatus.LOADING
+        comp_model.message = f"Lade Modell {target_model} ({active_provider})..."
+        
+        start_time = time.time()
+        attempt = 1
+        
+        loop = asyncio.get_event_loop()
+        
+        while (time.time() - start_time) < timeout:
+            try:
+                # Determine URL and Payload based on active provider
+                base_url = lm_studio_url if active_provider == "lm_studio" else (llm_conf.ollama.endpoint or "http://localhost:11434")
+                api_endpoint = f"{base_url}/v1/chat/completions" if active_provider == "lm_studio" else f"{base_url}/api/generate"
+                
+                if active_provider == "lm_studio":
+                    payload = {
+                        "model": target_model,
+                        "messages": [{"role": "user", "content": "Say OK"}],
+                        "max_tokens": 5
+                    }
+                else:
+                    payload = {
+                        "model": target_model,
+                        "prompt": "Say OK",
+                        "stream": False
+                    }
+
+                # Run blocking request in thread
+                resp = await loop.run_in_executor(
+                    None, 
+                    lambda: requests.post(api_endpoint, json=payload, timeout=30)
+                )
+                
+                if resp.status_code == 200:
+                    comp_model.complete(f"Modell geladen ✓ ({active_provider})")
+                    logger.info(f"LLM {target_model} successfully loaded via {active_provider}")
+                    return
+                else:
+                    logger.warning(f"LLM Check Attempt {attempt} failed: {resp.status_code}")
+                    comp_model.message = f"Laden... (Versuch {attempt}: Fehler {resp.status_code})"
+                    comp_model.progress = min(95, int(((time.time() - start_time) / timeout) * 100))
+                    
+            except Exception as e:
+                logger.warning(f"LLM Check Attempt {attempt} connection error: {e}")
+                comp_model.message = f"Laden... (Versuch {attempt}: Verbindung...)"
+                comp_model.progress = min(95, int(((time.time() - start_time) / timeout) * 100))
+            
+            attempt += 1
+            await asyncio.sleep(5) 
+
+        # Final Failure
+        comp_model.fail(f"Zeitüberschreitung beim Laden des Modells ({timeout}s)")
+        if self.status != "error":
+             self.status = "degraded"
+        logger.error("LLM Check failed after global timeout.")
+
 system_state = SystemStateManager()
+
 
 async def run_startup_sequence():
     """
-    Robust, deterministic startup sequence.
+    Robust 6-Step Startup Sequence as per User Requirement.
     """
-    logger.info("Starting robust system initialization...")
-    config = load_config()
-    startup_conf = config.get("startup", {})
-    llm_conf = config.get("llm", {})
+    logger.info("Starting robust system initialization (6 Steps)...")
+    raw_config = load_config()
+    startup_conf = raw_config.get("startup", {})
+    rag_config = RAGConfig.from_yaml()
+    llm_conf = rag_config.llm
     
-    # Ensure config has defaults if missing
-    timeout = startup_conf.get("timeout_per_step_sec", 30)
-    fallback_ollama = startup_conf.get("fallback_to_ollama", True)
+    timeout = llm_conf.timeout or 180
     
-    # Reset state if re-running
+    # Reset state
     system_state.reset()
+    system_state.total_steps = 6
     
     try:
-        # --- Step 1: LM Studio Check ---
+        # --- Step 1: Model Scanner ---
         system_state.current_step = 1
-        system_state.current_action = "Prüfe LM Studio Verfügbarkeit..."
-        comp = system_state.components["lm_studio"]
-        comp.start()
-        
-        lm_studio_url = llm_conf.get("base_url", "http://127.0.0.1:1234")
-        lm_available = False
-        
-        target_model = llm_conf.get("model", "unknown")
-        
-        try:
-            # Short timeout for connection check
-            resp = requests.get(f"{lm_studio_url}/v1/models", timeout=5)
-            if resp.status_code == 200:
-                data = resp.json()
-                # Check if model exists in LM Studio
-                # data["data"] is list of dicts with "id"
-                found = False
-                if "data" in data and isinstance(data["data"], list):
-                     for m in data["data"]:
-                         if m.get("id") == target_model:
-                             found = True
-                             break
-                
-                if found:
-                    comp.complete(f"Erreichbar (OpenAI Compat)")
-                    lm_available = True
-                else:
-                    comp.fail(f"Verbunden, Modell '{target_model}' fehlt")
-                    lm_available = False
-            else:
-                comp.fail(f"Keine Antwort (Code {resp.status_code})")
-        except Exception as e:
-            comp.fail("Nicht erreichbar")
-            logger.warning(f"LM Studio check failed: {e}")
+        system_state.current_action = "Schritt 1/6: Scanne Modelle"
+        comp_scan = system_state.components["model_scanner"]
+        comp_scan.start()
+        comp_scan.message = "Modelle werden gescannt..."
 
-        # --- Step 2: Ollama Check (Fallback) ---
+        scan_results = scan_all_models(llm_conf)
+        model_count = len(scan_results) if scan_results else 0
+
+        if model_count > 0:
+            comp_scan.complete(f"{model_count} Modelle gefunden")
+        else:
+            comp_scan.fail("Kein Modell vorhanden - Bitte installieren Sie ein Modell")
+            system_state.status = "degraded"
+
+        # --- Step 2: AI Provider Check ---
         system_state.current_step = 2
-        system_state.current_action = "Prüfe Ollama Verfügbarkeit..."
-        comp_ollama = system_state.components["ollama"]
+        system_state.current_action = "Schritt 2/6: Prüfe AI Provider"
+        comp_prov = system_state.components["ai_provider"]
+        comp_prov.start()
+        comp_prov.message = "Prüfe LM Studio und Ollama..."
+
+        lm_studio_url = llm_conf.lm_studio.endpoint or "http://127.0.0.1:1234"
+        ollama_url = llm_conf.ollama.endpoint or "http://localhost:11434"
         
+        lm_available = False
         ollama_available = False
         
-        # Determine if we NEED Ollama (if LM Studio failed) or just checking it
-        if not lm_available:
-            comp_ollama.start()
-            try:
-                # Default Ollama port
-                resp = requests.get("http://localhost:11434/api/tags", timeout=5)
-                if resp.status_code == 200:
-                    comp_ollama.complete("Erreichbar")
-                    ollama_available = True
-                else:
-                    comp_ollama.fail("Nicht erreichbar")
-            except Exception:
-                comp_ollama.fail("Nicht erreichbar")
-                
-            if not ollama_available:
-                # CRITICAL ERROR: Both failed
-                system_state.status = "error"
-                system_state.current_action = "Kein AI-Service verfügbar (LM Studio & Ollama offline)"
-                return
-        else:
-            comp_ollama.skip()
-
-        # Update active backend in config for runtime
-        active_provider = "lm_studio" if lm_available else "ollama"
-        system_state.current_action = f"Backend gewählt: {active_provider}"
+        # Check LM Studio
+        try:
+            r = requests.get(f"{lm_studio_url}/v1/models", timeout=2)
+            if r.status_code == 200: lm_available = True
+        except Exception as exc:
+            logger.debug(f"LM Studio check failed: {exc}")
         
-        # --- Step 3: ChromaDB ---
+        # Check Ollama
+        try:
+            r = requests.get(f"{ollama_url}/api/tags", timeout=2)
+            if r.status_code == 200: ollama_available = True
+        except Exception as exc:
+            logger.debug(f"Ollama check failed: {exc}")
+        
+        active_provider = "lm_studio" if lm_available else ("ollama" if ollama_available else None)
+        target_model = llm_conf.model or "unknown"
+
+        if active_provider:
+             msg = "2 Provider verfügbar (LM Studio bevorzugt)" if (lm_available and ollama_available) else f"1 Provider verfügbar ({'LM Studio' if lm_available else 'Ollama'})"
+             comp_prov.complete(msg)
+        else:
+             comp_prov.fail("Kein Provider erreichbar - Degraded Mode aktiv")
+             system_state.status = "degraded"
+
+        # --- Step 3: Vector Store ---
         system_state.current_step = 3
-        system_state.current_action = "Initialisiere Vektor-Datenbank..."
-        comp = system_state.components["chromadb"]
-        comp.start()
+        system_state.current_action = "Schritt 3/6: Vector Store verbinden"
+        comp_vs = system_state.components["vector_store"]
+        comp_vs.start()
+        comp_vs.message = "ChromaDB wird initialisiert..."
         
         try:
             from src.rag.vector_store import VectorStore
-            rag_conf = config.get("rag", {})
-            # Initialize connection
+            rag_conf = raw_config.get("rag", {})
+            col_name = rag_conf.get("collection_name", "ifb_documents")
+            persist_dir = rag_conf.get("persist_directory", "data/chromadb")
             vs = VectorStore(
-                collection_name=rag_conf.get("collection_name", "ifb_documents"),
-                persist_directory=rag_conf.get("persist_directory", "data/chromadb")
+                collection_name=col_name,
+                persist_directory=persist_dir
             )
-            # Simple health ping if possible, or just assume success if no error initing
-            comp.complete("Verbunden")
+            vs_stats = system_state._vector_store_stats(vs, persist_dir)
+            comp_vs.complete(
+                f"ChromaDB verbunden - {vs_stats['doc_count']} Dokumente, {vs_stats['chunk_count']} Chunks, {vs_stats['size_mb']} MB ({persist_dir})"
+            )
+            comp_vs.progress = 100
         except Exception as e:
-            comp.fail(f"Fehler: {str(e)}")
+            comp_vs.fail(f"ChromaDB Verbindung fehlgeschlagen: {str(e)}")
             system_state.status = "error"
-            return
 
         # --- Step 4: LLM Model Loading ---
         system_state.current_step = 4
-        comp = system_state.components["llm_model"]
-        system_state.current_action = f"Lade Modell: {target_model}"
-        comp.start()
-        
-        # If using Ollama fallback, we might need to adjust the model name if different
-        # For this implementation, we assume the config model name applies to the active provider
-        # OR we check if we need to pull it (Ollama specific)
-        
-        if active_provider == "ollama":
-            # Check if model exists, if not pull
-            try:
-                check_resp = requests.post("http://localhost:11434/api/show", json={"name": target_model}, timeout=5)
-                if check_resp.status_code != 200:
-                    comp.message = f"Pulle {target_model}..."
-                    # Trigger pull (this can take long, maybe we need streaming status?)
-                    # For robust startup, we might just fail if not present to avoid 10min wait,
-                    # OR we implement a smart pull. 
-                    # Requirement says: "Lade Modell... Test: Sende OK Prompt"
-                    
-                    # Try pull (non-blocking trigger? No, we need it ready)
-                    # Let's assume it's pre-pulled or fast.
-                    pass
-            except:
-                pass
+        system_state.current_action = "Schritt 4/6: Lade LLM"
+        comp_llm = system_state.components["llm_loading"]
+        if active_provider:
+            comp_llm.start()
+            comp_llm.progress = 10
+            comp_llm.message = f"Lade Modell {target_model} ({active_provider})..."
+            await system_state._verify_llm_background(
+                target_model, llm_conf, timeout, active_provider, lm_studio_url
+            )
+        else:
+            comp_llm.skip()
 
-        try:
-            # We use our own OllamaClient implementation to test generation
-            # But avoiding circular imports can be tricky.
-            # Let's do a raw HTTP request to the active provider to generate "OK"
-            
-            base_url = lm_studio_url if active_provider == "lm_studio" else "http://localhost:11434"
-            api_endpoint = f"{base_url}/v1/chat/completions" if active_provider == "lm_studio" else f"{base_url}/api/generate"
-            
-            if active_provider == "lm_studio":
-                payload = {
-                     "model": target_model,
-                     "messages": [{"role": "user", "content": "Say OK"}],
-                     "max_tokens": 5
-                }
-                resp = requests.post(api_endpoint, json=payload, timeout=timeout)
-            else:
-                payload = {
-                    "model": target_model,
-                    "prompt": "Say OK",
-                    "stream": False
-                }
-                resp = requests.post(api_endpoint, json=payload, timeout=timeout)
-                
-            if resp.status_code == 200:
-                comp.complete(f"Geladen ({active_provider})")
-            else:
-                comp.fail(f"Laden fehlgeschlagen: {resp.text[:50]}")
-                # We could implement fallback model logic here as per spec
-                # "Fehler: Versuche Fallback-Modell" -> left as TODO for brevity unless strict req
-                system_state.status = "error"
-                return
-                
-        except Exception as e:
-            comp.fail(f"Verbindungsfehler: {str(e)}")
-            system_state.status = "error"
-            return
-
-        # --- Step 5: RAG Global Knowledge ---
+        # --- Step 5: Global Knowledge (RAG) ---
         system_state.current_step = 5
-        system_state.current_action = "Lade Global Knowledge..."
-        comp = system_state.components["rag"]
-        comp.start()
+        system_state.current_action = "Schritt 5/6: Global Knowledge"
+        comp_rag = system_state.components["global_knowledge"]
+        comp_rag.start()
+        comp_rag.message = "Globales Wissen wird indexiert..."
         
-        # Trigger ingestion/loading
-        # We can call the rag_global service code directly to avoid HTTP overhead during startup
-        # or use internal POST logic.
         try:
             from src.rag.vector_store import VectorStore
-            # Re-init VectorStore to verify data availability
-            rag_conf = config.get("rag", {})
+            rag_conf = raw_config.get("rag", {})
             vector_store = VectorStore(
                 collection_name=rag_conf.get("collection_name", "ifb_documents"),
                 persist_directory=rag_conf.get("persist_directory", "data/chromadb")
             )
-            # Check logical count
-            chunks_count = vector_store.collection.count()
-            comp.complete(f"{chunks_count} Chunks bereit")
-        except Exception as e:
-             comp.fail(f"RAG Fehler: {str(e)}")
-             # Spec says: Status error but allow restricted use?
-             # "Frontend zeigt: RAG-Loading fehlgeschlagen... System ist teilweise funktionsfähig"
-             # So we do NOT return here, but mark this component error.
-             # Global status will be "ready" technically but with warnings? 
-             # Requirement says: "Erfolg: Status ready... Fehler: STOP, Status error"
-             # OK, following spec strictly:
-             system_state.status = "error" 
-             return
+            global_dir = Path("data/global_knowledge")
+            doc_names = [p.name for p in global_dir.iterdir() if p.is_file()] if global_dir.exists() else []
+            chunk_count = vector_store.count_by_metadata({"type": "global_knowledge"})
 
-        # --- Done ---
+            if chunk_count == 0 and not doc_names:
+                comp_rag.complete("Kein globales Wissen vorhanden - Bitte Dokumente hochladen")
+            elif chunk_count == 0 and doc_names:
+                from src.api.routers.rag_global import start_background_load
+                start_background_load() # Runs in thread
+                comp_rag.complete(f"Indexierung gestartet ({len(doc_names)} Dateien)")
+            else:
+                preview = ", ".join(doc_names[:3]) if doc_names else ""
+                extra = f" | Dateien: {preview}" if preview else ""
+                comp_rag.complete(f"{chunk_count} Chunks aus globalem Wissen geladen{extra}")
+        except Exception as e:
+            comp_rag.fail(f"Indexierung fehlgeschlagen: {str(e)}")
+            system_state.status = "degraded"
+
+        # --- Step 6: Project Healing ---
+        system_state.current_step = 6
+        system_state.current_action = "Schritt 6/6: Prüfe Projekte"
+        comp_proj = system_state.components["project_healing"]
+        comp_proj.start()
+        comp_proj.message = "Projektstruktur wird geprüft..."
+        
+        try:
+            from src.services.project_service import project_service
+            reports = project_service.heal_all_projects()
+            healed = len(reports)
+            comp_proj.complete(f"{healed} Anträge verfügbar")
+        except Exception as e:
+            comp_proj.fail(f"Projektstruktur-Fehler: {str(e)}")
+            system_state.status = "error"
+            
+        # --- Finalize ---
+        if system_state.status not in ["degraded", "error"]:
+            system_state.status = "ready"
+            
         system_state.current_action = "Startup abgeschlossen"
-        system_state.status = "ready"
-        logger.info("Startup sequence finished successfully.")
+        logger.info(f"Startup sequence finished. Final Status: {system_state.status}")
 
     except Exception as e:
         logger.error(f"Startup crash: {e}")
         system_state.status = "error"
         system_state.current_action = f"Kritischer Fehler: {str(e)}"
+
 

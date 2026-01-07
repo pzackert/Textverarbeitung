@@ -11,24 +11,15 @@ class PromptTemplate:
         self.system_prompt = system_prompt
         self.user_template = user_template
         
-    def format(self, query: str, context: str, **kwargs) -> str:
+    def format(self, query: str, context: str, system_prompt_override: Optional[str] = None, **kwargs) -> str:
         """Format complete prompt with query and context."""
-        # In many LLM APIs (like OpenAI/Ollama), system prompt is passed separately.
-        # However, for some models or simple completions, we might want to combine them.
-        # Here we will return the user message formatted. The system prompt is stored
-        # in the object to be retrieved by the LLM client if needed, or we can prepend it.
-        # The requirement says "Format complete prompt", but usually chat models take messages.
-        # Let's assume we return the formatted user content here, or a combined string if intended for completion.
-        # Given the task description implies generating a prompt string, I will combine them if it's a single string return,
-        # OR I will provide a method to get messages.
-        # Looking at Task 1.2 interface: def format(...) -> str.
-        # So I will return the full prompt string (System + User) or just User if System is handled elsewhere.
-        # Let's prepend System Prompt for now to be safe for raw completion models, 
-        # but usually for Chat models we separate them.
-        # Let's stick to the interface and return a string.
         
         user_content = self.user_template.format(query=query, context=context, **kwargs)
-        return f"{self.system_prompt}\n\n{user_content}"
+        
+        # Use override if provided, otherwise default
+        sys_prompt = system_prompt_override if system_prompt_override else self.system_prompt
+        
+        return f"{sys_prompt}\n\n{user_content}"
 
     @classmethod
     def standard_query(cls) -> "PromptTemplate":
@@ -37,7 +28,7 @@ class PromptTemplate:
         Allows general knowledge answers if context is insufficient.
         """
         system_prompt = (
-            "Du bist ein erfahrener Experte für IFB-Förderrichtlinien und das PROFI-Programm. "
+            "Du bist ein erfahrener Experte der IFB Hamburg. "
             "Deine Aufgabe ist es, Fragen primär basierend auf den bereitgestellten Dokumenten zu beantworten.\n"
             "Antworte immer auf Deutsch.\n\n"
             "REGELN:\n"
@@ -97,7 +88,7 @@ class PromptTemplate:
         )
         return cls(system_prompt, user_template)
 
-def format_context(results: List[Dict[str, Any]], include_scores: bool = False) -> str:
+def format_context(results: List[Dict[str, Any]], include_scores: bool = False, max_chars: int | None = None) -> str:
     """
     Format retrieval results into context string.
     
@@ -111,6 +102,8 @@ def format_context(results: List[Dict[str, Any]], include_scores: bool = False) 
     formatted_chunks = []
     for i, result in enumerate(results, 1):
         content = result.get("content", "").strip()
+        if max_chars is not None and len(content) > max_chars:
+            content = content[:max_chars] + "..."
         metadata = result.get("metadata", {})
         source = metadata.get("source", "Unbekannte Quelle")
         page = metadata.get("page", None)

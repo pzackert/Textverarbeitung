@@ -1,24 +1,27 @@
 import json
 import uuid
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 CHAT_DIR = BASE_DIR / "data" / "chats"
 INPUT_DIR = BASE_DIR / "data" / "input"
 CHAT_DIR.mkdir(parents=True, exist_ok=True)
+INPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 def _utc_now() -> str:
-    return datetime.utcnow().strftime(ISO_FMT)
+    return datetime.now(timezone.utc).strftime(ISO_FMT)
 
 
 def _write_json(path: Path, payload: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    with tmp_path.open("w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+    tmp_path.replace(path)
 
 
 def _read_json(path: Path) -> Dict[str, Any]:
@@ -76,11 +79,22 @@ def save_global_chat(chat: Dict[str, Any]) -> Dict[str, Any]:
     return chat
 
 
+def delete_global_chat(chat_id: str) -> bool:
+    """Delete a global chat by ID. Returns True if deleted, False if not found."""
+    for path in CHAT_DIR.glob(f"chat_*_{chat_id}.json"):
+        try:
+            path.unlink()
+            return True
+        except Exception:
+            pass
+    return False
+
+
 # ------------ Project Chat ------------
 
 def _project_chat_path(project_id: str) -> Path:
-    # Use consistent location in data/chats
-    return CHAT_DIR / f"project_{project_id}.json"
+    # Store project chat alongside project data
+    return INPUT_DIR / project_id / "chat_history.json"
 
 
 def load_or_create_project_chat(project_id: str) -> Dict[str, Any]:
@@ -90,6 +104,7 @@ def load_or_create_project_chat(project_id: str) -> Dict[str, Any]:
         data["file_path"] = str(path)
         return data
     created_at = _utc_now()
+    path.parent.mkdir(parents=True, exist_ok=True)
     chat = {
         "project_id": project_id,
         "type": "project",

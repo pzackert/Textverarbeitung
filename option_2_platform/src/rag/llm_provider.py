@@ -34,6 +34,8 @@ class OllamaProvider(BaseLLMProvider):
         super().__init__(model_name, base_url)
         # Flag toggled after availability check; enables OpenAI-compatible flow for LM Studio
         self._supports_openai = self._should_probe_openai()
+        # last_usage stores token/time metadata from the last generation call (if available)
+        self.last_usage: Dict[str, Any] | None = None
 
     def _should_probe_openai(self) -> bool:
         """Heuristic to decide whether to check OpenAI-compatible endpoints."""
@@ -41,6 +43,7 @@ class OllamaProvider(BaseLLMProvider):
     
     def generate(self, prompt: str, max_tokens: int, temperature: float) -> str:
         """Generate response from LLM."""
+        self.last_usage = None
         # Prefer OpenAI-compatible route when supported (LM Studio), otherwise use Ollama API
         if self._supports_openai:
             url = f"{self.base_url}/v1/chat/completions"
@@ -53,15 +56,25 @@ class OllamaProvider(BaseLLMProvider):
             }
             logger.info(f"Sending request to OpenAI-compatible endpoint: {url}, model={self.model_name}")
             try:
-                response = requests.post(url, json=payload, timeout=60)
+                response = requests.post(url, json=payload, timeout=180)
                 # LM Studio may return 404 if OpenAI route is disabled; fallback to Ollama flow
                 if response.status_code != 404:
                     response.raise_for_status()
                     data = response.json()
                     choices = data.get("choices", [])
-                    if choices and "message" in choices[0]:
-                        return choices[0]["message"].get("content", "")
-                    return data.get("response", "")
+                    self.last_usage = data.get("usage") or {}
+                    finish_reason = None
+                    if choices:
+                        finish_reason = choices[0].get("finish_reason")
+                        if "message" in choices[0]:
+                            content = choices[0]["message"].get("content", "")
+                        else:
+                            content = data.get("response", "")
+                    else:
+                        content = data.get("response", "")
+                    if finish_reason:
+                        self.last_usage["finish_reason"] = finish_reason
+                    return content
             except requests.exceptions.RequestException as e:
                 logger.warning(f"OpenAI-compatible request failed, falling back to Ollama API: {e}")
 
@@ -79,9 +92,20 @@ class OllamaProvider(BaseLLMProvider):
         logger.info(f"Sending request to Ollama: {url}, model={self.model_name}")
         
         try:
-            response = requests.post(url, json=payload, timeout=60)
+            response = requests.post(url, json=payload, timeout=180)
             response.raise_for_status()
             data = response.json()
+            # Capture usage-like stats from Ollama response if present
+            usage = {
+                "prompt_tokens": data.get("prompt_eval_count"),
+                "completion_tokens": data.get("eval_count"),
+            }
+            if data.get("eval_duration") is not None:
+                usage["eval_duration_ms"] = data.get("eval_duration")
+            if data.get("load_duration") is not None:
+                usage["load_duration_ms"] = data.get("load_duration")
+            # Clean None values
+            self.last_usage = {k: v for k, v in usage.items() if v is not None}
             return data.get("response", "")
         except requests.exceptions.RequestException as e:
             logger.error(f"Ollama request failed: {e}")

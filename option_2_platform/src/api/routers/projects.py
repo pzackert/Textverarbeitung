@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 import fitz
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Response
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Response, UploadFile, File, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -13,11 +13,14 @@ from src.services.project_service import project_service
 from src.rag.llm_chain import LLMChain
 from src.api.dependencies import get_llm_chain
 from src.services.validation_service import validation_service
+from src.rag.ingestion import IngestionPipeline
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["projects_api"])
-DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+BASE_DIR = Path(__file__).resolve().parents[3]
+DATA_DIR = BASE_DIR / "data"
+INPUT_DIR = DATA_DIR / "input"
 
 # --- Schemas ---
 
@@ -90,7 +93,56 @@ class AnnotatedListResponse(BaseModel):
     annotated_documents: List[AnnotatedDocument]
     total_annotated: int
 
+class ProjectCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    applicant: Optional[str] = None
+    funding_amount: Optional[float] = None
+
 # --- Endpoints ---
+
+@router.post("/", status_code=201)
+async def create_project_api(data: ProjectCreate):
+    """Create a new project via API."""
+    try:
+        project = project_service.create_project(
+            name=data.name,
+            description=data.description,
+            applicant=data.applicant,
+            funding_amount=data.funding_amount
+        )
+        return {"id": project.id, "name": project.name, "message": "Project created"}
+    except Exception as e:
+        logger.error(f"Failed to create project: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(project_id: str):
+    """Delete a project."""
+    success = project_service.delete_project(project_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return None
+
+@router.get("/", response_model=List[dict])
+async def list_projects_api():
+    """List all projects."""
+    projects = project_service.list_projects()
+    # Simple serialization for list view
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "applicant": p.applicant,
+            "description": p.description,
+            "funding_amount": p.funding_amount,
+            "created_at": p.created_at,
+            "updated_at": p.updated_at,
+            "status": p.status,
+            "documents_count": len(p.documents) if p.documents else 0
+        }
+        for p in projects
+    ]
 
 @router.get("/{project_id}/documents", response_model=DocumentListResponse)
 async def list_documents(project_id: str):
@@ -98,7 +150,7 @@ async def list_documents(project_id: str):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    base_path = Path("data/input") / project_id
+    base_path = INPUT_DIR / project_id
     uploads_dir = base_path / "uploads"
     annotated_dir = base_path / "annotated"
 
@@ -207,7 +259,14 @@ async def send_chat_message(
             # We should ideally pass the filter. 
             # Since query_detailed is simple, let's call query() directly.
             
-            filter_dict = {"project_id": project_id}
+            # Fix 2.1: Project Isolation + Global Knowledge
+            # We want documents that belong to THIS project OR are "global_knowledge".
+            filter_dict = {
+                "$or": [
+                    {"project_id": {"$eq": project_id}},
+                    {"type": {"$eq": "global_knowledge"}}
+                ]
+            }
             
             response_data = llm_chain.query(
                 question=request.message,
@@ -216,24 +275,22 @@ async def send_chat_message(
             
             response_text = response_data.get('answer', '')
             
-            # Map citations/sources
+            # Map citations/sources (Fix 2.3)
             sources = []
-            # We can use 'citations' from response (List[Citation]) or 'sources' (List[Dict])
-            # ResponseParser typically returns 'citations' as list of objects
-            # Let's verify what response_parser returns.
-            # Assuming standard structure from LLMChain.
-            
             raw_citations = response_data.get('citations', [])
+            
             for cit in raw_citations:
                 if hasattr(cit, 'doc_name'):
+                    dname = cit.doc_name or "Unknown"
                     sources.append(ChatSource(
-                        document=cit.doc_name,
+                        document=dname,
                         page=cit.page,
                         snippet=cit.text_snippet
                     ))
                 elif isinstance(cit, dict):
+                    dname = cit.get('doc_name') or cit.get('document') or cit.get('source') or 'Unknown'
                     sources.append(ChatSource(
-                        document=cit.get('doc_name', 'Unknown'),
+                        document=dname,
                         page=cit.get('page', 1),
                         snippet=cit.get('text_snippet', '')
                     ))
@@ -289,9 +346,9 @@ async def ingest_project_documents(
             file_path = doc.path
             # Check existence
             if not os.path.exists(file_path):
-                 modern_path = f"data/input/{project_id}/uploads/{doc.filename}"
-                 if os.path.exists(modern_path):
-                     file_path = modern_path
+                modern_path = str(INPUT_DIR / project_id / "uploads" / doc.filename)
+                if os.path.exists(modern_path):
+                    file_path = modern_path
             
             if os.path.exists(file_path):
                 logger.info(f"Ingesting {doc.filename}")
@@ -325,12 +382,12 @@ async def ingest_document(
         
     # Check if file exists on disk
     if not os.path.exists(target_doc.path):
-         # Try to find it in modern path
-         modern_path = f"data/input/{project_id}/uploads/{target_doc.filename}"
-         if os.path.exists(modern_path):
-             target_doc.path = modern_path
-         else:
-             raise HTTPException(404, f"File not found on disk: {target_doc.path}")
+        # Try to find it in modern path
+        modern_path = str(INPUT_DIR / project_id / "uploads" / target_doc.filename)
+        if os.path.exists(modern_path):
+            target_doc.path = modern_path
+        else:
+            raise HTTPException(404, f"File not found on disk: {target_doc.path}")
 
     try:
         pipeline = IngestionPipeline()
@@ -674,3 +731,41 @@ async def compare_documents(project_id: str, original: str, annotated: str):
         },
     }
 
+@router.post("/{project_id}/upload")
+async def upload_project_document(
+    project_id: str,
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None
+):
+    """Upload a file to the project and trigger RAG ingestion."""
+    import shutil
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    base_path = DATA_DIR / "input" / project_id
+    uploads_dir = base_path / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = uploads_dir / file.filename
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Trigger RAG Ingestion in Background
+        if background_tasks:
+            def _ingest_job(fpath, pid, fname):
+                try:
+                    pipeline = IngestionPipeline()
+                    # Fix 2.3: Pass doc_name in metadata for correct source display
+                    pipeline.ingest_file(fpath, project_id=pid, extra_metadata={"doc_name": fname})
+                    logger.info(f"Background ingestion for {fname} completed.")
+                except Exception as ex:
+                    logger.error(f"Background ingestion for {fname} failed: {ex}")
+
+            background_tasks.add_task(_ingest_job, file_path, project_id, file.filename)
+        
+        return {"status": "success", "filename": file.filename, "path": str(file_path), "ingestion": "queued"}
+    except Exception as e:
+        logger.error(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")

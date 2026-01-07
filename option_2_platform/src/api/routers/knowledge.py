@@ -47,5 +47,16 @@ async def delete_global_knowledge(filename: str):
     if not success:
         raise HTTPException(status_code=404, detail="File not found")
     
-    # TODO: Also remove from ChromaDB (requires implementation in RAG service)
+    try:
+        from src.rag.config import RAGConfig
+        from src.rag.vector_store import VectorStore
+        cfg = RAGConfig.from_yaml()
+        vs = VectorStore(
+            collection_name=cfg.collection_name,
+            persist_directory=cfg.persist_directory,
+            embedding_function=None,
+        )
+        vs.delete_by_metadata({"type": "global_knowledge", "document": filename})
+    except Exception as e:
+        logger.warning(f"Failed to delete global knowledge chunks for {filename}: {e}")
     return None

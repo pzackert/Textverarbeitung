@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from time import perf_counter
 from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from src.api.schemas_criteria import Criterion, CreateCriterionRequest, UpdateCriterionRequest
@@ -132,7 +132,7 @@ def _run_bulk_evaluation(project_id: str, job_id: str, criteria_ids: list[str]):
             "current_status": None,
             "results": [],
         },
-        "started_at": datetime.utcnow().isoformat() + "Z",
+        "started_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
 
     start_all = perf_counter()
@@ -164,7 +164,7 @@ def _run_bulk_evaluation(project_id: str, job_id: str, criteria_ids: list[str]):
 
     total_duration = round(perf_counter() - start_all, 3)
     evaluation_jobs[key]["status"] = "completed"
-    evaluation_jobs[key]["completed_at"] = datetime.utcnow().isoformat() + "Z"
+    evaluation_jobs[key]["completed_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     evaluation_jobs[key]["total_duration_sec"] = total_duration
 
     # summary counts
@@ -188,7 +188,7 @@ async def evaluate_all_criteria(
 
     all_ids = [c.id for c in criteria_service.get_all()]
     selected = criteria_ids or all_ids
-    job_id = f"eval_all_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{len(selected)}"
+    job_id = f"eval_all_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{len(selected)}"
 
     background_tasks.add_task(_run_bulk_evaluation, project_id, job_id, selected)
 

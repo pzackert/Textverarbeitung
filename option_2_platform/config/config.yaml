@@ -1,87 +1,86 @@
-# IFB PROFI - Option 1 (Super-Lite) Configuration
-# Minimal RAG system with LM Studio + Qwen 4B
-
-# Ollama Settings (Direct GGUF Loading)
 llm:
-  provider: "lm_studio"
-  base_url: "http://127.0.0.1:1234"
-  models_dir: "~/.ollama/models"
-  model: "ministral-3b-lmshare:latest"
+  provider: lm_studio
+  model: openai/gpt-oss-20b
   temperature: 0.7
-  max_tokens: 2000
-  timeout: 120
-
-# RAG Settings
+  max_tokens: 2048
+  timeout: 60
+  lm_studio:
+    models_dir: ~/.lmstudio/models
+    endpoint: http://127.0.0.1:1234
+  ollama:
+    models_dir: ~/.ollama/models
+    endpoint: http://127.0.0.1:11434
 rag:
-  chunk_size: 500
-  chunk_overlap: 50
-  embedding_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-  top_k: 5
-  similarity_threshold: 0.7
-  persist_directory: "data/chromadb"
-  vector_store_path: "data/chromadb"
-  collection_name: "ifb_documents"
-
-  # LLM Settings
-  llm_provider: "lm_studio"
-  llm_model: "ministral-3b-lmshare:latest"
-  llm_base_url: "http://127.0.0.1:1234"
-  llm_temperature: 0.7
-  llm_max_tokens: 2000
-
-  # Prompt Settings
-  default_template: "standard"
+  chunk_size: 1200
+  chunk_overlap: 100
+  embedding_model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+  top_k: 8
+  similarity_threshold: 0.9
+  persist_directory: data/chromadb
+  vector_store_path: data/chromadb
+  collection_name: ifb_documents
+  default_template: standard
   include_scores: false
-  max_context_chunks: 5
-
-# Document Parsing
+  max_context_chunks: 8
+prompts:
+  begruessung: Willkommen beim IFB PROFI-Assistenzsystem. Wie kann ich Sie bei der
+    Antragsprüfung unterstützen?
+  global_chat_initial: Sie sind ein erfahrener Fördermittel-Experte der IFB Hamburg.
+    Nutzen Sie ausschließlich das bereitgestellte Wissen aus der Datenbank, um die
+    Fragen zu beantworten. Zitieren Sie Quellen.
+  antrags_chat_initial: Sie sind ein Analyst für Förderanträge. Prüfen Sie die vorliegenden
+    Dokumente auf formale Korrektheit, Plausibilität und Übereinstimmung mit den Förderkriterien.
+    Seien Sie präzise.
+  antwort_richtlinie: Antworten Sie auf Deutsch, sachlich und präzise. Nennen Sie
+    immer die Quelle Ihrer Informationen (Dokument und Seite/Abschnitt), wenn möglich.
+  kriterien_pruefung: "Du bist ein Fördermittelprüfer der IFB Hamburg mit Spezialisierung\
+    \ auf formale Fördervoraussetzungen gemäß PROFI-Richtlinie. Prüfe das folgende\
+    \ Kriterium gegen die bereitgestellten Dokumente und antworte ausschließlich als\
+    \ JSON im genau folgenden Schema (keine zusätzlichen Texte): {\n  \"status\":\
+    \ \"rot|gelb|grün\",\n  \"begründung\": \"max 160 Zeichen, kurz und präzise\"\
+    ,\n  \"dokument\": \"Dateiname der wichtigsten Quelle oder null\",\n  \"referenz\"\
+    : \"Seite / Absatz / Zelle oder null\"\n}\nRegeln: 1) Nutze nur Inhalte aus den\
+    \ gegebenen Dokumenten. 2) \"grün\" nur bei eindeutigem Nachweis, \"rot\" bei\
+    \ Gegenbeleg/keine Evidenz, \"gelb\" bei Unsicherheit oder unvollständigen Angaben.\
+    \ 3) Wenn keine Quelle gefunden wird, setze status=rot, dokument=null, referenz=null\
+    \ und erkläre knapp warum."
 parsing:
   pdf:
-    engine: "pymupdf"
+    engine: pymupdf
   docx:
-    engine: "python-docx"
+    engine: python-docx
   xlsx:
-    engine: "openpyxl"
-  
-  # Erlaubte Dateitypen
+    engine: openpyxl
+  csv:
+    engine: python-csv
   allowed_extensions:
-    - "pdf"
-    - "docx"
-    - "xlsx"
-  
-  # Max. Dateigröße in MB
+  - pdf
+  - docx
+  - xlsx
+  - csv
+  - txt
   max_file_size_mb: 50
-
-# Data Storage
 storage:
-  base_path: "data"
-  projects_path: "data/projects"
-  input_path: "data/input"
-  regelwerk_path: "data/regelwerke"
-
-# Logging
+  base_path: data
+  projects_path: data/projects
+  input_path: data/input
+  regelwerk_path: data/regelwerke
 logging:
-  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
-  log_file: "logs/ifb_profi.log"
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
-# Streamlit UI
+  level: INFO
+  log_file: logs/ifb_profi.log
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 ui:
-  page_title: "IFB PROFI - Antragsprüfung"
-  page_icon: "📋"
-  layout: "wide"
-
-# Criteria Engine
+  page_title: IFB PROFI - Antragsprüfung
+  page_icon: 📋
+  layout: wide
 criteria:
   required:
-    - "antragssteller"
-    - "foerderkonformitaet"
-    - "foerdersumme"
-    - "projektlaufzeit"
-    - "projektkosten"
-    - "rechtsform"
-
-# Startup Configuration
+  - antragssteller
+  - foerderkonformitaet
+  - foerdersumme
+  - projektlaufzeit
+  - projektkosten
+  - rechtsform
 startup:
   auto_load_rag: true
   timeout_per_step_sec: 90

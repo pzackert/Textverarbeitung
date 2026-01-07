@@ -16,7 +16,7 @@ from src.rag.config import RAGConfig
 from src.rag.ingestion import IngestionPipeline
 from src.rag.retrieval import RetrievalEngine
 from src.rag.vector_store import VectorStore
-from benchmarks.utils.llm_client import LLMClient
+from utils.llm_client import LLMClient
 
 
 class RAGBenchmarkHelper:

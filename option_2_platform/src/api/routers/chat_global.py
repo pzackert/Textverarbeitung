@@ -1,27 +1,26 @@
 import logging
-import re
 import time
-from datetime import datetime
-from typing import List, Dict, Any
+from datetime import datetime, timezone
+from typing import Dict, Any
+
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from src.api.dependencies import get_llm_chain
 from src.rag.llm_chain import LLMChain
+from src.rag.config import RAGConfig
 from src.services.chat_store import (
     create_global_chat,
     list_global_chats,
     load_global_chat,
     save_global_chat,
+    delete_global_chat,
 )
 
-router = APIRouter(prefix="/api/chats/global", tags=["chat_global"])
+router = APIRouter(prefix="/chats/global", tags=["chat_global"])
 logger = logging.getLogger(__name__)
 
-HERBERT_SYSTEM_PROMPT = (
-    "Du bist Herbert, ein Sachbearbeiter der IFB Hamburg (Hamburgische Investitions- und Förderbank). "
-    "Du prüfst und validierst Förderanträge, antwortest präzise, freundlich und immer auf Deutsch."
-)
+ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 class SendMessageRequest(BaseModel):
@@ -29,136 +28,154 @@ class SendMessageRequest(BaseModel):
     include_rag: bool = False
 
 
-def _build_metrics(answer: str, model: str, duration: float, stop_reason: str = "stop") -> Dict[str, Any]:
-    total_tokens = len(answer.split()) if answer else 0
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).strftime(ISO_FMT)
+
+
+def _build_metrics(answer: str, model: str, duration: float, usage: Dict[str, Any] | None = None, stop_reason: str | None = None) -> Dict[str, Any]:
+    usage = usage or {}
+    # Prefer provider token counts when available
+    completion_tokens = usage.get("completion_tokens") or usage.get("eval_count")
+    prompt_tokens = usage.get("prompt_tokens") or usage.get("prompt_eval_count")
+    total_tokens = completion_tokens if completion_tokens is not None else len(answer.split()) if answer else 0
     total_time = max(duration, 0.001)
-    ttfb = min(total_time, 0.1)
+    ttfb = usage.get("time_to_first_token_sec") or min(total_time, 0.1)
+    stop = stop_reason or usage.get("finish_reason") or "stop"
+    tokens_per_second = round(total_tokens / total_time, 4) if total_tokens else 0.0
     return {
-        "tokens_per_second": round(total_tokens / total_time, 4) if total_tokens else 0.0,
+        "tokens_per_second": tokens_per_second,
         "total_tokens": total_tokens,
+        "prompt_tokens": prompt_tokens,
         "time_to_first_token_sec": round(ttfb, 4),
-        "stop_reason": stop_reason,
+        "stop_reason": stop,
         "model": model,
         "total_generation_time_sec": round(total_time, 4),
     }
 
 
-def _extract_user_name(messages: List[Dict[str, Any]]) -> str | None:
-    for msg in reversed(messages):
-        if msg.get("role") != "user":
-            continue
-        content = msg.get("content", "")
-        match = re.search(r"(?i)mein name ist\s+([\wÄÖÜäöüß]+)", content)
-        if match:
-            return match.group(1).strip().strip(".,!?")
-    return None
+def _seed_handshake(chat: Dict[str, Any], prompts: Any) -> None:
+    if chat.get("messages"):
+        return
+    now = _utc_now()
+    seeds = []
+    if getattr(prompts, "global_chat_initial", None):
+        seeds.append({"role": "system", "content": prompts.global_chat_initial, "timestamp": now})
+    if getattr(prompts, "begruessung", None):
+        seeds.append({"role": "assistant", "content": prompts.begruessung, "timestamp": now})
+    if seeds:
+        chat["messages"] = seeds
+        chat["total_messages"] = len(seeds)
+        chat["updated_at"] = now
+        chat["last_message_preview"] = seeds[-1]["content"][:120]
+        save_global_chat(chat)
+
+
+def _assistant_with_rag(message: str, llm_chain: LLMChain, prompts: Any) -> Dict[str, Any]:
+    started = time.perf_counter()
+    result = llm_chain.query(
+        question=message,
+        metadata_filter={"include_global": True},
+        system_prompt=getattr(prompts, "global_chat_initial", None),
+        answer_guideline=getattr(prompts, "antwort_richtlinie", None),
+    )
+    meta = result.get("metadata", {}) or {}
+    duration = meta.get("duration") or (time.perf_counter() - started)
+    usage = getattr(getattr(llm_chain, "llm_provider", None), "last_usage", None)
+    metrics = _build_metrics(result.get("answer", ""), llm_chain.config.llm_model, duration, usage, meta.get("stop_reason"))
+    sources = result.get("sources") or result.get("citations") or []
+    docs_used = []
+    for src in sources:
+        if isinstance(src, dict):
+            doc_name = src.get("document") or src.get("doc_name") or src.get("source")
+            if doc_name:
+                docs_used.append(doc_name)
+    answer_text = result.get("answer", "")
+    if not answer_text:
+        answer_text = "Entschuldigung, ich habe keine Antwort vom LLM erhalten. Bitte die LLM-Instanz prüfen."
+
+    return {
+        "role": "assistant",
+        "content": answer_text,
+        "timestamp": _utc_now(),
+        "sources": sources,
+        "rag_used": True,
+        "documents_used": docs_used,
+        "metrics": metrics,
+    }
+
+
+def _assistant_no_rag(message: str, llm_chain: LLMChain, prompts: Any) -> Dict[str, Any]:
+    started = time.perf_counter()
+    # Simple echo with safety note when RAG is disabled
+    answer = "RAG ist deaktiviert. Bitte aktiviere RAG, um Wissensdatenbank-Antworten zu erhalten."
+    try:
+        answer = llm_chain.llm_provider.generate(
+            prompt=message,
+            max_tokens=llm_chain.config.llm_max_tokens,
+            temperature=llm_chain.config.llm_temperature,
+        )
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        logger.warning(f"LLM plain generation failed: {exc}")
+    duration = time.perf_counter() - started
+    usage = getattr(llm_chain.llm_provider, "last_usage", None)
+    metrics = _build_metrics(answer, getattr(llm_chain.llm_provider, "model_name", "unknown"), duration, usage)
+    if not answer:
+        answer = "Entschuldigung, ich habe keine Antwort vom LLM erhalten. Bitte die LLM-Instanz prüfen."
+    return {
+        "role": "assistant",
+        "content": answer,
+        "timestamp": _utc_now(),
+        "sources": [],
+        "rag_used": False,
+        "documents_used": [],
+        "metrics": metrics,
+    }
+
+
+def _add_preview(chat: Dict[str, Any]) -> Dict[str, Any]:
+    preview = ""
+    for msg in reversed(chat.get("messages", [])):
+        if msg.get("role") in {"user", "assistant"}:
+            preview = (msg.get("content") or "")[:120]
+            break
+    chat["last_message_preview"] = preview
+    return chat
 
 
 @router.get("/list")
 async def list_chats():
-    chats = list_global_chats()
-    summaries = []
-    for chat in chats:
-        messages = chat.get("messages", [])
-        last_message_preview = messages[-1].get("content", "")[:80] + "..." if messages else ""
-        summaries.append({
-            "chat_id": chat.get("chat_id"),
-            "created_at": chat.get("created_at"),
-            "updated_at": chat.get("updated_at"),
-            "total_messages": chat.get("total_messages", len(messages)),
-            "last_message_preview": last_message_preview,
-            "file_path": chat.get("file_path"),
-        })
-    return {"chats": summaries, "total_chats": len(summaries)}
+    chats = [_add_preview(c) for c in list_global_chats()]
+    return {"chats": chats}
 
 
-# Alias without trailing segment for compatibility with tests
 @router.get("")
 async def list_chats_root():
     return await list_chats()
 
 
-@router.post("/create", status_code=201)
+@router.post("/create")
 async def create_chat():
     chat = create_global_chat()
-    return {
-        "chat_id": chat["chat_id"],
-        "created_at": chat["created_at"],
-        "file_path": chat["file_path"],
-        "type": chat["type"],
-    }
-
-
-@router.get("/{chat_id}")
-async def get_history(chat_id: str):
-    try:
-        chat = load_global_chat(chat_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Chat not found")
+    prompts = RAGConfig.from_yaml().prompts
+    _seed_handshake(chat, prompts)
     return chat
 
 
-def _build_assistant_message_with_rag(message: str, llm_chain: LLMChain) -> Dict[str, Any]:
-    started = time.perf_counter()
-    result = llm_chain.query(
-        question=message,
-        metadata_filter={"type": "global_knowledge"},
-    )
-    duration = result.get("metadata", {}).get("duration")
-    if duration is None:
-        duration = time.perf_counter() - started
-    sources = result.get("sources", [])
-    citations = result.get("citations", [])
-    if not sources and citations:
-        # Normalize citations into sources
-        for cit in citations:
-            if hasattr(cit, "source"):
-                sources.append(cit.source.dict())
-            elif isinstance(cit, dict):
-                sources.append(cit)
-
-    # Heuristic fallback for long-term-unemployment question (AGVO test case)
-    answer = (result.get("answer", "") or "").strip()
-    lower_q = message.lower()
-    needs_option_b = any(term in lower_q for term in ["13 monat", "stark benachteilig", "lange ohne beschäftigung", "agvo"])
-    has_sources = bool(sources)
-    if has_sources and needs_option_b and (not answer or " b" not in answer.lower()):
-        answer = (
-            "Option B: Nur mit zusätzlichen Bedingungen. "
-            "Stark benachteiligt gilt nach AGVO erst ab mindestens 24 Monaten ohne Beschäftigung; "
-            "nach 13 Monaten ist die Person lediglich benachteiligt und benötigt zusätzliche Voraussetzungen."
-        )
-    if not answer:
-        answer = "Ich konnte leider keine relevanten Informationen in den Dokumenten finden."
-    metrics = _build_metrics(answer, llm_chain.config.llm_model, duration)
-    return {
-        "role": "assistant",
-        "content": answer,
-        "timestamp": result.get("metadata", {}).get("timestamp", None),
-        "sources": sources,
-        "rag_used": True,
-        "metrics": metrics,
-    }
+@router.get("/{chat_id}")
+async def get_chat(chat_id: str):
+    try:
+        return load_global_chat(chat_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Chat nicht gefunden")
 
 
-def _build_assistant_message_no_rag(message: str, llm_chain: LLMChain, remembered_name: str | None = None) -> Dict[str, Any]:
-    prompt = f"System: {HERBERT_SYSTEM_PROMPT}\nUser: {message}\nAntwort:"
-    started = time.perf_counter()
-    lower_msg = message.lower()
-    if "wie heiße ich" in lower_msg and remembered_name:
-        answer = f"Du hast mir gesagt, dass du {remembered_name} heißt."
-    else:
-        answer = "Ich helfe dir gern weiter. Stelle mir eine konkrete Frage oder gib mehr Kontext."
-    duration = time.perf_counter() - started
-    metrics = _build_metrics(answer, llm_chain.llm_provider.model_name, duration)
-    return {
-        "role": "assistant",
-        "content": answer,
-        "timestamp": None,
-        "sources": [],
-        "rag_used": False,
-        "metrics": metrics,
-    }
+@router.delete("/{chat_id}")
+async def delete_chat(chat_id: str):
+    try:
+        delete_global_chat(chat_id)
+        return {"status": "deleted", "chat_id": chat_id}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Chat nicht gefunden")
 
 
 @router.post("/{chat_id}/message")
@@ -166,50 +183,37 @@ async def send_message(chat_id: str, request: SendMessageRequest, llm_chain: LLM
     try:
         chat = load_global_chat(chat_id)
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Chat not found")
+        raise HTTPException(status_code=404, detail="Chat nicht gefunden")
 
-    now = datetime.utcnow().isoformat() + "Z"
-    user_msg = {
-        "role": "user",
-        "content": request.message,
-        "timestamp": now,
-    }
+    prompts = RAGConfig.from_yaml().prompts
+    _seed_handshake(chat, prompts)
 
-    remembered_name = _extract_user_name(chat.get("messages", []))
+    now = _utc_now()
+    user_msg = {"role": "user", "content": request.message, "timestamp": now}
 
-    if request.include_rag:
-        assistant_msg = _build_assistant_message_with_rag(request.message, llm_chain)
-    else:
-        assistant_msg = _build_assistant_message_no_rag(request.message, llm_chain, remembered_name)
+    try:
+        assistant_msg = (
+            _assistant_with_rag(request.message, llm_chain, prompts)
+            if request.include_rag
+            else _assistant_no_rag(request.message, llm_chain)
+        )
+    except Exception as exc:
+        logger.error(f"Global chat LLM failure: {exc}")
+        raise HTTPException(status_code=503, detail="LLM nicht erreichbar oder Antwort fehlgeschlagen. Bitte Backend/LLM prüfen.")
 
     if not assistant_msg.get("timestamp"):
-        assistant_msg["timestamp"] = now
+        assistant_msg["timestamp"] = _utc_now()
 
     chat.setdefault("messages", []).extend([user_msg, assistant_msg])
-    chat["updated_at"] = assistant_msg.get("timestamp") or now
-    chat["total_messages"] = len(chat.get("messages", []))
+    chat["updated_at"] = assistant_msg["timestamp"]
+    chat["total_messages"] = len(chat["messages"])
+    _add_preview(chat)
     save_global_chat(chat)
 
     return {
         "chat_id": chat_id,
-        "message_id": f"msg_{len(chat['messages'])}",
         "user_message": user_msg,
         "assistant_message": assistant_msg,
         "saved_to": chat.get("file_path"),
+        "updated_at": chat.get("updated_at"),
     }
-
-
-@router.delete("/{chat_id}")
-async def delete_chat(chat_id: str):
-    # Remove file if exists
-    from pathlib import Path
-    deleted = False
-    for path in Path("data/chats").glob(f"chat_*_{chat_id}.json"):
-        try:
-            path.unlink()
-            deleted = True
-        except Exception:
-            pass
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Chat not found")
-    return {"status": "deleted"}

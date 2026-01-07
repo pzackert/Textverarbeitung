@@ -1,4 +1,7 @@
 import logging
+import os
+import sys
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
@@ -6,6 +9,8 @@ from pathlib import Path
 
 from src.api.main import app as api_app
 from frontend.routers import dashboard, projects, chat, admin, settings, logo
+from src.api.routers import rag_global
+from src.api.dependencies import get_ingestion_pipeline
 
 # Configure logging
 logging.basicConfig(
@@ -15,7 +20,29 @@ logging.basicConfig(
 )
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="IFB PROFI Platform")
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # Preload global knowledge when available (skip during tests)
+        if not (os.getenv("PYTEST_CURRENT_TEST") or "pytest" in sys.modules):
+            data_dir = Path("data/global_knowledge")
+            if data_dir.exists():
+                doc_paths = sorted([p for p in data_dir.iterdir() if p.is_file()])
+                if doc_paths:
+                    try:
+                        rag_global._reset_job(doc_paths)
+                        pipeline = get_ingestion_pipeline()
+                        rag_global._clean_global_chunks()
+                        rag_global._run_load_job(doc_paths, pipeline)
+                        logging.info("Global knowledge preloaded on startup.")
+                    except Exception as exc:  # pragma: no cover
+                        logging.error(f"Failed to preload global knowledge: {exc}")
+                else:
+                    logging.warning("Global knowledge directory empty; global chat will be unavailable until documents are added.")
+            else:
+                logging.warning("Global knowledge directory missing; global chat will be unavailable until loaded.")
+        yield
+
+    app = FastAPI(title="IFB PROFI Platform", lifespan=lifespan)
     
     # Enable GZip Compression
     app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -46,7 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(logo.router)
     from frontend.routers import benchmark
     app.include_router(benchmark.router)
-    
+
     return app
 
 app = create_app()

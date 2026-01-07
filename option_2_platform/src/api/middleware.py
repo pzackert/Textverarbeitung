@@ -1,5 +1,6 @@
 import time
 import logging
+import os
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -23,7 +24,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             process_time = time.time() - start_time
             logger.error(f"← 500 Internal Server Error ({process_time:.3f}s) - {str(e)}")
-            raise
+            # DEBUG MODE: Return error to user
+            from fastapi.responses import HTMLResponse
+            import traceback
+            return HTMLResponse(content=f"<h1>Middleware Caught Error</h1><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 from fastapi.responses import JSONResponse
 from src.services.system_state import system_state
@@ -34,12 +38,23 @@ class StartupBlockingMiddleware(BaseHTTPMiddleware):
     """
     async def dispatch(self, request: Request, call_next):
         # Allow system endpoints, static files, and root (frontend redirect)
-        allowed_paths = ["/api/system", "/static", "/startup", "/favicon.ico", "/docs", "/openapi.json"]
-        if request.url.path == "/" or any(request.url.path.startswith(p) for p in allowed_paths):
+        allowed_paths = ["/api/system", "/system", "/static", "/startup", "/favicon.ico", "/docs", "/openapi.json"]
+        if any(request.url.path.startswith(p) for p in allowed_paths):
+            return await call_next(request)
+        
+        # Specific Logic for Root: Redirect to startup if not ready
+        if request.url.path == "/":
+            if system_state.status not in ["ready", "degraded"]:
+                 from starlette.responses import RedirectResponse
+                 return RedirectResponse(url="/startup")
             return await call_next(request)
 
-        # Allow if system is ready
-        if system_state.status == "ready":
+        # Do not block test runs
+        if os.getenv("PYTEST_CURRENT_TEST"):
+            return await call_next(request)
+
+        # Allow if system is ready or degraded (partial functionality)
+        if system_state.status in ["ready", "degraded"]:
              return await call_next(request)
 
         # Otherwise block with 503

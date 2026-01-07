@@ -13,14 +13,14 @@ provider = "ollama"
 # Base URL: API endpoint for the LLM provider
 # - Ollama: http://localhost:11434
 # - LM Studio: http://localhost:1234/v1
-base_url = "http://localhost:11434"
+base_url = "http://127.0.0.1:11434"
 
 # Default Model: Model to use when no model is specified
 # Available Ollama models:
 # - qwen2.5:7b (7.6B params, best quality, 4.6 GiB VRAM, ~0.47s response)
 # - qwen2.5:0.5b (494M params, fast, 0.5 GiB VRAM, ~0.19s response)
 # - ministral-3b-lmshare:latest (3B params, currently installed)
-default_model = "ministral-3b-lmshare:latest"
+default_model = "qwen2.5:7b"
 
 # Timeout: Maximum seconds to wait for LLM response
 timeout = 30

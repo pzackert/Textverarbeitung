@@ -2,9 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const carousel = document.querySelector('.carousel');
     const cards = Array.from(document.querySelectorAll('.card'));
     const totalCards = cards.length;
+    const restartButton = document.getElementById('restart-button');
 
     let currentStep = 0; // 0-based index of active card
     let isError = false;
+    let pollTimer = null;
 
     // --- 3D Positioning Logic (Giant Wheel) ---
     function updateCarousel() {
@@ -95,8 +97,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             // Update all cards
-            // Map component names to indices: 0=lm_studio, 1=ollama, 2=chromadb, 3=llm_model, 4=rag
-            const map = { 'lm_studio': 0, 'ollama': 1, 'chromadb': 2, 'llm_model': 3, 'rag': 4 };
+            // Map component names to indices: 0=Scanner, 1=Provider, 2=VectorDB, 3=LLM, 4=RAG, 5=Projects
+            const map = {
+                'model_scanner': 0,
+                'ai_provider': 1,
+                'vector_store': 2,
+                'llm_loading': 3,
+                'global_knowledge': 4,
+                'project_healing': 5
+            };
 
             data.components.forEach(comp => {
                 const idx = map[comp.name];
@@ -110,11 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (headerP) headerP.textContent = data.current;
 
             // Global Status Handling
-            if (data.status === 'ready') {
-                // Done! Redirect
+            if (data.status === 'ready' || data.status === 'degraded') {
+                sessionStorage.setItem('startupStatus', JSON.stringify({
+                    status: data.status,
+                    message: data.current
+                }));
+                if (pollTimer) clearInterval(pollTimer);
                 setTimeout(() => {
-                    window.location.reload(); // Should load dashboard now
-                }, 1000);
+                    window.location.href = '/';
+                }, 800);
             } else if (data.status === 'error') {
                 isError = true;
                 const headerH1 = document.querySelector('.startup-header h1');
@@ -122,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     headerH1.textContent = "Fehler beim Start";
                     headerH1.style.color = "#ef4444";
                 }
+                if (restartButton) restartButton.style.display = 'inline-flex';
             } else {
                 // Update Carousel Step
                 if (data.step > 0) {
@@ -139,12 +153,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Init ---
     // Check if we need to trigger startup
     fetch('/api/system/status').then(r => r.json()).then(data => {
-        if (data.status === 'initializing' || data.status === 'pending') {
-            // Ensure startup is running
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceRestart = urlParams.get('restart') === 'true';
+
+        // Trigger startup ONLY if forced OR if system is in initial state
+        if (forceRestart || data.status === 'initializing' || data.status === 'pending') {
             fetch('/api/system/startup', { method: 'POST' });
+        } else if (data.status === 'ready' || data.status === 'degraded') {
+            sessionStorage.setItem('startupStatus', JSON.stringify({
+                status: data.status,
+                message: data.current
+            }));
+            window.location.href = '/';
+            return;
         }
+
         updateCarousel(); // Initial render
-        setInterval(pollStatus, 1000);
+        pollTimer = setInterval(pollStatus, 1000);
     });
+
+    if (restartButton) {
+        restartButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            restartButton.disabled = true;
+            restartButton.textContent = 'Starte neu...';
+            restartButton.style.display = 'none';
+            isError = false;
+            try {
+                await fetch('/api/system/startup', { method: 'POST' });
+                if (pollTimer) clearInterval(pollTimer);
+                pollTimer = setInterval(pollStatus, 1000);
+            } catch (err) {
+                restartButton.textContent = 'Erneut versuchen';
+                restartButton.disabled = false;
+            }
+        });
+    }
 
 });

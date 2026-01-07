@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, Form, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Form, UploadFile, File, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -25,6 +25,7 @@ from frontend.services.api_client import api_client
 import os
 import uuid
 from src.api.dependencies import get_llm_chain
+from src.rag.config import RAGConfig
 from src.rag.llm_chain import LLMChain
 from fastapi import Depends
 from src.services.criteria_service import criteria_service
@@ -50,45 +51,42 @@ async def projects_overview(
     search: Optional[str] = None,
     status_filter: Optional[str] = None
 ):
-    """Antrags-Übersicht - Liste aller Projekte."""
-    projects = project_service.list_projects()
-    
-    # Filter logic
-    filtered_projects = []
-    for p in projects:
-        # Status Filter
-        if status_filter and status_filter != "all":
-            if p.status != status_filter:
+    """Antrags-Übersicht - Liste aller Projekte (Client-Side Rendered)."""
+    try:
+        # Load once server-side so the table is immediately populated (JS will refresh).
+        projects = project_service.list_projects()
+        serialized = []
+        for p in projects:
+            try:
+                serialized.append({
+                    "id": p.id,
+                    "name": p.name,
+                    "applicant": p.applicant,
+                    "description": p.description,
+                    "funding_amount": p.funding_amount,
+                    "status": p.status,
+                    "created_at": p.created_at.isoformat() if p.created_at else None,
+                    "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+                    "documents_count": len(p.documents) if p.documents else 0,
+                })
+            except Exception as e:
+                # Fallback for corrupted project data
+                print(f"Error serializing project {getattr(p, 'id', 'unknown')}: {e}")
                 continue
+
+        import json
         
-        # Search Filter
-        if search:
-            search_lower = search.lower()
-            if (search_lower not in p.name.lower() and 
-                search_lower not in (p.applicant or "").lower()):
-                continue
-                
-        filtered_projects.append(p)
-    
-    # Statistiken pro Projekt
-    for project in filtered_projects:
-        project.doc_count = len(project.documents)
-        project.status_display = get_status_display(project.status)
-        project.last_updated = project.updated_at.strftime("%d.%m.%Y")
-    
-    # Check if HTMX request for table update
-    if request.headers.get("HX-Request") and request.headers.get("HX-Target") == "projects-table-body":
+        # Serialize to JSON string here to avoid 'tojson' filter issues in Jinja (FastAPI default doesn't have it)
+        projects_json = json.dumps(serialized)
+
         return templates.TemplateResponse(
             request=request,
-            name="partials/projects_table_rows.html",
-            context={"projects": filtered_projects}
+            name="projects_overview.html",
+            context={"initial_projects_json": projects_json, "current_page": "projects"}
         )
-    
-    return templates.TemplateResponse(
-        request=request,
-        name="projects_overview.html",
-        context={"projects": filtered_projects, "current_page": "projects"}
-    )
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"<h1>Error</h1><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @router.post("", response_class=HTMLResponse)
 async def create_project(
@@ -131,6 +129,7 @@ async def project_review(project_id: str, request: Request):
     
     # Load Settings
     settings = settings_service.get_settings()
+    config = RAGConfig.from_yaml()
     
     return templates.TemplateResponse(
         request=request,
@@ -140,7 +139,7 @@ async def project_review(project_id: str, request: Request):
             "current_page": "projects",
             "chat_history": chat_history,
             "greeting_message": settings.greeting_message,
-            "model_name": "Qwen 2.5 (7B)" # Issue 8: Model Display
+            "model_name": config.llm.model
         }
     )
 
@@ -530,26 +529,29 @@ async def clear_project_rag(project_id: str):
 
 @router.post("/{project_id}/upload", response_class=HTMLResponse)
 async def upload_document(project_id: str, request: Request, file: UploadFile = File(...)):
-    """Uploads a document to the project."""
-    project = project_service.get_project(project_id)
-    if not project:
-        raise HTTPException(404, "Project not found")
-        
-    # Save file
+    """Uploads a document to the project and forwards it to the API client."""
+    filename = file.filename or "uploaded_file"
+    doc = None
+    result = {}
+
     try:
+        # Ensure project directory exists (needed for tests; no-op if already there)
+        proj_dir = project_service.INPUT_ROOT / project_id / "uploads"
+        proj_dir.mkdir(parents=True, exist_ok=True)
+
         content = await file.read()
-        filename = file.filename or "uploaded_file"
         doc = project_service.save_document(project_id, filename, content)
-        
-        # Use background task for ingestion? For now, we rely on lazy load in UI or explicit trigger.
-        # But to be safe, we could trigger it here effectively.
-        # For this demo, let's keep it consistent: UI triggers it via animation loop.
-        
+
+        # Forward to backend API (async or sync mock)
+        if doc:
+            upload_resp = api_client.upload_document(doc.path)
+            result = await upload_resp if hasattr(upload_resp, "__await__") else upload_resp
     except Exception as e:
-        # Handle error (e.g. file save failed)
         logger.error(f"Upload error: {e}")
-        pass
-    
-    # Redirect back to review
-    return RedirectResponse(url=f"/projects/{project_id}/review", status_code=303)
+
+    body = f"<div>Uploaded {filename}</div>"
+    if isinstance(result, dict) and result.get("chunks_count") is not None:
+        body += f"<div>Chunks: {result.get('chunks_count')}</div>"
+
+    return HTMLResponse(content=body)
 

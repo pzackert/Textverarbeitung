@@ -29,12 +29,26 @@ For detailed installation instructions, please refer to the platform-specific gu
 - **Windows:** [Installation Guide](../docs/INSTALLATION_WINDOWS.md)
 - **Deployment:** [Deployment Guide](../docs/18_deployment_guide.md)
 
+
+### Prerequisites (must be running before start)
+- **LM Studio** installed and running on `http://localhost:1234` (default in `config/config.yaml` uses LM Studio).
+- **Ollama** installed and running on `http://localhost:11434` (fallback provider, also used for qwen2.5:7b pulls).
+- Pull at least one model that matches `config/config.yaml` (default: `openai/gpt-oss-20b` for LM Studio, `qwen2.5:7b` for Ollama fallback).
+
 ### Quick Command (macOS/Linux)
 ```bash
+# 1. Install uv (if not installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Setup Project (Run once)
 cd option_2_platform
 uv venv && uv sync
-uv run pytest tests/ -v
+
+# 3. Start Application (ensure LM Studio or Ollama is running)
+# Default port is 8000. You can change it with --port <NUMBER>
+uv run uvicorn src.api.main:app --reload --port 8000
+# From repo root, equivalently:
+# uv --directory option_2_platform run uvicorn src.api.main:app --reload --port 8000
 ```
 
 ### Setup LLM Model (Required!)
@@ -43,28 +57,22 @@ uv run pytest tests/ -v
 
 **Option A: Install the default model (qwen2.5:7b)**
 ```bash
+ollama serve  # Start Ollama in a separate terminal
 ollama pull qwen2.5:7b
 ```
 
 **Option B: Use an existing model**
-If you already have a different model installed (e.g., `ministral-3b-lmshare`), update the config:
-```bash
-# Check which models you have
-ollama list
-
-# Edit config/ollama.toml and change line 22:
-# default_model = "your-installed-model-name"
-```
+Edit `config/config.yaml` to configure your provider (Ollama or LM Studio).
 
 ### Start Frontend
 
 **Prerequisites:**
-1. **Ollama must be running** (start with `ollama serve`)
-2. **Required model is installed and configured** (see Setup LLM Model above)
+1. **LM Studio or Ollama must be running**
+2. **Model configured in `config/config.yaml` and pulled locally**
 
 Start the web interface:
 ```bash
-uv run uvicorn frontend.main:app --reload --port 8000
+uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
 Open [http://localhost:8000](http://localhost:8000) in your browser.
@@ -274,7 +282,33 @@ git checkout feature/document-parser
 
 ---
 
-## 🔍 Troubleshooting
+---
+
+## 🔧 Troubleshooting & Robust Startup
+
+### Clean Startup (If server fails to start)
+If you encounter "Address already in use" or the server fails to start:
+
+```bash
+# 1. Kill stale processes (Forceful Clean)
+pkill -9 -f uvicorn
+pkill -9 -f python
+
+# 2. Start freshly
+uv run uvicorn src.api.main:app --reload --port 8000
+```
+
+### Full Clean + Reinstall (robust restart)
+Use this when dependencies are broken or the venv is corrupted. Data under `data/` is preserved.
+
+```bash
+cd option_2_platform
+uv run python scripts/clean_env.py   # removes venv, caches, logs
+uv venv
+uv sync
+uv run uvicorn src.api.main:app --reload --port 8000
+# From repo root you can also run with --directory option_2_platform
+```
 
 ### Frontend Stuck at "System wird gestartet..."
 
@@ -289,55 +323,8 @@ curl http://localhost:11434/api/tags
 ollama serve
 ```
 
-**2. Verify the model is available:**
-```bash
-# List installed models
-ollama list
-
-# If qwen2.5:7b is missing, pull it:
-ollama pull qwen2.5:7b
-```
-
-**3. Check which component failed:**
-- Open browser DevTools (F12) → Network tab
-- Look for failed requests to `/api/system/status`
-- The "LLM Modell" component most commonly fails when Ollama is not running
-
-**4. Restart the frontend server:**
-```bash
-# Stop the server (Ctrl+C)
-# Then restart:
-uv run uvicorn frontend.main:app --reload --port 8000
-```
-
-### Import Errors
-
-```bash
-# Ensure you're using uv run
-uv run python script.py
-
-# NOT: python script.py (uses system Python)
-```
-
-### Ollama Connection Issues
-
-```bash
-# Check if Ollama is running
-curl http://localhost:11434/api/tags
-
-# Start Ollama if not running
-ollama serve &
-```
-
-### Model Not Found
-
-```bash
-# List available models
-ollama list
-
-# Pull missing model
-ollama pull qwen2.5:7b
-```
+**2. Check Server Logs:**
+Look for "Startup sequence finished" in the terminal.
 
 ---
 

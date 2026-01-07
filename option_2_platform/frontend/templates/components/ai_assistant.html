@@ -13,7 +13,25 @@
             </template>
         </div>
 
-        <!-- Toggle Button -->
+        <!-- Toggle Sources (New) -->
+        <button @click="toggleSources()" x-show="activeView === 'chat'"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border bg-white border-gray-200 text-gray-600 hover:bg-gray-50 mr-2"
+            :title="showSources ? 'Quellen verbergen' : 'Quellen anzeigen'">
+
+            <svg x-show="showSources" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <svg x-show="!showSources" class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+            </svg>
+        </button>
+
+        <!-- Toggle View Button -->
         <button @click="activeView = activeView === 'chat' ? 'catalog' : 'chat'"
             class="group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border"
             :class="activeView === 'chat' 
@@ -140,7 +158,8 @@
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
                 <template x-for="item in criteria" :key="item.id">
-                    <div class="bg-white rounded-lg border p-4 transition-all duration-200 hover:shadow-md relative group flex flex-col"
+                    <div :id="'criterion-card-' + item.id"
+                        class="bg-white rounded-lg border p-4 transition-all duration-200 hover:shadow-md relative group flex flex-col"
                         :class="{
                             'border-green-200 bg-green-50/20': item.status === 'success',
                             'border-red-200 bg-red-50/20': item.status === 'fail',
@@ -324,45 +343,59 @@
             activeView: 'chat',
             showConfirmation: false,
             isBulkEvaluating: false,
+            showSources: true, // Fix 6: Toggle state
             bulkStatusText: '',
             criteria: [],
+            projectId: null,
 
             async init() {
-                // Load criteria definitions + Any existing results
-                // Use Case C3
-                if (window.fetchCriteriaResults) {
-                    const results = await window.fetchCriteriaResults();
-                    // results = { criteria_results: { 'ID': { status, reason, ...} } }
-                    // We also need definitions. We assume definitions are hardcoded or fetched?
-                    // backend criteria.py list_criteria -> GET /api/criteria
-                    await this.loadDefinitions(results);
+                // Wait for ReviewState to be ready
+                if (typeof ReviewState !== 'undefined' && ReviewState.projectId) {
+                    this.projectId = ReviewState.projectId;
+                } else {
+                    // Fallback: extract from URL if ReviewState not ready
+                    const pathParts = window.location.pathname.split('/');
+                    const idx = pathParts.indexOf('projects');
+                    if (idx !== -1 && pathParts[idx + 1]) {
+                        this.projectId = pathParts[idx + 1];
+                    }
                 }
+
+                // Initial load
+                await this.loadData();
+
+                // Listen for external updates (e.g. from Chat)
+                window.addEventListener('criteria-updated', () => this.loadData());
             },
 
-            async loadDefinitions(results) {
+            async loadData() {
+                if (!this.projectId) return;
                 try {
-                    // Fetch definitions
-                    const res = await fetch('/api/criteria');
-                    if (!res.ok) throw new Error('Failed to load criteria defs');
-                    const defs = await res.json(); // Array of criteria objects
+                    // 1. Get Definitions
+                    const defsRes = await fetch('/api/criteria');
+                    const defs = await defsRes.json();
 
-                    // Merge with results
+                    // 2. Get Results
+                    const resultsRes = await fetch(`/api/projects/${this.projectId}/criteria/results`);
+                    const resultsData = await resultsRes.json();
+                    const results = resultsData.criteria_results || {};
+
+                    // 3. Merge
                     this.criteria = defs.map(def => {
-                        const resData = results && results.criteria_results ? results.criteria_results[def.id] : null;
+                        const res = results[def.id];
                         return {
                             id: def.id,
                             title: def.name || def.title,
                             desc: def.question || def.description,
-                            status: resData ? resData.status : 'pending',
-                            reason: resData ? resData.reason : null,
-                            evidence: resData ? resData.evidence : [],
+                            status: res ? res.status : 'pending',
+                            reason: res ? res.reason : null,
+                            evidence: res ? res.evidence : [],
                             checked: false,
                             isLoading: false
                         };
                     });
                 } catch (e) {
-                    console.error(e);
-                    // Fallback / Error state
+                    console.error("Failed to load criteria data", e);
                 }
             },
 
@@ -372,90 +405,127 @@
                     'fail': 'Nicht erfüllt',
                     'warning': 'Warnung',
                     'pending': 'Offen',
-                    'unknown': 'Unbekannt'
+                    'error': 'Fehler'
                 };
                 return labels[status] || 'Offen';
             },
 
+            // Single Retry
             async checkSingle(id) {
+                if (!this.projectId) return;
                 const item = this.criteria.find(c => c.id === id);
                 if (!item || item.isLoading) return;
 
                 item.isLoading = true;
+                item.status = 'pending'; // Reset status visually
+
                 try {
-                    // Use Case C1
-                    if (window.evaluateCriterion) {
-                        const res = await window.evaluateCriterion(id);
-                        // Update item
-                        item.status = res.status; // 'success' | 'fail' | 'warning'
-                        item.reason = res.message;
-                        item.evidence = (res.annotations || []).map(a => ({ dokument: a.annotated_file || 'Dokument' }));
-                    }
+                    // 1. Enqueue Job
+                    const res = await fetch(`/api/queue/projects/${this.projectId}/criteria/${id}`, { method: 'POST' });
+                    if (!res.ok) throw new Error("Failed to start job");
+                    const job = await res.json();
+
+                    // 2. Poll Job
+                    await this.pollJobUntilDone(job.job_id);
+
+                    // 3. Refresh specific item data
+                    await this.refreshItem(id);
+
                 } catch (e) {
-                    console.error(e);
+                    console.error(`Check failed for ${id}`, e);
+                    item.status = 'error';
                 } finally {
                     item.isLoading = false;
                 }
             },
 
+            // Sequential Bulk Check
             async checkAllCriteria() {
-                if (this.isBulkEvaluating) return;
+                if (this.isBulkEvaluating || !this.projectId) return;
+
                 this.isBulkEvaluating = true;
-                this.activeView = 'catalog'; // Switch view to show progress
-                this.bulkStatusText = 'Starte Prüfung...';
+                this.activeView = 'catalog'; // Ensure visibility
+                this.bulkStatusText = 'Initialisiere...';
+
+                // Get pending items or all items? Verification plan says "Sequential processing".
+                // We'll process ALL items one by one.
+                const itemsToProcess = this.criteria.map(c => c.id);
+                let completed = 0;
 
                 try {
-                    // Use Case C2
-                    if (window.evaluateAllCriteria) {
-                        const job = await window.evaluateAllCriteria();
-                        this.pollJob(job.job_id);
+                    for (const id of itemsToProcess) {
+                        this.bulkStatusText = `Prüfe ${id} (${completed + 1}/${itemsToProcess.length})...`;
+
+                        // Scroll to item
+                        const el = document.getElementById(`criterion-card-${id}`); // We need to add ID to HTML
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        await this.checkSingle(id);
+                        completed++;
                     }
                 } catch (e) {
-                    console.error(e);
+                    console.error("Bulk check interrupted", e);
+                } finally {
                     this.isBulkEvaluating = false;
+                    this.bulkStatusText = 'Abgeschlossen';
+                    // Final refresh
+                    await this.loadData();
                 }
             },
 
-            async pollJob(jobId) {
-                const interval = setInterval(async () => {
-                    try {
-                        const status = await window.pollBulkStatus(jobId);
+            // Helper: Poll Job
+            async pollJobUntilDone(jobId) {
+                return new Promise((resolve, reject) => {
+                    const check = async () => {
+                        try {
+                            const res = await fetch(`/api/queue/${jobId}`);
+                            if (!res.ok) throw new Error("Poll failed");
+                            const status = await res.json();
 
-                        // Update UI based on progress
-                        const completed = status.progress.completed;
-                        const total = status.progress.total;
-                        this.bulkStatusText = `Prüfung: ${completed} / ${total}`;
-
-                        // Update individual items if possible
-                        if (status.progress.results) {
-                            status.progress.results.forEach(r => {
-                                const item = this.criteria.find(c => c.id === r.criterion_id);
-                                if (item) {
-                                    item.status = r.status === 'error' ? 'fail' : r.status; /* map status? */
-                                    // We don't get reason in poll status usually, only final status.
-                                    // Maybe we need final refresh
-                                }
-                            });
+                            if (status.status === 'completed' || status.status === 'failed') {
+                                resolve(status);
+                            } else {
+                                setTimeout(check, 1000);
+                            }
+                        } catch (e) {
+                            reject(e);
                         }
+                    };
+                    check();
+                });
+            },
 
-                        if (status.status === 'completed' || status.status === 'failed') {
-                            clearInterval(interval);
-                            this.isBulkEvaluating = false;
-                            // Refresh all to get details (reasons, evidence)
-                            const results = await window.fetchCriteriaResults();
-                            await this.loadDefinitions(results);
-                        }
-                    } catch (e) {
-                        clearInterval(interval);
-                        this.isBulkEvaluating = false;
+            // Helper: Refresh single item from backend
+            async refreshItem(id) {
+                try {
+                    const resultsRes = await fetch(`/api/projects/${this.projectId}/criteria/results`);
+                    const resultsData = await resultsRes.json();
+                    const results = resultsData.criteria_results || {};
+                    const newRes = results[id];
+
+                    // Update local state
+                    const item = this.criteria.find(c => c.id === id);
+                    if (item && newRes) {
+                        item.status = newRes.status;
+                        item.reason = newRes.reason;
+                        item.evidence = newRes.evidence;
                     }
-                }, 1000);
+                } catch (e) {
+                    console.error("Refresh item failed", e);
+                }
             },
 
             confirmReview() {
-                // Placeholder logic
                 this.showConfirmation = false;
-                alert('Prüfung abgeschlossen (Demo)');
+                // Just a demo action
+                alert('Prüfung abgeschlossen.');
+            },
+
+            toggleSources() {
+                this.showSources = !this.showSources;
+                if (window.chatManager) {
+                    window.chatManager.toggleSources(this.showSources);
+                }
             }
         }));
     });

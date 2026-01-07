@@ -9,7 +9,7 @@ from src.rag.vector_store import VectorStore
 from src.rag.ingestion import IngestionPipeline
 from src.services.project_service import project_service
 
-router = APIRouter(prefix="/api/rag/project", tags=["rag_project"])
+router = APIRouter(prefix="/rag/project", tags=["rag_project"])
 logger = logging.getLogger(__name__)
 
 # In-memory job state: project_id -> { status: str, files: { filename: { status: str, progress: int } } }
@@ -50,6 +50,16 @@ def _run_ingestion_task(project_id: str):
         return
 
     try:
+        config = get_config()
+        store = VectorStore(
+            collection_name=config.collection_name,
+            persist_directory=config.persist_directory,
+            embedding_function=None,
+        )
+        # Isolation: drop other projects and clear current before ingest
+        store.delete_projects_except(project_id)
+        store.delete_project(project_id)
+
         pipeline = IngestionPipeline()
         total_docs = len(project.documents)
         completed = 0

@@ -22,7 +22,8 @@ class PromptBuilder:
         query: str,
         template_type: str = "standard",
         metadata_filter: Optional[Dict[str, Any]] = None,
-        results: Optional[List[Dict[str, Any]]] = None
+        results: Optional[List[Dict[str, Any]]] = None,
+        system_prompt: Optional[str] = None
     ) -> str:
         """
         Build complete prompt for query.
@@ -56,13 +57,21 @@ class PromptBuilder:
                 metadata_filter=metadata_filter
             )
         
-        # 3. Format Context
-        context_str = format_context(results, include_scores=False) # Config could be used here
+        # 3. Limit number of chunks to avoid overlong prompts
+        max_chunks = self.config.max_context_chunks or len(results)
+        results = results[:max_chunks]
+
+        # 4. Format Context (trim each chunk to keep prompt small)
+        context_str = format_context(results, include_scores=False, max_chars=800) # Config could be used here
         
         if not context_str:
             context_str = "Keine relevanten Dokumente gefunden."
             
-        # 4. Format Prompt
-        prompt = template.format(query=query, context=context_str)
+        # 5. Format Prompt
+        prompt = template.format(
+            query=query, 
+            context=context_str,
+            system_prompt_override=system_prompt
+        )
         
         return prompt

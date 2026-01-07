@@ -4,10 +4,10 @@
     {
       "id": "K001",
       "name": "Standortprüfung Hamburg",
-      "kategorie": "formale_voraussetzung",
+      "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Betriebsstätte oder Sitz in Hamburg",
       "lang": "Das antragstellende Unternehmen muss seinen Sitz oder eine substanzielle Betriebsstätte in der Freien und Hansestadt Hamburg haben. Das Projekt muss überwiegend in Hamburg durchgeführt werden.",
-      "prompt": "Extrahiere aus den Unternehmensdaten (Handelsregisterauszug, Briefkopf, Impressum) die offizielle Anschrift.\n\nPrüfungsschritte:\n1. Suche nach der Postleitzahl (PLZ).\n2. Prüfe, ob die PLZ im Bereich 20000 bis 21149, 22xxx oder 21xxx (sofern Hamburger Stadtgebiet) liegt.\n3. Falls der Hauptsitz NICHT in Hamburg ist: Suche explizit nach Erwähnungen einer 'Zweigniederlassung', 'Betriebsstätte' oder dem 'Durchführungsort' in Hamburg.\n\nBewertung:\n- GRÜN: Sitz oder Betriebsstätte eindeutig in Hamburg.\n- GELB: Adresse im Hamburger Umland (z.B. Norderstedt, Ahrensburg) oder unklarer Durchführungsort.\n- ROT: Sitz eindeutig außerhalb Hamburgs ohne Zweigstelle.",
+      "prompt": "Extrahiere aus den Unternehmensdaten (Handelsregisterauszug, Briefkopf, Impressum) die offizielle Anschrift.\r\n\r\nPrüfungsschritte:\r\n1. Suche nach der Postleitzahl (PLZ).\r\n2. Prüfe, ob die PLZ im Bereich 20000 bis 21149, 22xxx oder 21xxx (sofern Hamburger Stadtgebiet) liegt.\r\n3. Falls der Hauptsitz NICHT in Hamburg ist: Suche explizit nach Erwähnungen einer 'Zweigniederlassung', 'Betriebsstätte' oder dem 'Durchführungsort' in Hamburg.\r\n\r\nBewertung:\r\n- GRÜN: Sitz oder Betriebsstätte eindeutig in Hamburg.\r\n- GELB: Adresse im Hamburger Umland (z.B. Norderstedt, Ahrensburg) oder unklarer Durchführungsort.\r\n- ROT: Sitz eindeutig außerhalb Hamburgs ohne Zweigstelle.",
       "recommended": true
     },
     {
@@ -147,12 +147,21 @@
     },
     {
       "id": "K_TEST_AUTO",
-      "name": "Hamburg PLZ Suche",
-      "kategorie": "formale_voraussetzung",
+      "name": "Hamburg PLZ Suche 1",
+      "kategorie": "inhaltliche_bewertung",
       "kurz": "Hamburger Postleitzahl",
       "lang": "Suche nach Hamburger PLZ (20xxx oder 21xxx)",
       "prompt": "Suche nach Hamburger Postleitzahl (20xxx oder 21xxx). Bewerte GRÜN bei Fund.",
-      "recommended": true
+      "recommended": false
+    },
+    {
+      "id": "TK_001",
+      "name": "Test Krit",
+      "kategorie": "wirtschaftliche_bewertung",
+      "kurz": "Testing",
+      "lang": "",
+      "prompt": "Testing prompt",
+      "recommended": false
     }
   ]
 }

@@ -1,196 +1,481 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex h-[calc(100vh-6rem)] -mt-4 bg-white border rounded-lg shadow-sm overflow-hidden" x-data="globalChat()"
-    x-init="initChat()">
+<!-- Include Marked for Markdown Rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <!-- Sidebar: Chat History -->
-    <div class="w-1/4 border-r bg-gray-50 flex flex-col">
-        <div class="p-4 border-b flex justify-between items-center bg-white">
-            <h2 class="font-semibold text-gray-700">Globale Chats</h2>
-            <button @click="createChat()" class="text-blue-600 hover:bg-blue-50 p-1 rounded transition-colors"
-                title="Neuer Chat">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+<!-- Full Screen Chat Layout with Dynamic Viewport Height -->
+<div class="flex h-[100dvh] w-full bg-white overflow-hidden" x-data="globalChat" x-init="initChat()">
+
+    <!-- SIDEBAR (Light Theme) -->
+    <div
+        class="w-80 bg-gray-50/80 backdrop-blur flex flex-col border-r border-gray-200 flex-shrink-0 transition-all duration-300">
+
+        <!-- Sidebar Header -->
+        <div class="p-5 border-b border-gray-200 bg-gray-50/50 sticky top-0 z-10">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="font-bold text-gray-500 tracking-wide text-xs uppercase">Verlauf</h2>
+                <button @click="createChat()"
+                    class="bg-white hover:bg-gray-100 text-blue-600 border border-gray-200 p-2 rounded-lg transition-colors shadow-sm hover:shadow-md"
+                    title="Neuer Chat">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- Global Delete All Button -->
+            <button @click="deleteAllChats()" x-show="chatList.length > 0"
+                class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-2 rounded-lg transition-colors text-xs font-semibold flex items-center justify-center gap-2"
+                title="Alle Chats löschen">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
                 </svg>
+                Alle Chats löschen
             </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-2 space-y-2">
+        <!-- Chat List -->
+        <div class="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+            <template x-if="loadingList">
+                <div class="text-center text-gray-400 text-sm py-8 animate-pulse">Lade Chats...</div>
+            </template>
+
             <template x-for="chat in chatList" :key="chat.chat_id">
                 <div @click="loadChat(chat.chat_id)"
-                    class="p-3 rounded-lg cursor-pointer transition-colors group relative"
-                    :class="activeChatId === chat.chat_id ? 'bg-white shadow border border-blue-100' : 'hover:bg-gray-100'">
-                    <h3 class="font-medium text-sm text-gray-900 truncate" x-text="chat.title"></h3>
-                    <p class="text-xs text-gray-500 truncate mt-1" x-text="chat.last_message"></p>
+                    class="group relative p-3 rounded-xl cursor-pointer transition-all duration-200 border"
+                    :class="activeChatId === chat.chat_id ? 'bg-white border-gray-200 shadow-sm ring-1 ring-black/5' : 'border-transparent hover:bg-gray-100/80 hover:border-gray-100'">
 
-                    <!-- Delete Button (Hover) -->
-                    <button @click.stop="deleteChat(chat.chat_id)"
-                        class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 p-1">
+                    <!-- Chat Title / Snippet -->
+                    <div class="pr-6">
+                        <h3 class="font-semibold text-sm truncate leading-snug"
+                            :class="activeChatId === chat.chat_id ? 'text-gray-900' : 'text-gray-700'"
+                            x-text="getChatTitle(chat)"></h3>
+                        <div class="flex items-center justify-between mt-1.5">
+                            <span class="text-[10px] font-mono"
+                                :class="activeChatId === chat.chat_id ? 'text-gray-400' : 'text-gray-400'"
+                                x-text="formatDate(chat.updated_at || chat.created_at)"></span>
+                        </div>
+                    </div>
+
+                    <!-- Delete Interaction -->
+                    <button @click="deleteChat(chat.chat_id, $event)"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 p-1.5 rounded-md hover:bg-gray-200 transition-all"
+                        title="Löschen">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"></path>
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                            </path>
                         </svg>
                     </button>
                 </div>
             </template>
-        </div>
-    </div>
 
-    <!-- Main Chat Area -->
-    <div class="w-3/4 flex flex-col bg-white">
-
-        <!-- Header (Active Chat Info) -->
-        <div class="h-14 border-b flex items-center px-6 justify-between bg-white" x-show="activeChatId">
-            <span class="font-semibold text-gray-800" x-text="activeChatTitle"></span>
-            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">Globaler Modus (Kein
-                Projekt-Kontext)</span>
-        </div>
-
-        <!-- Empty State -->
-        <div x-show="!activeChatId" class="flex-1 flex items-center justify-center flex-col text-gray-400">
-            <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
-                </path>
-            </svg>
-            <p>Wählen Sie einen Chat aus oder erstellen Sie einen neuen.</p>
-        </div>
-
-        <!-- Messages Area -->
-        <div x-show="activeChatId" class="flex-1 overflow-y-auto p-6 space-y-6" id="chat-scroller">
-            <template x-for="msg in messages" :key="msg.timestamp">
-                <div class="flex flex-col" :class="msg.role === 'user' ? 'items-end' : 'items-start'">
-                    <div class="max-w-[80%] rounded-2xl px-5 py-3 shadow-sm"
-                        :class="msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'">
-                        <p class="whitespace-pre-wrap leading-relaxed" x-text="msg.content"></p>
-
-                        <!-- Sources (Use Case A3) -->
-                        <template x-if="msg.sources && msg.sources.length > 0">
-                            <div class="mt-2 pt-2 border-t border-gray-200/50">
-                                <p class="text-xs font-semibold mb-1 opacity-70">Quellen:</p>
-                                <div class="flex flex-wrap gap-1">
-                                    <template x-for="source in msg.sources">
-                                        <a href="#"
-                                            class="text-xs bg-white/50 px-2 py-1 rounded border border-gray-200 hover:bg-white hover:shadow-sm transition-all"
-                                            :title="source.document || 'Quelle'">
-                                            <span
-                                                x-text="(source.document || 'Dokument') + (source.page ? ' (S. ' + source.page + ')' : '')"></span>
-                                        </a>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
-
-                        <!-- Metrics (Use Case A3) -->
-                        <template x-if="msg.metrics">
-                            <div class="mt-1 pt-1 border-t border-white/10 opacity-60 text-[10px] font-mono flex gap-2">
-                                <span x-text="msg.metrics.tokens_per_second + ' tok/s'"></span>
-                                <span>•</span>
-                                <span x-text="msg.metrics.total_tokens + ' tokens'"></span>
-                                <span>•</span>
-                                <span x-text="msg.metrics.time_to_first_token_sec + 's TTFT'"></span>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </template>
-
-            <!-- Typing Indicator -->
-            <div x-show="isTyping" class="flex items-start">
-                <div class="bg-gray-100 rounded-2xl rounded-bl-none px-4 py-3">
-                    <div class="flex space-x-1">
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
-                    </div>
-                </div>
+            <div x-show="chatList.length === 0 && !loadingList" class="text-center text-gray-400 text-sm py-12 px-4">
+                Keine Chats vorhanden. Starte einen neuen!
             </div>
         </div>
 
-        <!-- Input Area -->
-        <div x-show="activeChatId" class="p-4 border-t bg-white">
-            <div class="relative">
-                <textarea x-model="userInput" @keydown.enter.prevent="sendMessage()"
-                    class="w-full border-gray-300 rounded-lg pr-12 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                    rows="3" placeholder="Nachricht schreiben..."></textarea>
-                <button @click="sendMessage()" :disabled="!userInput.trim() || isTyping"
-                    class="absolute right-2 bottom-2 p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50">
+        <!-- Sidebar Footer: Global Knowledge Status -->
+        <div class="p-4 border-t border-gray-200 bg-gray-50/80">
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Wissensbasis</span>
+                    <button @click="loadGlobalKnowledge()" :disabled="ragStatus === 'loading'"
+                        class="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Neu laden">
+                        <svg class="w-4 h-4" :class="ragStatus === 'loading' ? 'animate-spin' : ''" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Status Indicator -->
+                <div class="flex items-center gap-2 text-xs">
+                    <div class="w-2 h-2 rounded-full" :class="{
+                            'bg-green-500': ragStatus === 'ready',
+                            'bg-yellow-500 animate-pulse': ragStatus === 'loading',
+                            'bg-red-500': ragStatus === 'error',
+                            'bg-gray-400': ragStatus === 'unloaded'
+                        }"></div>
+                    <span class="font-medium text-gray-700" x-text="getRagStatusLabel()"></span>
+                </div>
+
+                <!-- Progress Bar (only when loading) -->
+                <div x-show="ragStatus === 'loading'"
+                    class="w-full bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                    <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                        :style="`width: ${ragProgress}%`"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CHAT AREA -->
+    <div class="flex-1 flex flex-col bg-white relative">
+
+        <!-- Chat Header -->
+        <div
+            class="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur z-20 sticky top-0">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full" :class="activeChatId ? 'bg-green-500' : 'bg-gray-300'"></div>
+                <span class="font-bold text-gray-800 text-lg"
+                    x-text="activeChatId ? 'Global Chat' : 'Übersicht'"></span>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+                <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-100">
+                    RAG Aktiv
+                </span>
+                <span class="font-semibold">System Status</span>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div x-show="!activeChatId"
+            class="flex-1 flex items-center justify-center flex-col text-center p-8 bg-gray-50/50">
+            <div class="w-20 h-20 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6">
+                <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z">
+                    </path>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Willkommen beim IFB Chat</h2>
+            <p class="text-gray-500 max-w-md">Starten Sie einen neuen Chat, um Unterstützung bei Förderanträgen,
+                Richtlinien oder allgemeinen Fragen zu erhalten.</p>
+            <button @click="createChat()"
+                class="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
+                Neuen Chat starten
+            </button>
+        </div>
+
+        <!-- Messages Container -->
+        <div x-show="activeChatId" class="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth" id="chat-scroller">
+
+            <template x-for="(msg, index) in messages" :key="index">
+                <!-- Hide System Messages -->
+                <div x-show="msg.role !== 'system'" class="w-full max-w-4xl mx-auto flex gap-4 anim-fade-in"
+                    :class="msg.role === 'user' ? 'justify-end' : 'justify-start'">
+
+                    <!-- AI Avatar -->
+                    <div x-show="msg.role === 'assistant'"
+                        class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 text-white shadow-md">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+
+                    <!-- Message Bubble -->
+                    <div class="flex flex-col max-w-[85%]" :class="msg.role === 'user' ? 'items-end' : 'items-start'">
+
+                        <!-- Name Label -->
+                        <span class="text-xs font-bold text-gray-400 mb-1 ml-1"
+                            x-text="msg.role === 'user' ? 'Du' : 'IFB Assistent'"></span>
+
+                        <!-- Content Box -->
+                        <div class="px-4 py-3 rounded-2xl shadow-sm text-base leading-relaxed overflow-hidden"
+                            :class="msg.role === 'user' 
+                                ? 'bg-blue-600 text-white rounded-br-none' 
+                                : 'bg-gray-50 border border-gray-200 text-gray-800 rounded-bl-none prose prose-blue max-w-none'">
+
+                            <!-- User Text (Plain) -->
+                            <div x-show="msg.role === 'user'" x-text="msg.content" class="whitespace-pre-wrap"></div>
+
+                            <!-- AI Text (Markdown) -->
+                            <div x-show="msg.role === 'assistant'" x-html="renderMarkdown(msg.content)"></div>
+
+                            <!-- Metrics Display -->
+                            <template x-if="msg.metrics">
+                                <div class="mt-2 text-[10px] opacity-70 flex gap-2 border-t border-black/10 pt-1"
+                                    :class="msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'">
+                                    <span
+                                        x-text="Math.round(msg.metrics.tokens_per_second * 100) / 100 + ' tok/sec'"></span>
+                                    <span>•</span>
+                                    <span x-text="msg.metrics.total_tokens + ' tokens'"></span>
+                                    <span>•</span>
+                                    <span x-text="Math.round(msg.metrics.duration_seconds * 100) / 100 + 's'"></span>
+                                </div>
+                            </template>
+
+                            <!-- Sources (RAG) - HIDDEN FOR GLOBAL CHAT -->
+                            <template x-if="false && msg.sources && msg.sources.length > 0">
+                                <div class="mt-4 pt-3 border-t border-gray-200/50">
+                                    <p class="text-xs font-bold mb-2 uppercase opacity-70 tracking-wider">Quellen:</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-for="source in msg.sources">
+                                            <div class="text-xs bg-white/80 backdrop-blur px-2.5 py-1.5 rounded-md border border-gray-200 shadow-sm flex items-center gap-1.5 max-w-[200px] truncate"
+                                                title="Quelle">
+                                                <span class="opacity-50">📄</span>
+                                                <span class="truncate"
+                                                    x-text="(source.metadata && source.metadata.doc_name) || source.doc_name || source.document || 'Dokument'"></span>
+                                                <span x-show="source.page || (source.metadata && source.metadata.page)"
+                                                    class="opacity-60 text-[10px]"
+                                                    x-text="'S.' + (source.page || (source.metadata && source.metadata.page) || '')"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- User Avatar -->
+                    <div x-show="msg.role === 'user'"
+                        class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 text-gray-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </div>
+
+                </div>
+            </template>
+
+            <!-- Loading Indicator -->
+            <div x-show="isTyping" class="w-full max-w-4xl mx-auto flex gap-4">
+                <div
+                    class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 text-white opacity-50">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
-                </button>
+                </div>
+                <div
+                    class="bg-gray-50 border border-gray-100 rounded-2xl rounded-bl-none px-6 py-4 flex items-center gap-2">
+                    <span class="loading loading-dots loading-sm text-gray-400"></span>
+                    <span class="text-sm text-gray-400 animate-pulse">Analysiere Anfrage...</span>
+                </div>
+            </div>
+
+            <!-- Turn Spacer -->
+            <div class="h-12"></div>
+        </div>
+
+        <!-- Input Area (Sticky Bottom) - UPDATED TO MATCH PROJECT CHAT -->
+        <div x-show="activeChatId" class="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-30">
+            <form @submit.prevent="sendMessage()">
+                <div class="relative rounded-md shadow-sm">
+                    <input type="text" x-model="userInput"
+                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-3 pl-4 pr-12"
+                        placeholder="Frage zum IFB-Agent stellen..." autocomplete="off" :disabled="isTyping">
+                    <div class="absolute inset-y-0 right-0 flex items-center">
+                        <button type="submit" :disabled="!userInput.trim() || isTyping"
+                            class="inline-flex items-center justify-center p-2 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mx-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="text-center mt-2">
+                <p class="text-[10px] text-gray-400">IFB AI kann Fehler machen. Überprüfen Sie wichtige Informationen.
+                </p>
             </div>
         </div>
 
     </div>
 </div>
 
+<style>
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background-color: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #D1D5DB;
+        border-radius: 2px;
+    }
+
+    .anim-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    @keyframes fadeIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
 <script>
-    function globalChat() {
-        return {
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('globalChat', () => ({
             chatList: [],
             activeChatId: null,
-            activeChatTitle: '',
             messages: [],
             userInput: '',
             isTyping: false,
+            loadingList: true,
+
+            ragStatus: 'unloaded', // unloaded, loading, ready, error
+            ragProgress: 0,
+            ragJobId: null,
 
             async initChat() {
+                // Initialize Marked options
+                if (window.marked) {
+                    marked.setOptions({ breaks: true, gfm: true });
+                }
+
+                // Start polling RAG status immediately
+                this.pollRagStatus();
+
                 await this.refreshList();
-                if (this.chatList.length === 0) {
-                    await this.createChat();
+
+                // If chats exist, load the most recent one automatically
+                if (this.chatList.length > 0) {
+                    this.loadChat(this.chatList[0].chat_id);
                 }
             },
 
             async refreshList() {
                 try {
-                    const res = await fetch('/api/chats/global');
-                    if (!res.ok) throw new Error("Failed to load chats");
+                    this.loadingList = true;
+                    const res = await fetch('/api/chats/global/list');
+                    if (!res.ok) throw new Error("Failed");
                     const data = await res.json();
-                    this.chatList = data.chats || [];
+
+                    // Sort by updated_at desc
+                    const chats = data.chats || [];
+                    this.chatList = chats.sort((a, b) => {
+                        return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at);
+                    });
                 } catch (e) {
-                    console.error("Error loading chat list:", e);
+                    console.error("List error", e);
+                } finally {
+                    this.loadingList = false;
                 }
+            },
+
+            getChatTitle(chat) {
+                // Return preview or 'Neuer Chat' if no content
+                if (chat.last_message_preview && chat.last_message_preview.length > 0) {
+                    return chat.last_message_preview;
+                }
+                return "Neuer Chat";
+            },
+
+            formatDate(isoString) {
+                // Simple formatter: DD.MM. HH:mm
+                if (!isoString) return '';
+                try {
+                    const d = new Date(isoString);
+                    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + ' ' +
+                        d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                } catch (e) { return isoString; }
+            },
+
+            renderMarkdown(text) {
+                if (!text) return '';
+                return window.marked ? marked.parse(text) : text;
             },
 
             async createChat() {
                 try {
                     const res = await fetch('/api/chats/global/create', { method: 'POST' });
-                    if (!res.ok) throw new Error("Failed to create chat");
+                    if (!res.ok) throw new Error("Create failed");
                     const chat = await res.json();
                     await this.refreshList();
                     this.loadChat(chat.chat_id);
                 } catch (e) {
-                    console.error("Error creating chat:", e);
+                    alert("Konnte keinen neuen Chat starten.");
                 }
             },
 
-            async deleteChat(chatId) {
-                if (!confirm("Chat löschen?")) return;
-                await fetch(`/api/chats/global/${chatId}`, { method: 'DELETE' });
+            async deleteChat(chatId, event) {
+                // Prevent bubbling if triggered from list item click
+                if (event) event.stopPropagation();
+
+                // NO CONFIRMATION - Delete immediately as requested
+
+                // Optimistic Update
+                const previousList = [...this.chatList];
+                const previousActive = this.activeChatId;
+                const previousMessages = [...this.messages];
+
+                // Update UI immediately
+                this.chatList = this.chatList.filter(c => c.chat_id !== chatId);
                 if (this.activeChatId === chatId) {
                     this.activeChatId = null;
                     this.messages = [];
                 }
-                await this.refreshList();
+
+                try {
+                    const res = await fetch(`/api/chats/global/${chatId}`, { method: 'DELETE' });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.detail || "Serverfehler beim Löschen");
+                    }
+                    // Success: Refresh to ensure sync
+                    this.refreshList();
+                } catch (e) {
+                    console.error("Delete failed", e);
+                    alert("Löschen fehlgeschlagen: " + e.message);
+                    // Revert UI on error
+                    this.chatList = previousList;
+                    this.activeChatId = previousActive;
+                    this.messages = previousMessages;
+                }
+            },
+
+            async deleteAllChats() {
+                // NO CONFIRMATION - Delete all immediately
+                const previousList = [...this.chatList];
+                const previousActive = this.activeChatId;
+                const previousMessages = [...this.messages];
+
+                // Clear UI immediately
+                this.chatList = [];
+                this.activeChatId = null;
+                this.messages = [];
+
+                try {
+                    // Delete each chat via API
+                    const deletePromises = previousList.map(chat =>
+                        fetch(`/api/chats/global/${chat.chat_id}`, { method: 'DELETE' })
+                    );
+                    await Promise.all(deletePromises);
+
+                    // Refresh to ensure sync
+                    this.refreshList();
+                } catch (e) {
+                    console.error("Delete all failed", e);
+                    alert("Löschen fehlgeschlagen: " + e.message);
+                    // Revert on error
+                    this.chatList = previousList;
+                    this.activeChatId = previousActive;
+                    this.messages = previousMessages;
+                }
             },
 
             async loadChat(chatId) {
                 this.activeChatId = chatId;
-                const chat = this.chatList.find(c => c.chat_id === chatId);
-                // Use nice formatting or fallback
-                this.activeChatTitle = chat ? (chat.created_at || chatId) : 'Chat';
+                this.messages = [];
+                this.scrollToBottom(); // Reset scroll
 
                 try {
                     const res = await fetch(`/api/chats/global/${chatId}`);
-                    if (!res.ok) throw new Error("Failed to load chat history");
+                    if (!res.ok) throw new Error("Load failed");
                     const data = await res.json();
                     this.messages = data.messages || [];
                     this.scrollToBottom();
                 } catch (e) {
-                    console.error("Error loading chat:", e);
+                    console.error("Load error", e);
                 }
             },
 
@@ -199,7 +484,11 @@
 
                 const text = this.userInput;
                 this.userInput = '';
+                // Height reset logic is in @input HTML, also reset here
+                const ta = document.querySelector('textarea');
+                if (ta) ta.style.height = '60px';
 
+                // Optimistic UI
                 this.messages.push({ role: 'user', content: text, timestamp: new Date().toISOString() });
                 this.scrollToBottom();
                 this.isTyping = true;
@@ -210,20 +499,30 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             message: text,
-                            include_rag: true
+                            include_rag: true // ALWAYS TRUE as requested
                         })
                     });
 
-                    if (!res.ok) throw new Error("Message failed");
+                    if (!res.ok) {
+                        let errorMsg = "Unbekannter Fehler";
+                        try {
+                            const errData = await res.json();
+                            errorMsg = errData.detail || errorMsg;
+                        } catch (jsonErr) {
+                            errorMsg = `HTTP Error ${res.status}`;
+                        }
+                        throw new Error(errorMsg);
+                    }
 
                     const data = await res.json();
                     this.messages.push(data.assistant_message);
-                    await this.refreshList();
+
+                    // Update list preview
+                    this.refreshList();
                 } catch (e) {
-                    console.error("Msg failed", e);
                     this.messages.push({
                         role: 'assistant',
-                        content: "Fehler beim Senden der Nachricht: " + e.message,
+                        content: `**Fehler:** ${e.message}`,
                         timestamp: new Date().toISOString()
                     });
                 } finally {
@@ -232,13 +531,62 @@
                 }
             },
 
+            async loadGlobalKnowledge() {
+                try {
+                    this.ragStatus = 'loading';
+                    this.ragProgress = 0;
+                    const res = await fetch('/api/rag/global/load', { method: 'POST' });
+                    if (!res.ok) throw new Error("Load failed");
+                    const data = await res.json();
+                    this.ragJobId = data.job_id;
+                    this.pollRagStatus(); // Ensure polling is active
+                } catch (e) {
+                    console.error("RAG load error", e);
+                    this.ragStatus = 'error';
+                    alert("Fehler beim Starten des Ladevorgangs.");
+                }
+            },
+
+            async pollRagStatus() {
+                const check = async () => {
+                    try {
+                        const res = await fetch('/api/rag/global/status');
+                        if (!res.ok) return;
+                        const data = await res.json();
+
+                        this.ragStatus = data.status; // ready, loading, error...
+                        this.ragProgress = data.overall_progress_pct || 0;
+
+                        if (this.ragStatus === 'loading') {
+                            setTimeout(check, 1000); // Poll every second while loading
+                        }
+                    } catch (e) {
+                        console.warn("RAG poll error", e);
+                    }
+                };
+                check();
+            },
+
+            getRagStatusLabel() {
+                const map = {
+                    'unloaded': 'Nicht geladen',
+                    'loading': `Lädt (${this.ragProgress}%)`,
+                    'ready': 'Bereit',
+                    'error': 'Fehler',
+                    'started': 'Gestartet...'
+                };
+                return map[this.ragStatus] || this.ragStatus;
+            },
+
             scrollToBottom() {
                 this.$nextTick(() => {
                     const container = document.getElementById('chat-scroller');
-                    if (container) container.scrollTop = container.scrollHeight;
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
                 });
             }
-        }
-    }
+        }));
+    });
 </script>
 {% endblock %}

@@ -1,6 +1,7 @@
 import logging
 import re
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 from time import perf_counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -14,6 +15,7 @@ from src.services.annotation_service import annotation_service
 from src.services.criteria_service import criteria_service
 from src.services.project_service import project_service
 from src.services.criteria_results_store import save_criterion_result
+from src.api.dependencies import get_llm_chain, get_config
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +24,7 @@ class ValidationService:
     def __init__(self):
         self.annotation_service = annotation_service
 
-    def evaluate_criterion(self, project_id: str, criterion_id: str) -> Dict[str, Any]:
+    def evaluate_criterion(self, project_id: str, criterion_id: str, llm_chain=None) -> Dict[str, Any]:
         project = project_service.get_project(project_id)
         if not project:
             raise ValueError(f"Project {project_id} not found")
@@ -31,41 +33,73 @@ class ValidationService:
         if not criterion:
             raise ValueError(f"Criterion {criterion_id} not found")
 
+        llm_chain = llm_chain or get_llm_chain()
         start = perf_counter()
-        evidence_list = self._collect_evidence(project, criterion)
-        status_raw = "green" if evidence_list else "red"
-        status = self._normalize_status(status_raw)
-        score = 1.0 if evidence_list else 0.0
-        reason = "Nachweis gefunden" if evidence_list else "Kein Nachweis gefunden"
+        rag_evidence = self._llm_eval(project_id, criterion, llm_chain)
+        status = rag_evidence["status"]
+        reason = rag_evidence["reason"]
+        evidence_list = rag_evidence.get("evidence_raw", [])
 
         output_dir = Path("data/input") / project_id / "annotated"
         annotations: List[Dict[str, Any]] = []
         evidence_records: List[Dict[str, Any]] = []
         for evidence in evidence_list:
+            file_path = Path("data/input") / project_id / "uploads" / evidence.get("dokument")
+            if not file_path.exists():
+                # still record evidence without annotation
+                evidence_records.append(self._build_evidence_entry({
+                    "filename": evidence.get("dokument"),
+                    "reference": evidence.get("referenz"),
+                    "path": str(file_path),
+                    "text": evidence.get("text_snippet"),
+                    "page": evidence.get("page"),
+                    "cell": evidence.get("cell"),
+                }, {}))
+                continue
             annotated = self.annotation_service.annotate_document(
-                file_path=Path(evidence["path"]),
-                evidence=evidence,
+                file_path=file_path,
+                evidence={
+                    "text": evidence.get("text_snippet") or evidence.get("referenz"),
+                    "page": evidence.get("page"),
+                    "cell": evidence.get("cell"),
+                    "reference": evidence.get("referenz"),
+                },
                 criterion_id=criterion.id,
                 output_dir=output_dir,
                 status=status,
             )
             if annotated:
-                annotated["document_id"] = evidence.get("document_id")
-                annotated["document"] = evidence.get("filename")
+                annotated["document"] = evidence.get("dokument")
                 annotated["criterion_id"] = criterion.id
                 annotated["status"] = status
                 annotations.append(annotated)
-                evidence_records.append(self._build_evidence_entry(evidence, annotated))
+                evidence_records.append(self._build_evidence_entry({
+                    "filename": evidence.get("dokument"),
+                    "reference": evidence.get("referenz"),
+                    "path": str(file_path),
+                    "text": evidence.get("text_snippet"),
+                    "page": evidence.get("page"),
+                    "cell": evidence.get("cell"),
+                }, annotated))
+            else:
+                evidence_records.append(self._build_evidence_entry({
+                    "filename": evidence.get("dokument"),
+                    "reference": evidence.get("referenz"),
+                    "path": str(file_path),
+                    "text": evidence.get("text_snippet"),
+                    "page": evidence.get("page"),
+                    "cell": evidence.get("cell"),
+                }, {}))
 
         annotated_file = annotations[0].get("annotated_file") if annotations else None
-        evaluated_at = datetime.utcnow().isoformat() + "Z"
+        evaluated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         duration_sec = round(perf_counter() - start, 3)
 
         result = {
             "criterion_id": criterion.id,
             "criterion_name": criterion.name,
             "status": status,
-            "score": score,
+            "score": rag_evidence.get("score", 0.0),
             "reason": reason,
             "annotations": annotations,
             "annotated_file": annotated_file,
@@ -136,11 +170,123 @@ class ValidationService:
             return "gelb"
         return "rot"
 
+    def _llm_eval(self, project_id: str, criterion, llm_chain) -> Dict[str, Any]:
+        cfg = get_config()
+        system_prompt = getattr(cfg.prompts, "kriterien_pruefung", None)
+        user_prompt = criterion.prompt or criterion.lang or criterion.kurz or criterion.name
+
+        def _parse_json(txt: str) -> Optional[Dict[str, Any]]:
+            try:
+                return json.loads(txt)
+            except Exception:
+                # Try to extract between braces
+                if "{" in txt and "}" in txt:
+                    candidate = txt[txt.find("{"): txt.rfind("}")+1]
+                    try:
+                        return json.loads(candidate)
+                    except Exception:
+                        return None
+                return None
+
+        # first attempt
+        res = llm_chain.query(
+            question=user_prompt,
+            metadata_filter={"project_id": project_id},
+            system_prompt=system_prompt,
+        )
+        answer = res.get("answer", "")
+        parsed = _parse_json(answer)
+        retry = False
+        if not parsed:
+            retry = True
+            retry_prompt = (
+                f"{user_prompt}\n\n"
+                "ACHTUNG: Deine vorherige Antwort war kein gültiges JSON.\n"
+                "Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt.\n"
+                "Kein Markdown, keine Erklärungen außerhalb des JSONs.\n"
+                "Format: {\"status\": \"grün/gelb/rot\", \"begründung\": \"...\", \"dokument\": \"...\", \"referenz\": \"...\"}"
+            )
+            res = llm_chain.query(
+                question=retry_prompt,
+                metadata_filter={"project_id": project_id},
+                system_prompt=system_prompt,
+            )
+            answer = res.get("answer", "")
+            parsed = _parse_json(answer)
+
+        status_raw = None
+        reason = None
+        dokument = None
+        referenz = None
+        if parsed:
+            status_raw = parsed.get("status")
+            reason = parsed.get("begründung") or parsed.get("begruendung") or parsed.get("begruen dung")
+            dokument = parsed.get("dokument")
+            referenz = parsed.get("referenz")
+
+        status = self._normalize_status(status_raw or "gelb")
+
+        # Validate required fields
+        errors: List[str] = []
+        if not parsed:
+            errors.append("Antwort nicht parsebar")
+        if status not in {"rot", "gelb", "grün"}:
+            errors.append("Status ungültig")
+            status = "gelb"
+        if reason:
+            reason = str(reason)[:160]
+        if not reason:
+            reason = "Keine gültige JSON-Antwort vom LLM" if parsed is None else "Keine Begründung geliefert"
+
+        # If parse failed even after retry, mark warning
+        if errors and retry and not parsed:
+            status = "gelb"
+            reason = "Keine gültige JSON-Antwort vom LLM"
+
+        # Build evidence from citations
+        evidence_raw: List[Dict[str, Any]] = []
+        for cit in res.get("citations", []):
+            if hasattr(cit, "doc_name"):
+                evidence_raw.append({
+                    "dokument": cit.doc_name,
+                    "referenz": f"Seite {cit.page}" if getattr(cit, "page", None) else None,
+                    "text_snippet": cit.text_snippet,
+                    "page": getattr(cit, "page", None),
+                })
+            elif isinstance(cit, dict):
+                evidence_raw.append({
+                    "dokument": cit.get("doc_name") or cit.get("document"),
+                    "referenz": f"Seite {cit.get('page')}" if cit.get("page") else None,
+                    "text_snippet": cit.get("text_snippet") or cit.get("content"),
+                    "page": cit.get("page"),
+                })
+
+        # If none from citations but LLM provided dokument/referenz, create one minimal
+        if not evidence_raw and dokument:
+            evidence_raw.append({
+                "dokument": dokument,
+                "referenz": referenz,
+                "text_snippet": reason or "",
+            })
+
+        score = 1.0 if status == "grün" else 0.5 if status == "gelb" else 0.0
+
+        return {
+            "status": status,
+            "reason": reason or "",
+            "evidence_raw": evidence_raw,
+            "score": score,
+        }
+
     def _build_evidence_entry(self, evidence: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
-        annotated_file = annotated.get("annotated_file") or annotated.get("meta_file")
+        annotated_file = annotated.get("annotated_file") or annotated.get("meta_file") if annotated else None
         annotated_name = Path(annotated_file).name if annotated_file else None
         text_snippet = (evidence.get("text") or evidence.get("reference") or "")[:200]
-        reference = annotated.get("reference") or evidence.get("reference")
+        reference = None
+        if annotated:
+            reference = annotated.get("reference")
+        if not reference:
+            reference = evidence.get("reference")
         if not reference:
             if evidence.get("page"):
                 reference = f"Seite {evidence['page']}"

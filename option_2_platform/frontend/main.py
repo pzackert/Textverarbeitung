@@ -53,6 +53,9 @@ app.include_router(api_criteria.eval_router, prefix="/api") # /api/projects (eva
 from src.api.routers import projects as api_projects
 app.include_router(api_projects.router, prefix="/api")      # /api/projects
 
+from src.api.routers import settings as api_settings
+app.include_router(api_settings.router)                     # /api/settings (internal prefix)
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}

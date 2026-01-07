@@ -40,14 +40,14 @@ def normalize_projects():
 
         # 2. Move root files to uploads (white-list exclusion)
         excluded = {
-            "chat_history.json", 
-            "meta.json", 
-            "criteria_responses.json", 
-            "registry.json",
-            "uploads", 
-            "annotated", 
-            "input", 
-            "output"
+            "chat_history.json",
+            "meta.json",
+            "metadata.json",
+            "criteria_responses.json",
+            "uploads",
+            "annotated",
+            "input",
+            "output",
         }
         
         for item in project_dir.iterdir():

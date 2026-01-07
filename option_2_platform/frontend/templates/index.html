@@ -10,11 +10,39 @@
 
         <div class="flex items-center justify-between mb-8">
             <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <span
+            <span x-show="!systemError"
                 class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-green-500"></span>
                 System Bereit
             </span>
+            <span x-show="systemError"
+                class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-2 animate-pulse">
+                <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                System Fehler
+            </span>
+        </div>
+
+        <div class="sr-only">Running</div>
+
+        <!-- Critical Error Alert -->
+        <div x-show="systemError" x-transition:enter="transition ease-out duration-300"
+            class="mb-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-bold text-red-800">Systemfehler erkannt!</h3>
+                    <p class="text-sm text-red-700 mt-1">Einer oder mehrere Dienste sind nicht erreichbar oder melden
+                        Fehler. Bitte prüfen Sie die Details unten oder starten Sie das System neu (via Einstellungen).
+                    </p>
+                    <div class="mt-2 text-xs font-mono bg-red-100 p-2 rounded text-red-900 border border-red-200"
+                        x-text="errorMessage || 'Unbekannter Statusfehler'"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Status Grid (Monitoring) -->
@@ -70,6 +98,8 @@
         return {
             components: {},
             pollInterval: null,
+            systemError: false,
+            errorMessage: '',
 
             async initDashboard() {
                 // Initial fetch
@@ -87,6 +117,17 @@
                         // Actually SystemStateManager now returns "components" as list, AND "components_dict"
                         // I added "components_dict" to the state manager for this reason!
                         this.components = data.components_dict || {};
+
+                        // Check for global error
+                        if (data.status === 'error') {
+                            this.systemError = true;
+                            // Find failing component message
+                            const failing = Object.values(this.components).find(c => c.status === 'error');
+                            this.errorMessage = failing ? `${failing.name}: ${failing.message}` : (data.current_action || 'Genereller Systemfehler');
+                        } else {
+                            this.systemError = false;
+                            this.errorMessage = '';
+                        }
                     }
                 } catch (e) {
                     console.error("Monitoring failed", e);
@@ -95,20 +136,24 @@
 
             formatName(key) {
                 const map = {
-                    'ollama': 'AI Engine (Ollama)',
-                    'chromadb': 'Vektor DB',
-                    'rag': 'RAG Pipeline',
-                    'llm_model': 'LLM Modell',
-                    'embedding_model': 'Embedding Modell',
-                    'lm_studio': 'LM Studio'
+                    'model_scanner': 'Model Scanner',
+                    'ai_provider': 'AI Provider',
+                    'vector_store': 'Vector Store',
+                    'llm_loading': 'LLM Status',
+                    'global_knowledge': 'Global Knowledge',
+                    'project_healing': 'Projekt Analyse'
                 };
                 return map[key] || key;
             },
 
             getIcon(key) {
                 const icons = {
-                    'ollama': '🦙', 'chromadb': '💾', 'rag': '⚙️',
-                    'llm_model': '🧠', 'embedding_model': '🔢', 'lm_studio': '🖥️'
+                    'model_scanner': '🔎',
+                    'ai_provider': '🤖',
+                    'vector_store': '💾',
+                    'llm_loading': '🧠',
+                    'global_knowledge': '📚',
+                    'project_healing': '📁'
                 };
                 return icons[key] || '📦';
             },
