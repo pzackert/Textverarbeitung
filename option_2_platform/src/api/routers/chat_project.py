@@ -52,14 +52,15 @@ def _format_sources(raw_sources: list[Any], citations: list[dict[str, Any]]) -> 
             continue
         meta = src.get("metadata", {}) if isinstance(src, dict) else {}
         doc_name = (
-            meta.get("doc_name")
+            src.get("doc_name")
+            or meta.get("doc_name")
             or meta.get("document")
             or meta.get("source")
-            or src.get("doc_name")
             or src.get("document")
             or src.get("source")
         )
-        page = meta.get("page") or meta.get("page_number")
+
+        page = src.get("page") or src.get("page_number") or meta.get("page") or meta.get("page_number")
         cell = meta.get("cell")
         paragraph = meta.get("paragraph")
         reference = meta.get("referenz") or meta.get("reference")
@@ -71,7 +72,7 @@ def _format_sources(raw_sources: list[Any], citations: list[dict[str, Any]]) -> 
             elif paragraph:
                 reference = f"Absatz {paragraph}"
 
-        snippet = src.get("content") or meta.get("text") or meta.get("text_snippet")
+        snippet = src.get("text_snippet") or src.get("content") or meta.get("text") or meta.get("text_snippet")
         formatted_sources.append(
             {
                 "dokument": doc_name,
@@ -79,7 +80,7 @@ def _format_sources(raw_sources: list[Any], citations: list[dict[str, Any]]) -> 
                 "page": page,
                 "cell": cell,
                 "paragraph": paragraph,
-                "chunk_id": meta.get("chunk_id") or src.get("id"),
+                "chunk_id": src.get("chunk_id") or meta.get("chunk_id") or src.get("id"),
                 "score": src.get("score"),
                 "text_snippet": snippet[:240] if isinstance(snippet, str) else None,
             }

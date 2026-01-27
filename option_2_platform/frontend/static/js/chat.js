@@ -167,44 +167,71 @@ class ChatManager {
         // Sources (Only for Project Chat - Assistant)
         // Check visibility state (default true)
         if (role === 'assistant' && sources && sources.length > 0) {
-            const sourcesDiv = document.createElement('div');
-            sourcesDiv.className = 'source-container mt-4 pt-3 border-t border-gray-200/50';
-            if (this.sourcesVisible === false) sourcesDiv.style.display = 'none';
+            // FILTER: high relevance only (handled by backend usually, but safety check)
+            const validSources = sources.filter(s => (s.score === undefined || s.score > 0.5));
 
-            sourcesDiv.innerHTML = '<p class="text-xs font-bold mb-2 uppercase opacity-70 tracking-wider">Quellen:</p>';
+            if (validSources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'source-container mt-4 pt-3 border-t border-gray-200/50';
+                if (this.sourcesVisible === false) sourcesDiv.style.display = 'none';
 
-            const sourcesList = document.createElement('div');
-            sourcesList.className = 'flex flex-wrap gap-2';
+                sourcesDiv.innerHTML = '<p class="text-xs font-bold mb-2 uppercase opacity-70 tracking-wider">Quellen:</p>';
+                const sourcesList = document.createElement('div');
+                sourcesList.className = 'flex flex-wrap gap-2';
 
-            sources.forEach((source) => {
-                const docName = source.doc_name || source.document || source.filename || source.source || 'Dokument';
-                const page = source.page;
-                // Using metadata if available for more robustness
-                const metaName = (source.metadata && source.metadata.doc_name) || docName;
-                const metaPage = (source.metadata && source.metadata.page) || page;
+                // GROUPING: Deduplicate by "doc_name + page"
+                const uniqueRefs = new Map();
 
-                const sourceItem = document.createElement('div');
-                sourceItem.className = 'text-xs bg-white/80 backdrop-blur px-2.5 py-1.5 rounded-md border border-gray-200 shadow-sm flex items-center gap-1.5 max-w-[200px] cursor-pointer hover:bg-gray-50 transition-colors';
-                sourceItem.title = "Klicken zum Öffnen";
-                sourceItem.innerHTML = `
-                    <span class="opacity-50">📄</span>
-                    <span class="truncate">${metaName}</span>
-                    ${metaPage ? `<span class="opacity-60 text-[10px]">S.${metaPage}</span>` : ''}
-                `;
-
-                // Click handler for PDF Viewer
-                sourceItem.onclick = () => {
-                    if (window.renderDocument) {
-                        window.renderDocument(metaName, metaPage);
-                    } else if (window.loadDocument) {
-                        window.loadDocument(metaName, 'original', metaPage || 1);
+                validSources.forEach(src => {
+                    // STABLE CONTRACT KEYS
+                    const docName = src.doc_name || src.dokument || src.source || 'Dokument';
+                    // Use new 'page' integer key, fallback to legacy
+                    let page = src.page || src.page_number;
+                    if (!page && src.metadata) {
+                        page = src.metadata.page || src.metadata.page_number;
                     }
-                };
+                    const pageInt = parseInt(page, 10) || 1; // Default to 1 if missing for linking
 
-                sourcesList.appendChild(sourceItem);
-            });
-            sourcesDiv.appendChild(sourcesList);
-            bubbleDiv.appendChild(sourcesDiv);
+                    // Robust Labeling
+                    let label = docName;
+                    if (label.includes('/') || label.includes('\\')) {
+                        label = label.split(/[/\\]/).pop();
+                    }
+
+                    const key = `${label}::${pageInt}`;
+                    if (!uniqueRefs.has(key)) {
+                        uniqueRefs.set(key, { label, page: pageInt, fullSource: src });
+                    }
+                });
+
+                // RENDER
+                uniqueRefs.forEach((item) => {
+                    const sourceItem = document.createElement('div');
+                    sourceItem.className = 'text-xs bg-white/80 backdrop-blur px-2.5 py-1.5 rounded-md border border-gray-200 shadow-sm flex items-center gap-1.5 max-w-[200px] cursor-pointer hover:bg-gray-50 transition-colors';
+
+                    // Display: "Filename (S.X)"
+                    const hasExplicitPage = item.page > 0; // pageInt defaults to 1, but let's show S.1 if that's what we have
+
+                    sourceItem.title = `Öffne ${item.label} (S. ${item.page})`;
+                    sourceItem.innerHTML = `
+                        <span class="opacity-50">📄</span>
+                        <span class="truncate">${item.label}</span>
+                        <span class="opacity-60 text-[10px] whitespace-nowrap">S.${item.page}</span>
+                    `;
+
+                    sourceItem.onclick = () => {
+                        if (window.renderDocument) {
+                            window.renderDocument(item.label, item.page);
+                        } else if (window.loadDocument) {
+                            window.loadDocument(item.label, 'original', item.page);
+                        }
+                    };
+                    sourcesList.appendChild(sourceItem);
+                });
+
+                sourcesDiv.appendChild(sourcesList);
+                bubbleDiv.appendChild(sourcesDiv);
+            }
         }
 
         msgColHandler.appendChild(bubbleDiv);

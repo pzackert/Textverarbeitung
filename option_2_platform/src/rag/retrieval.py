@@ -49,23 +49,9 @@ class RetrievalEngine:
             List of relevant chunks with metadata and scores
         """
         top_k = top_k or self.config.top_k
-        threshold = self.config.similarity_threshold  # e.g. 0.35 (lower is stricter for cosine distance in Chroma, higher for similarity. Wait.)
-        # Chroma using "cosine" space: distance = 1 - similarity.
-        # VectorStore.query converts to "score" (similarity).
-        # So score close to 1.0 is good.
-        # Threshold should be minimum similarity. e.g. 0.7
-        
-        # User config says: similarity_threshold: 0.35
-        # If config value is low (0.35), it implies cosine DISTANCE threshold?
-        # Let's check config.yaml again.
-        # "similarity_threshold: 0.35 # Lower means stricter matching" -> This comment in config implies DISTANCE.
-        # If it says "Lower means stricter", it MUST be Distance. (0 = exact match).
-        # VectorStore returns "score" which it calculates as 1 - distance.
-        # So Similarity Score = 1 - Distance.
-        # If user sets Threshold 0.35 (Distance), that means Similarity > (1 - 0.35) = 0.65.
-        
-        # Let's read config comment to be sure.
-        # Assuming config.similarity_threshold is DISTANCE (because of "Lower means stricter").
+        # similarity_threshold is interpreted as a minimum similarity score (1.0 best, 0 worst)
+        # VectorStore.query already returns score = 1 - distance, so we filter directly by score.
+        threshold = self.config.similarity_threshold
         
         # Handle hybrid filtering (Project + Global)
         # If metadata_filter contains 'include_global': True, we must query broadly then filter in Python
@@ -103,22 +89,19 @@ class RetrievalEngine:
                     secure_results.append(r)
             results = secure_results[:top_k]
         
-        # Filter by threshold if set
+        # Filter by threshold if set (score already in similarity space)
         if threshold is not None:
-             # Interpreting threshold as Distance Threshold (0.35).
-             # We want Results where Distance <= Threshold.
-             # VectorStore returns 'score' = 1 - Distance.
-             # So Distance = 1 - score.
-             # Condition: (1 - score) <= threshold
-             # score >= 1 - threshold
-             
-             min_score = 1.0 - threshold
-             filtered_results = [r for r in results if r.get("score", 0) >= min_score]
-             
-             if len(filtered_results) < len(results):
-                 logger.info(f"Filtered {len(results) - len(filtered_results)} chunks below similarity {(1-threshold):.2f}")
-             
-             results = filtered_results
+            min_score = float(threshold)
+            filtered_results = [r for r in results if r.get("score", 0) >= min_score]
+
+            if len(filtered_results) < len(results):
+                logger.info(
+                    "Filtered %s chunks below similarity %.2f",
+                    len(results) - len(filtered_results),
+                    min_score,
+                )
+
+            results = filtered_results
         
         return results
     

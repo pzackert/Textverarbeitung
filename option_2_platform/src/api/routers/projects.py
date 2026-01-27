@@ -10,6 +10,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from src.services.project_service import project_service
+from src.services.criteria_results_store import (
+    has_criteria_results,
+    load_criteria_results,
+)
 from src.rag.llm_chain import LLMChain
 from src.api.dependencies import get_llm_chain
 from src.services.validation_service import validation_service
@@ -99,6 +103,50 @@ class ProjectCreate(BaseModel):
     applicant: Optional[str] = None
     funding_amount: Optional[float] = None
 
+
+def _build_project_report(project_id: str) -> dict:
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    data = load_criteria_results(project_id)
+    criteria_results = data.get("criteria_results", {}) or {}
+    summary = data.get("summary", {}) or {}
+    status_counts = summary.get("status_counts", {}) or {}
+
+    criteria_list = []
+    for cid, res in criteria_results.items():
+        criteria_list.append(
+            {
+                "id": cid,
+                "name": res.get("criterion_name"),
+                "status": res.get("status"),
+                "reason": res.get("begruendung") or res.get("reason"),
+                "dokument": res.get("dokument"),
+                "referenz": res.get("referenz"),
+            }
+        )
+
+    evaluated = summary.get("evaluated") or len(criteria_results)
+    total = summary.get("total") or max(len(criteria_results), 0)
+    summary_text = (
+        f"{evaluated}/{total} Kriterien geprüft – grün {status_counts.get('grün', 0)}, "
+        f"gelb {status_counts.get('gelb', 0)}, rot {status_counts.get('rot', 0)}."
+    )
+
+    return {
+        "project_id": project.id,
+        "project_name": project.name,
+        "applicant": project.applicant,
+        "description": project.description,
+        "funding_amount": project.funding_amount,
+        "has_evaluation": bool(criteria_results),
+        "last_evaluation": data.get("last_evaluation"),
+        "summary": summary,
+        "summary_text": summary_text,
+        "criteria": criteria_list,
+    }
+
 # --- Endpoints ---
 
 @router.post("/", status_code=201)
@@ -139,7 +187,8 @@ async def list_projects_api():
             "created_at": p.created_at,
             "updated_at": p.updated_at,
             "status": p.status,
-            "documents_count": len(p.documents) if p.documents else 0
+            "documents_count": len(p.documents) if p.documents else 0,
+            "has_evaluation": has_criteria_results(p.id),
         }
         for p in projects
     ]
@@ -443,6 +492,51 @@ async def evaluate_criterion(project_id: str, criterion_id: str):
     except Exception as exc:
         logger.error(f"Evaluation error: {exc}")
         raise HTTPException(status_code=500, detail=f"Failed to evaluate: {exc}")
+
+
+@router.get("/{project_id}/report")
+async def get_project_report(project_id: str):
+    """Return aggregated evaluation report for a project."""
+    try:
+        report = _build_project_report(project_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"Failed to build report: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to build report")
+
+    return report
+
+
+@router.get("/{project_id}/report/mail_text")
+async def get_project_report_mail_text(project_id: str):
+    """Generate German mail draft summarizing the evaluation."""
+    try:
+        report = _build_project_report(project_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"Failed to build mail draft: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to build mail draft")
+
+    if not report.get("has_evaluation"):
+        raise HTTPException(status_code=404, detail="No evaluation results available")
+
+    applicant = report.get("applicant") or "Damen und Herren"
+    summary_text = report.get("summary_text") or "Prüfungsergebnisse liegen vor."
+    criteria_lines = []
+    for c in report.get("criteria", []):
+        criteria_lines.append(f"- {c.get('id')}: {c.get('status')} – {c.get('reason')}")
+
+    mail_text = (
+        f"Sehr geehrte/r {applicant},\n\n"
+        f"Prüfungsergebnis für Projekt {report.get('project_name')}: {summary_text}\n"
+    )
+    if criteria_lines:
+        mail_text += "\n" + "\n".join(criteria_lines) + "\n"
+    mail_text += "\nMit freundlichen Grüßen\nIFB PROFI Team"
+
+    return {"project_id": project_id, "mail_text": mail_text}
 
 
 def _safe_filename(filename: str) -> str:

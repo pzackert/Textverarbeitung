@@ -80,6 +80,8 @@ async function loadProjectDocuments(projectId) {
 window.loadDocument = async function (filename, initialView = null, initialPage = 1) {
     if (!viewer) return;
 
+    const pageNumber = parseInt(initialPage, 10) || 1;
+
     // Find metadata
     const doc = projectDocuments.find(d => d.filename === filename);
     if (!doc) {
@@ -108,7 +110,7 @@ window.loadDocument = async function (filename, initialView = null, initialPage 
         doc.annotated_url,
         doc.has_annotated,
         viewMode,
-        initialPage
+        pageNumber
     );
 };
 
@@ -119,6 +121,7 @@ window.toggleView = function (mode) {
 
 // Global: Open Document & Jump to Page (Deep Linking)
 window.openDocumentSource = function (filename, page) {
+    const pageNumber = parseInt(page, 10) || 1;
     // 1. Check if document exists in list
     const doc = projectDocuments.find(d => d.filename === filename);
     if (!doc) {
@@ -130,8 +133,8 @@ window.openDocumentSource = function (filename, page) {
     // 2. Load Document (logic handles if already loaded, but we force page update)
     // We reuse loadDocument but ensure page is passed
     // If it's already loaded, DocumentViewer can optimize, but for safety we re-call it.
-    console.log(`Deep linking request: ${filename} -> Page ${page}`);
-    loadDocument(filename, 'original', page);
+    console.log(`Deep linking request: ${filename} -> Page ${pageNumber}`);
+    loadDocument(filename, 'original', pageNumber);
 };
 
 // Global: PDF Page Change
@@ -417,15 +420,17 @@ window.handleUpload = async function (event) {
 // Alias for chat.js deep linking
 window.renderDocument = function (filename, page) {
     if (window.loadDocument) {
-        window.loadDocument(filename, null, page || 1);
+        const pageNumber = parseInt(page, 10) || 1;
+        window.loadDocument(filename, null, pageNumber);
     }
 };
 
 // Citation Navigation
 window.jumpToCitation = function (docId, page, snippet) {
-    console.log(`Jumping to citation: ${docId}, Page ${page}`);
+    const pageNumber = parseInt(page, 10) || 1;
+    console.log(`Jumping to citation: ${docId}, Page ${pageNumber}`);
     if (viewer && viewer.activeRenderer && viewer.activeRenderer.scrollToPage) {
-        viewer.activeRenderer.scrollToPage(page);
+        viewer.activeRenderer.scrollToPage(pageNumber);
 
         // Optional: Highlight Logic (Future)
         // console.log("Highlighting:", snippet);

@@ -47,10 +47,11 @@
                 <h5 class="text-xs font-semibold text-gray-500 uppercase">Quellen:</h5>
                 {% for citation in criterion.citations %}
                 <div class="bg-white p-2 rounded border border-gray-200 text-sm cursor-pointer hover:border-blue-300 transition-colors"
-                    onclick="renderPDF('annotated_{{ citation.doc_name }}'); setTimeout(() => jumpToCitation('{{ citation.doc_id }}', {{ citation.page }}, {{ citation.text_snippet|tojson }}), 500);">
+                    onclick="renderDocument('{{ citation.doc_name or citation.dokument or citation.doc_id }}', {{ citation.page }})">
                     <div class="flex justify-between text-xs text-gray-400 mb-1">
                         <span>Seite {{ citation.page }}</span>
-                        <span>{{ citation.doc_name }}</span>
+                        <!-- Prefer doc_name, fallback to doc_id/filename -->
+                        <span>{{ citation.doc_name or citation.dokument or citation.filename or 'Dokument' }}</span>
                     </div>
                     <p class="text-gray-800 italic">"{{ citation.text_snippet }}"</p>
                 </div>

@@ -180,16 +180,25 @@ class ValidationService:
         answer_guideline = getattr(cfg.prompts, "antwort_richtlinie", None)
         user_prompt = criterion.prompt or criterion.lang or criterion.kurz or criterion.name
 
+        def _strip_json_artifacts(txt: str) -> str:
+            cleaned = (txt or "").strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned[3:]
+                if cleaned.lstrip().lower().startswith("json"):
+                    cleaned = cleaned.lstrip()[4:].lstrip()
+                cleaned = cleaned.split("```", 1)[0]
+
+            if "{" in cleaned and "}" in cleaned:
+                cleaned = cleaned[cleaned.find("{") : cleaned.rfind("}") + 1]
+            return cleaned.strip()
+
         def _parse_json(txt: str) -> Optional[Dict[str, Any]]:
+            cleaned = _strip_json_artifacts(txt)
+            if not cleaned:
+                return None
             try:
-                return json.loads(txt)
+                return json.loads(cleaned)
             except Exception:
-                if "{" in txt and "}" in txt:
-                    candidate = txt[txt.find("{"): txt.rfind("}") + 1]
-                    try:
-                        return json.loads(candidate)
-                    except Exception:
-                        return None
                 return None
 
         # Build strict instruction for JSON output
@@ -198,7 +207,13 @@ class ValidationService:
             '{"status": "rot|gelb|grün", "begruendung": "max 160 Zeichen", '
             '"dokument": "Dateiname", "referenz": "Seite X, Absatz Y"}'
         )
-        combined_prompt = f"{user_prompt}\n\n{json_schema_hint}"
+        combined_prompt = (
+            f"{user_prompt}\n\n"
+            "Erinnere dich: Antworte ausschließlich im JSON-Format ohne Markdown oder Zusatztexte. "
+            f"{json_schema_hint}"
+        )
+
+        logger.info("LLM prompt for %s: %s", criterion.id, combined_prompt)
 
         try:
             res = llm_chain.query(
@@ -215,6 +230,7 @@ class ValidationService:
                 system_prompt=system_prompt,
             )
         answer = res.get("answer", "")
+        logger.info("LLM raw answer try1 for %s: %s", criterion.id, answer)
         parsed = _parse_json(answer)
         retry = False
 
@@ -241,6 +257,7 @@ class ValidationService:
                     system_prompt=system_prompt,
                 )
             answer = res.get("answer", "")
+            logger.info("LLM raw answer try2 for %s: %s", criterion.id, answer)
             parsed = _parse_json(answer)
 
         status_raw = None
@@ -264,11 +281,11 @@ class ValidationService:
         if reason:
             reason = str(reason)[:160]
         if not reason:
-            reason = "Keine gültige JSON-Antwort vom LLM" if parsed is None else "Keine Begründung geliefert"
+            reason = "Parsing Error" if parsed is None else "Keine Begründung geliefert"
 
         if errors and retry and not parsed:
             status = "gelb"
-            reason = "Keine gültige JSON-Antwort vom LLM"
+            reason = "Parsing Error"
 
         evidence_raw: List[Dict[str, Any]] = []
         for cit in res.get("citations", []):
@@ -353,6 +370,7 @@ class ValidationService:
             "dokument": evidence.get("filename"),
             "dokument_original_path": f"/uploads/{evidence.get('filename')}",
             "referenz": reference,
+            "page": evidence.get("page"), # Fix: Send raw page int
             "text_snippet": text_snippet,
             "annotated_file": annotated_name,
             "annotated_file_path": f"/annotated/{annotated_name}" if annotated_name else None,

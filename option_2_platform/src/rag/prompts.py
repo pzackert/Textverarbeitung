@@ -28,7 +28,7 @@ class PromptTemplate:
         Allows general knowledge answers if context is insufficient.
         """
         system_prompt = (
-            "Du bist ein erfahrener Experte der IFB Hamburg. "
+            "Du bist ein erfahrener Experte der IFB Hamburg für die IFB-Förderrichtlinien. "
             "Deine Aufgabe ist es, Fragen primär basierend auf den bereitgestellten Dokumenten zu beantworten.\n"
             "Antworte immer auf Deutsch.\n\n"
             "REGELN:\n"

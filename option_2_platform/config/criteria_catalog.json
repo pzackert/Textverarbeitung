@@ -7,7 +7,7 @@
       "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Betriebsstätte oder Sitz in Hamburg",
       "lang": "Das antragstellende Unternehmen muss seinen Sitz oder eine substanzielle Betriebsstätte in der Freien und Hansestadt Hamburg haben. Das Projekt muss überwiegend in Hamburg durchgeführt werden.",
-      "prompt": "Extrahiere aus den Daten vom Unternehmen des Antrages (Handelsregisterauszug, Briefkopf, Impressum) die offizielle Anschrift.\r\nZiel ist es, hier einmal zu prüfen, ob die Betriebsstätte in Hamburg liegt. Bitte gucke, ob das wahr oder falsch ist.\r\n\r\nPrüfungsschritte:\r\n1. Suche nach der Postleitzahl (PLZ).\r\n2. Prüfe, ob die PLZ im Bereich 20000 bis 21149, 22xxx oder 21xxx (sofern Hamburger Stadtgebiet) liegt.\r\n3. Falls der Hauptsitz NICHT in Hamburg ist: Suche explizit nach Erwähnungen einer 'Zweigniederlassung', 'Betriebsstätte' oder dem 'Durchführungsort' in Hamburg.\r\n\r\n",
+      "prompt": "Extrahiere die offiziellen Standortdaten (Postleitzahl, Sitz, Betriebsstätte).\r\n\r\nPrüfungsschritte:\r\n1. Ermittle die PLZ aus dem Handelsregister, Briefkopf oder Impressum.\r\n2. Prüfe auf PLZ im Bereich 20000-21149, 22xxx oder 21xxx (Hamburg).\r\n3. Suche nach expliziten Erwähnungen von 'Zweigniederlassung' oder 'Betriebsstätte' in Hamburg.\r\n\r\nBewertungslogik:\r\n- Setze status='grün', wenn der Sitz oder eine Betriebsstätte nachweislich in Hamburg liegt.\r\n- Setze status='rot', wenn kein Standort in Hamburg gefunden wurde.",
       "recommended": true
     },
     {
@@ -16,7 +16,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Technologische Neuentwicklung über Stand der Technik",
       "lang": "Das Vorhaben muss eine signifikante technologische Neuerung darstellen, die über den aktuellen Stand der Technik hinausgeht. Reine Routine-Entwicklungen oder Marktanpassungen sind nicht förderfähig.",
-      "prompt": "Analysiere die technische Vorhabenbeschreibung ('Lösungsweg', 'Innovationsgehalt'). Vergleiche den beschriebenen 'Ist-Zustand' mit dem 'Soll-Zustand'.\n\nPrüfungsschritte:\n1. Identifiziere den 'Stand der Technik': Wird erklärt, warum existierende Lösungen nicht ausreichen?\n2. Identifiziere das 'Technische Risiko': Gibt es Herausforderungen, die ein Scheitern möglich machen (z.B. komplexe Algorithmen, neue Materialkombinationen)?\n3. Abgrenzung: Handelt es sich um echte Entwicklung (F&E) oder nur um die Anwendung/Kauf bekannter Technologien?\n\nBewertung:\n- GRÜN: Hoher Innovationsgrad, technisches Risiko erkennbar, Lösung existiert so noch nicht am Markt.\n- GELB: Innovation erkennbar, aber geringe technologische Hürde (z.B. 'nur' neue Kombination bekannter Module).\n- ROT: Routineaufgabe (z.B. Standard-App, Website, CRUD-Software) oder reine Investition ohne eigene Entwicklung.",
+      "prompt": "Analysiere die technische Vorhabenbeschreibung und bewerte den Innovationsgrad.\n\nPrüfungsschritte:\n1. Identifiziere den 'Stand der Technik' und dessen Defizite.\n2. Identifiziere das 'Technische Risiko' (Herausforderungen, Scheiterwahrscheinlichkeit).\n3. Bestimme, ob es sich um echte F&E handelt.\n\nBewertungslogik:\n- Setze status='grün', wenn ein hoher Innovationsgrad und technisches Risiko erkennbar sind (Lösung existiert so nicht).\n- Setze status='gelb', wenn Innovation erkennbar ist, aber die technologische Hürde gering erscheint (z.B. neue Kombination).\n- Setze status='rot', bei Routineaufgaben (z.B. Standard-App, CRUD) oder reiner Investition.",
       "recommended": true
     },
     {
@@ -25,7 +25,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Vollständigkeit und Plausibilität der Marktanalyse",
       "lang": "Der Geschäftsplan muss eine fundierte Marktanalyse enthalten, die Wettbewerber, Zielgruppe und Marktpotential konkret benennt.",
-      "prompt": "Analysiere die Marktanalyse im Geschäftsplan.\n\nPrüfungsschritte:\n1. Konkurrenzanalyse: Werden mindestens 3 Wettbewerber namentlich genannt und analysiert?\n2. Zielgruppendefinition: Ist die Zielgruppe konkret beschrieben (Größe, Merkmale, Kaufkraft)?\n3. Marktpotential: Gibt es konkrete Zahlen zum adressierbaren Marktvolumen?\n\nBewertung:\n- GRÜN: Alle drei Bereiche ausreichend mit konkreten Zahlen und Fakten belegt.\n- GELB: Mindestens zwei Bereiche vorhanden, ein Bereich nur oberflächlich.\n- ROT: Keine oder unzureichende Marktanalyse, fehlende Konkretisierung.",
+      "prompt": "Analysiere die Marktanalyse im Geschäftsplan.\n\nPrüfungsschritte:\n1. Prüfe auf Nennung von mindestens 3 Wettbewerbern.\n2. Prüfe die Zielgruppendefinition (Größe, Merkmale).\n3. Suche nach Zahlen zum Marktpotential.\n\nBewertungslogik:\n- Setze status='grün', wenn Markt, Wettbewerb und Zielgruppe mit konkreten Fakten belegt sind.\n- Setze status='gelb', wenn Teile davon nur oberflächlich behandelt wurden.\n- Setze status='rot', wenn die Marktanalyse fehlt oder unzureichend ist.",
       "recommended": true
     },
     {
@@ -34,7 +34,7 @@
       "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Plausibilität der Umsatzprognose",
       "lang": "Die Umsatzprognose für das erste volle Geschäftsjahr muss plausibel und nachvollziehbar hergeleitet sein. Mindestumsatz: 100.000 EUR/Jahr.",
-      "prompt": "Ermittle die prognostizierte Jahresumsatz für das erste volle Geschäftsjahr.\n\nPrüfungsschritte:\n1. Suche nach Umsatzprognosen, Finanzplänen oder Erlösplanung.\n2. Extrahiere den Jahresumsatz für Jahr 1 (nach Projektstart).\n3. Prüfe die Herleitung: Sind Absatzmengen × Preise nachvollziehbar?\n4. Vergleiche mit Marktdaten und Kapazitäten.\n\nBewertung:\n- GRÜN: Umsatz >= 100.000 EUR und plausibel hergeleitet.\n- GELB: Umsatz >= 100.000 EUR, aber Herleitung unvollständig oder optimistisch.\n- ROT: Umsatz < 100.000 EUR oder unrealistische Annahmen.",
+      "prompt": "Ermittle die Umsatzprognose für das erste volle Geschäftsjahr.\n\nPrüfungsschritte:\n1. Extrahiere den Jahresumsatz für Jahr 1.\n2. Prüfe die Herleitung (Absatz x Preis).\n\nBewertungslogik:\n- Setze status='grün', wenn Umsatz >= 100.000 EUR und plausibel hergeleitet ist.\n- Setze status='gelb', wenn Umsatz >= 100.000 EUR, aber die Herleitung optimistisch/lückenhaft wirkt.\n- Setze status='rot', wenn Umsatz < 100.000 EUR oder Annahmen unrealistisch sind.",
       "recommended": true
     },
     {
@@ -43,7 +43,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Relevante Qualifikationen des Projektteams",
       "lang": "Das Projektteam muss sowohl technische als auch kaufmännische Expertise nachweisen. Mindestens ein Teammitglied sollte Branchenerfahrung mitbringen.",
-      "prompt": "Analysiere die Qualifikationen des Projektteams (CVs, Teamübersicht).\n\nPrüfungsschritte:\n1. Technische Expertise: Gibt es Personen mit technischem Hintergrund (Studium, Ausbildung, Berufserfahrung)?\n2. Kaufmännische Expertise: Gibt es Personen mit BWL/Finanzen-Know-how?\n3. Branchenerfahrung: Hat mindestens ein Teammitglied in der relevanten Branche gearbeitet?\n\nBewertung:\n- GRÜN: Alle drei Bereiche abgedeckt, Team vollständig qualifiziert.\n- GELB: Zwei Bereiche vorhanden, ein Bereich schwach oder fehlt.\n- ROT: Wesentliche Qualifikationen fehlen, Team unzureichend besetzt.",
+      "prompt": "Analysiere die Qualifikationen des Projektteams.\n\nBewertungslogik:\n- Setze status='grün', wenn Technische Expertise, Kaufmännisches Know-how UND Branchenerfahrung im Team vorhanden sind.\n- Setze status='gelb', wenn ein Bereich (Technik, BWL oder Branche) schwach besetzt ist.\n- Setze status='rot', wenn wesentliche Kompetenzen fehlen.",
       "recommended": false
     },
     {
@@ -52,7 +52,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Realistischer und detaillierter Projektzeitplan",
       "lang": "Der Projektzeitplan muss Meilensteine, Abhängigkeiten und Ressourcenplanung enthalten und realistisch umsetzbar sein.",
-      "prompt": "Prüfe den Projektzeitplan auf Realismus und Vollständigkeit.\n\nPrüfungsschritte:\n1. Meilensteine: Sind klare Zwischenziele mit Zeitpunkten definiert?\n2. Abhängigkeiten: Werden kritische Pfade und Abhängigkeiten zwischen Arbeitspaketen genannt?\n3. Ressourcenplanung: Ist erkennbar, wer wann an welchem Arbeitspaket arbeitet?\n\nBewertung:\n- GRÜN: Detaillierter Zeitplan mit Meilensteinen, Abhängigkeiten und Ressourcen.\n- GELB: Grundlegender Zeitplan vorhanden, aber Abhängigkeiten/Ressourcen unklar.\n- ROT: Kein oder unrealistischer Zeitplan, fehlende Meilensteine.",
+      "prompt": "Prüfe den Projektzeitplan.\n\nPrüfungsschritte:\n1. Suche nach Meilensteinen.\n2. Prüfe Abhängigkeiten und Arbeitspakete.\n\nBewertungslogik:\n- Setze status='grün', wenn ein detaillierter Plan mit Meilensteinen und Ressourcen vorliegt.\n- Setze status='gelb', wenn der Plan existiert, aber Details (Abhängigkeiten) fehlen.\n- Setze status='rot', wenn der Zeitplan fehlt oder unrealistisch ist.",
       "recommended": false
     },
     {
@@ -61,7 +61,7 @@
       "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Ausreichende Eigenkapitalausstattung",
       "lang": "Das Unternehmen muss über ausreichendes Eigenkapital verfügen. Mindestanforderung: 25.000 EUR.",
-      "prompt": "Ermittle das aktuelle Eigenkapital aus den Finanzunterlagen (Bilanz, Jahresabschluss).\n\nPrüfungsschritte:\n1. Suche nach Bilanz oder Eigenkapitalnachweis.\n2. Extrahiere Eigenkapital-Position (oft 'Eigenkapital', 'Stammkapital + Rücklagen').\n3. Prüfe, ob Eigenkapital >= 25.000 EUR.\n\nBewertung:\n- GRÜN: Eigenkapital >= 50.000 EUR.\n- GELB: Eigenkapital >= 25.000 EUR aber < 50.000 EUR.\n- ROT: Eigenkapital < 25.000 EUR.",
+      "prompt": "Ermittle das Eigenkapital.\n\nBewertungslogik:\n- Setze status='grün', wenn Eigenkapital >= 50.000 EUR.\n- Setze status='gelb', wenn Eigenkapital zwischen 25.000 und 50.000 EUR.\n- Setze status='rot', wenn Eigenkapital < 25.000 EUR.",
       "recommended": true
     },
     {
@@ -70,7 +70,7 @@
       "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Ausreichende Liquiditätskennzahlen",
       "lang": "Die Liquidität 2. Grades (Quick Ratio) muss mindestens 1,5 betragen, um kurzfristige Zahlungsfähigkeit sicherzustellen.",
-      "prompt": "Berechne die Liquidität 2. Grades aus der Bilanz.\n\nPrüfungsschritte:\n1. Suche in der Bilanz: Umlaufvermögen, Vorräte, Kurzfristige Verbindlichkeiten.\n2. Berechne: (Umlaufvermögen - Vorräte) / Kurzfristige Verbindlichkeiten.\n3. Prüfe, ob Ergebnis >= 1,5.\n\nBewertung:\n- GRÜN: Liquidität 2. Grades >= 1,5.\n- GELB: Liquidität 2. Grades >= 1,0 aber < 1,5.\n- ROT: Liquidität 2. Grades < 1,0 oder nicht berechenbar.",
+      "prompt": "Berechne die Liquidität 2. Grades ((Umlaufvermögen - Vorräte) / Kurzfr. Verbindlichkeiten).\n\nBewertungslogik:\n- Setze status='grün', wenn Wert >= 1,5.\n- Setze status='gelb', wenn Wert zwischen 1,0 und 1,5.\n- Setze status='rot', wenn Wert < 1,0.",
       "recommended": true
     },
     {
@@ -79,7 +79,7 @@
       "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Positive Ertragslage",
       "lang": "Das Unternehmen muss in den letzten 2 Jahren ein positives Betriebsergebnis erzielt haben.",
-      "prompt": "Analysiere die Ertragslage der letzten 2 Jahre (GuV, Jahresabschlüsse).\n\nPrüfungsschritte:\n1. Suche nach Gewinn- und Verlustrechnung (GuV) für Jahr -1 und Jahr -2.\n2. Extrahiere Betriebsergebnis (oder EBIT).\n3. Prüfe, ob beide Jahre positiv sind.\n\nBewertung:\n- GRÜN: Beide Jahre positives Betriebsergebnis.\n- GELB: Ein Jahr positiv, ein Jahr negativ oder knapp bei Null.\n- ROT: Beide Jahre negativ oder keine Daten vorhanden.",
+      "prompt": "Analysiere die Ertragslage der letzten 2 Jahre.\n\nBewertungslogik:\n- Setze status='grün', wenn beide Jahre ein positives Betriebsergebnis zeigen.\n- Setze status='gelb', wenn ein Jahr positiv und eins negativ/null ist.\n- Setze status='rot', wenn beide Jahre negativ sind.",
       "recommended": false
     },
     {
@@ -88,7 +88,16 @@
       "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Angemessener Verschuldungsgrad",
       "lang": "Der Verschuldungsgrad (Fremdkapital/Eigenkapital) darf maximal 3,0 betragen.",
-      "prompt": "Berechne den Verschuldungsgrad aus der Bilanz.\n\nPrüfungsschritte:\n1. Extrahiere aus der Bilanz: Fremdkapital, Eigenkapital.\n2. Berechne: Fremdkapital / Eigenkapital.\n3. Prüfe, ob Ergebnis <= 3,0.\n\nBewertung:\n- GRÜN: Verschuldungsgrad <= 2,0.\n- GELB: Verschuldungsgrad > 2,0 aber <= 3,0.\n- ROT: Verschuldungsgrad > 3,0 oder Eigenkapital negativ.",
+      "prompt": "Berechne den Verschuldungsgrad (Fremdkapital / Eigenkapital).\n\nBewertungslogik:\n- Setze status='grün', wenn Wert <= 2,0.\n- Setze status='gelb', wenn 2,0 < Wert <= 3,0.\n- Setze status='rot', wenn Wert > 3,0 oder Eigenkapital negativ.",
+      "recommended": true
+    },
+    {
+      "id": "K011",
+      "name": "Cashflow-Prognose",
+      "kategorie": "wirtschaftliche_bewertung",
+      "kurz": "Plausibilität der Cashflow-Prognose",
+      "lang": "Die Cashflow-Prognose muss die Zahlungsfähigkeit über den Projektzeitraum sicherstellen. Annahmen zu Umsätzen, Kosten und Zahlungszielen müssen nachvollziehbar sein.",
+      "prompt": "Analysiere die Cashflow-Planung.\n\nPrüfungsschritte:\n1. Prüfe auf positive Endbestände.\n2. Prüfe Dokumentation der Annahmen.\n\nBewertungslogik:\n- Setze status='grün', wenn der Cashflow durchgehend positiv und Annahmen dokumentiert sind.\n- Setze status='gelb', wenn er knapp/wechselhaft ist oder Annahmen fehlen.\n- Setze status='rot', bei negativem Cashflow ohne Gegenmaßnahmen.",
       "recommended": true
     },
     {
@@ -97,7 +106,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Technische Realisierbarkeit des Vorhabens",
       "lang": "Das Vorhaben muss technisch umsetzbar sein. Die Technologiereife, Verfügbarkeit der Komponenten und technische Risiken müssen bewertet werden.",
-      "prompt": "Bewerte die technische Machbarkeit des Vorhabens.\n\nPrüfungsschritte:\n1. Technologische Reife: Sind die benötigten Technologien ausgereift (TRL >= 6)?\n2. Verfügbarkeit: Sind Komponenten, Materialien, Software verfügbar?\n3. Technische Risiken: Werden kritische technische Herausforderungen adressiert?\n\nBewertung:\n- GRÜN: Technisch umsetzbar, Technologien verfügbar, Risiken identifiziert.\n- GELB: Grundsätzlich machbar, aber hohe technische Risiken oder Abhängigkeiten.\n- ROT: Technisch nicht realisierbar oder fehlende Technologie.",
+      "prompt": "Bewerte die technische Machbarkeit.\n\nPrüfungsschritte:\n1. Technologische Reife (TRL >= 6).\n2. Verfügbarkeit von Komponenten.\n3. Technische Risiken.\n\nBewertungslogik:\n- Setze status='grün', wenn technisch umsetzbar, verfügbar und Risiken adressiert sind.\n- Setze status='gelb', bei hohen Risiken oder Abhängigkeiten.\n- Setze status='rot', wenn nicht realisierbar.",
       "recommended": true
     },
     {
@@ -106,7 +115,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Vollständige technische Ressourcenplanung",
       "lang": "Die Ressourcenplanung muss Personal, Equipment und externe Dienstleister vollständig erfassen.",
-      "prompt": "Analysiere die Ressourcenplanung.\n\nPrüfungsschritte:\n1. Personal: Sind Personalmonate/-kosten für alle Rollen geplant?\n2. Equipment: Werden benötigte Geräte, Software, Lizenzen aufgeführt?\n3. Externe Dienstleister: Sind Subunternehmer/Partner eingeplant?\n\nBewertung:\n- GRÜN: Alle drei Bereiche vollständig und plausibel geplant.\n- GELB: Zwei Bereiche vollständig, ein Bereich lückenhaft.\n- ROT: Ressourcenplanung fehlt oder ist unvollständig.",
+      "prompt": "Analysiere die Ressourcenplanung (Personal, Equipment, Dienstleister).\n\nBewertungslogik:\n- Setze status='grün', wenn alle Bereiche (Personal, Equipment, Dienstleister) vollständig geplant sind.\n- Setze status='gelb', wenn Lücken vorhanden sind.\n- Setze status='rot', wenn die Planung fehlt.",
       "recommended": false
     },
     {
@@ -115,7 +124,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Einhaltung technischer Standards",
       "lang": "Das Vorhaben muss relevante technische Standards, Normen und Sicherheitsvorschriften einhalten.",
-      "prompt": "Prüfe die Einhaltung relevanter technischer Standards.\n\nPrüfungsschritte:\n1. Identifiziere relevante Normen (z.B. CE, ISO, DIN, Branchenstandards).\n2. Prüfe, ob diese im Projekt erwähnt und berücksichtigt werden.\n3. Sicherheits- und Qualitätsstandards: Werden sie adressiert?\n\nBewertung:\n- GRÜN: Alle relevanten Normen identifiziert und Einhaltung geplant.\n- GELB: Normen erwähnt, aber Einhaltung unklar oder teilweise.\n- ROT: Keine Erwähnung relevanter Standards oder Nichtbeachtung.",
+      "prompt": "Prüfe die Einhaltung technischer Standards.\n\nBewertungslogik:\n- Setze status='grün', wenn relevante Normen (CE, ISO, DIN) identifiziert und eingehalten werden.\n- Setze status='gelb', bei Unklarheiten.\n- Setze status='rot', bei Nichtbeachtung.",
       "recommended": false
     },
     {
@@ -124,7 +133,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Technische Skalierbarkeit der Lösung",
       "lang": "Die technische Lösung muss bei steigender Nachfrage oder Nutzerzahl erweiterbar sein.",
-      "prompt": "Bewerte die Skalierbarkeit der technischen Lösung.\n\nPrüfungsschritte:\n1. Architektur: Ist die Systemarchitektur modular/erweiterbar?\n2. Lastszenarien: Werden verschiedene Nutzungsszenarien (klein/groß) diskutiert?\n3. Erweiterbarkeit: Können Komponenten hinzugefügt werden ohne komplette Neuimplementierung?\n\nBewertung:\n- GRÜN: Skalierbarkeit explizit geplant und Architektur dafür ausgelegt.\n- GELB: Grundlegende Skalierbarkeit gegeben, aber nicht optimal.\n- ROT: Nicht skalierbar oder Skalierung würde Neuentwicklung erfordern.",
+      "prompt": "Bewerte die Skalierbarkeit.\n\nBewertungslogik:\n- Setze status='grün', wenn Skalierbarkeit explizit geplant ist (modulare Architektur).\n- Setze status='gelb', wenn Skalierbarkeit grundlegend gegeben ist.\n- Setze status='rot', wenn nicht skalierbar.",
       "recommended": false
     },
     {
@@ -133,7 +142,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Hamburger Postleitzahl",
       "lang": "Suche nach Hamburger PLZ (20xxx oder 21xxx)",
-      "prompt": "Suche nach Hamburger Postleitzahl (20xxx oder 21xxx). Bewerte GRÜN bei Fund.",
+      "prompt": "Suche nach Hamburger Postleitzahl (20xxx oder 21xxx). Setze status='grün' bei Fund.",
       "recommended": false
     },
     {
@@ -142,7 +151,7 @@
       "kategorie": "inhaltliche_bewertung",
       "kurz": "Bewertung der ökologischen Auswirkungen entlang des Lebenszyklus ",
       "lang": "Das Vorhaben weist eine besondere Umweltrelevanz im Sinne der Förderrichtlinie PROFI (IFB Hamburg 2023, Seiten 3–4) auf.",
-      "prompt": "„Das Vorhaben weist eine besondere Umweltrelevanz im Sinne der Förderrichtlinie PROFI (IFB Hamburg 2023, Seiten 3–4) auf.“\r\n\r\nEine besondere Umweltrelevanz liegt insbesondere vor, wenn das Projekt:\r\n\t•\teine Umweltinnovation darstellt und\r\n\t•\teinen klaren Beitrag zum Klima- und Umweltschutz leistet und\r\n\t•\tvorrangig zur\r\n\t•\tRessourcen- und Materialeffizienz und/oder\r\n\t•\tVerbesserung der Kreislaufwirtschaft\r\nbeiträgt. Optional positiv zu berücksichtigen ist:\r\n\t•\tdie Darstellung oder Erstellung einer Bewertung der ökologischen Auswirkungen entlang des Lebenszyklus (z. B. Ökobilanz).Bewertungsvorgabe:\r\n\t•\tgrün → Die Umweltrelevanz ist klar, schlüssig und entspricht eindeutig den Anforderungen der Module PROFI Umwelt / PROFI Umwelt Transfer.\r\n\t•\tgelb → Ein Umweltbezug ist erkennbar, aber unzureichend konkretisiert, nicht vorrangig oder nicht ausreichend belegt.\r\n\t•\trot → Es ist keine besondere Umweltrelevanz im Sinne der Förderrichtlinie erkennbar.\r\n\r\nDie Prüfung bezieht sich nicht auf DNSH (Art. 17 EU 2020/852), sondern ausschließlich auf die IFB-spezifische Definition der Umweltrelevanz.",
+      "prompt": "Prüfe auf besondere Umweltrelevanz gemäß PROFI-Richtlinie (Umweltinnovation, Klimaschutz, Ressourceneffizienz, Kreislaufwirtschaft).\n\nBewertungslogik:\n- Setze status='grün', wenn Umweltrelevanz klar, schlüssig und belegt ist.\n- Setze status='gelb', wenn Umweltbezug erkennbar aber unzureichend konkretisiert ist.\n- Setze status='rot', wenn keine besondere Umweltrelevanz erkennbar ist.",
       "recommended": false
     },
     {
@@ -151,7 +160,7 @@
       "kategorie": "wirtschaftliche_bewertung",
       "kurz": "Das ist ein positiver Test",
       "lang": "Anlage eines Kriteriums das immer positiv ist",
-      "prompt": "Bitte bestätigen diesen Test als positiv. \r\nAusgabe sollte dann sein:\r\n  \"status\": \"grün\",\r\n  \"begründung\": \"Alles super IFB\",\r\n",
+      "prompt": "Bitte bestätigen diesen Test als positiv.\n\nBewertungslogik:\n- Setze IMMER status='grün' und begründung='Alles super IFB'.",
       "recommended": true
     }
   ]

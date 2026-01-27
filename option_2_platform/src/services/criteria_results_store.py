@@ -61,6 +61,20 @@ def _results_path(project_id: str) -> Path:
     return BASE_DIR / project_id / "criteria_responses.json"
 
 
+def has_criteria_results(project_id: str) -> bool:
+    """Return True if criteria_responses.json exists and has at least one result."""
+    path = _results_path(project_id)
+    if not path.exists():
+        return False
+
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        crit = raw.get("criteria_results") if isinstance(raw, dict) else None
+        return bool(crit)
+    except Exception:
+        return False
+
+
 def _recompute_summary(data: Dict[str, Any]) -> None:
     total = len(criteria_service.get_all())
     evaluated = len(data.get("criteria_results", {}))

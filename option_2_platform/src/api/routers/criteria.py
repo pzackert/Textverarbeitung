@@ -53,12 +53,11 @@ async def delete_criterion(criterion_id: str):
 async def evaluate_criterion(project_id: str, criterion_id: str):
     """Trigger evaluation of a single criterion for a project."""
     try:
-        # Ensure RAG has the project docs before evaluation (UC1 expectation)
+        # Ensure RAG has the project docs before evaluation (fail hard on ingest issues)
         try:
             _load_project_into_rag(project_id)
-        except Exception:
-            # soft fail: continue even if ingest fails (keeps behavior tolerant for demo)
-            pass
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to ingest project documents: {exc}")
         return validation_service.evaluate_criterion(project_id, criterion_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))

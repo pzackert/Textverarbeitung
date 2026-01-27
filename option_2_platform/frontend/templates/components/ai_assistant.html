@@ -226,9 +226,16 @@
                                 <span class="text-gray-500 font-medium">Evidenz:</span>
                                 <div class="flex flex-wrap gap-1 mt-1">
                                     <template x-for="ev in item.evidence">
-                                        <span
-                                            class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 truncate max-w-[150px]"
-                                            x-text="ev.dokument || 'Dokument'"></span>
+                                        <button
+                                            @click="window.renderDocument(ev.doc_name || ev.dokument || ev.document, ev.page || ev.page_number)"
+                                            class="bg-gray-100 hover:bg-gray-200 px-1.5 py-0.5 rounded text-gray-600 truncate max-w-[150px] transition-colors text-left"
+                                            :title="(ev.doc_name || ev.dokument || ev.document || 'Dokument') + (ev.page || ev.page_number ? ' (S. ' + (ev.page || ev.page_number) + ')' : '')">
+                                            <span
+                                                x-text="ev.doc_name || ev.dokument || ev.document || 'Dokument'"></span>
+                                            <span x-show="ev.page || ev.page_number"
+                                                class="opacity-70 ml-0.5 text-[10px]"
+                                                x-text="'S.' + (ev.page || ev.page_number)"></span>
+                                        </button>
                                     </template>
                                 </div>
                             </div>
