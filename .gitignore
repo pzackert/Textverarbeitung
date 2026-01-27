@@ -106,3 +106,4 @@ config/secrets.yaml
 
 # Keep example configs
 !config/config.example.yaml
+docs/
